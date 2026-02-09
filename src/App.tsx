@@ -18,9 +18,11 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { lightTheme, darkTheme } from './theme';
 import { GoogleSheetsViewer } from './components/GoogleSheetsViewer';
+import { DashboardTab } from './components/DashboardTab';
+import { SheetProvider } from './context/SheetDataContext';
 import './App.css';
 
-function App() {
+function AppContent() {
   const [darkMode, setDarkMode] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
 
@@ -56,16 +58,7 @@ function App() {
 
         {/* Dashboard Tab */}
         {activeTab === 0 && (
-          <Box sx={{ mt: 3 }}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h5" gutterBottom>
-                Dashboard Overview
-              </Typography>
-              <Typography color="textSecondary">
-                Welcome to the Discord Member Dashboard. Use the tabs above to manage members, review data, and export reports.
-              </Typography>
-            </Paper>
-          </Box>
+          <DashboardTab />
         )}
 
         {/* Users Tab */}
@@ -124,6 +117,14 @@ function App() {
         )}
       </Container>
     </ThemeProvider>
+  );
+}
+
+function App() {
+  return (
+    <SheetProvider>
+      <AppContent />
+    </SheetProvider>
   );
 }
 
