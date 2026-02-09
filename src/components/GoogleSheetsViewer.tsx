@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -19,10 +19,10 @@ import {
 } from '@mui/material';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import ErrorIcon from '@mui/icons-material/Error';
-import { initializeGoogleApi, readGoogleSheet, getSpreadsheetMetadata } from '../services/googleSheetsService';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { readGoogleSheet, getSpreadsheetMetadata, checkBackendHealth } from '../services/googleSheetsService';
 
 interface SheetViewerProps {
-  apiKey?: string;
   onDataLoaded?: (data: any) => void;
 }
 
@@ -33,32 +33,35 @@ interface LoadedSheet {
   rowCount: number;
 }
 
-export const GoogleSheetsViewer = ({ apiKey, onDataLoaded }: SheetViewerProps) => {
+export const GoogleSheetsViewer = ({ onDataLoaded }: SheetViewerProps) => {
   const [spreadsheetId, setSpreadsheetId] = useState('');
   const [sheetRange, setSheetRange] = useState('Sheet1!A1:Z1000');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loadedSheets, setLoadedSheets] = useState<LoadedSheet[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [backendReady, setBackendReady] = useState(false);
+  const [checkingBackend, setCheckingBackend] = useState(true);
 
-  const handleInitializeApi = async () => {
-    if (!apiKey) {
-      setError('API Key is required. Please set it in your environment configuration.');
-      return;
-    }
+  // Check if backend is available on component mount
+  useEffect(() => {
+    const checkBackend = async () => {
+      try {
+        const isHealthy = await checkBackendHealth();
+        setBackendReady(isHealthy);
+        if (!isHealthy) {
+          setError('Backend server is not available. Please ensure the server is running on http://localhost:5000');
+        }
+      } catch {
+        setBackendReady(false);
+        setError('Unable to connect to backend server.');
+      } finally {
+        setCheckingBackend(false);
+      }
+    };
 
-    try {
-      setLoading(true);
-      setError(null);
-      await initializeGoogleApi(apiKey);
-      setIsInitialized(true);
-    } catch (err) {
-      setError(`Failed to initialize Google Sheets API: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    checkBackend();
+  }, []);
 
   const handleReadSheet = async () => {
     if (!spreadsheetId) {
@@ -66,25 +69,27 @@ export const GoogleSheetsViewer = ({ apiKey, onDataLoaded }: SheetViewerProps) =
       return;
     }
 
-    if (!isInitialized) {
-      setError('Please initialize the Google Sheets API first');
+    if (!backendReady) {
+      setError('Backend server is not available');
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
+      setSuccess(null);
 
       const data = await readGoogleSheet(spreadsheetId, sheetRange);
 
       const newSheet: LoadedSheet = {
         name: sheetRange,
         headers: data.headers,
-        rows: data.values,
+        rows: data.rows,
         rowCount: data.rowCount,
       };
 
       setLoadedSheets([...loadedSheets, newSheet]);
+      setSuccess(`✓ Successfully loaded ${newSheet.rowCount} rows from ${sheetRange}`);
       onDataLoaded?.(newSheet);
     } catch (err) {
       setError(`Failed to read sheet: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -100,18 +105,19 @@ export const GoogleSheetsViewer = ({ apiKey, onDataLoaded }: SheetViewerProps) =
       return;
     }
 
-    if (!isInitialized) {
-      setError('Please initialize the Google Sheets API first');
+    if (!backendReady) {
+      setError('Backend server is not available');
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
+      setSuccess(null);
 
       const metadata = await getSpreadsheetMetadata(spreadsheetId);
-      const sheetNames = metadata.sheets.map((sheet: any) => sheet.properties.title);
-      setError(`Found ${sheetNames.length} sheets: ${sheetNames.join(', ')}`);
+      const sheetNames = metadata.sheets.map((s) => s.name).join(', ');
+      setSuccess(`✓ Found ${metadata.sheets.length} sheets: ${sheetNames}`);
     } catch (err) {
       setError(`Failed to get metadata: ${err instanceof Error ? err.message : 'Unknown error'}`);
       console.error(err);
@@ -123,7 +129,16 @@ export const GoogleSheetsViewer = ({ apiKey, onDataLoaded }: SheetViewerProps) =
   const handleClearSheets = () => {
     setLoadedSheets([]);
     setError(null);
+    setSuccess(null);
   };
+
+  if (checkingBackend) {
+    return (
+      <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ mt: 3 }}>
@@ -134,101 +149,95 @@ export const GoogleSheetsViewer = ({ apiKey, onDataLoaded }: SheetViewerProps) =
           </Typography>
 
           <Stack spacing={2}>
+            {!backendReady && (
+              <Alert severity="error" icon={<ErrorIcon />}>
+                Backend server is not available. Please start the server with: <code>npm run server</code>
+              </Alert>
+            )}
+
+            {backendReady && (
+              <Alert severity="success" icon={<CheckCircleIcon />}>
+                Backend server is connected
+              </Alert>
+            )}
+
             <TextField
               fullWidth
-              label="API Key"
-              type="password"
+              label="Spreadsheet ID"
               variant="outlined"
-              placeholder="Enter your Google API key"
-              value={apiKey || ''}
-              disabled
-              helperText="API Key should be set in environment configuration"
+              placeholder="e.g., 1BxiMVs0XRA5nFMXU8B4RXpLN4QBKvnpKgXYP5F3eDnM"
+              value={spreadsheetId}
+              onChange={(e) => setSpreadsheetId(e.target.value)}
               size="small"
+              disabled={!backendReady}
+              helperText="Copy from your Google Sheets URL: docs.google.com/spreadsheets/d/SPREADSHEET_ID"
             />
 
-            {!isInitialized && (
+            <TextField
+              fullWidth
+              label="Range"
+              variant="outlined"
+              placeholder="e.g., Sheet1!A1:Z1000"
+              value={sheetRange}
+              onChange={(e) => setSheetRange(e.target.value)}
+              size="small"
+              disabled={!backendReady}
+              helperText="Specify the sheet name and cell range to read"
+            />
+
+            <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
                 variant="contained"
-                color="primary"
-                onClick={handleInitializeApi}
-                disabled={loading || !apiKey}
+                color="success"
+                onClick={handleReadSheet}
+                disabled={loading || !backendReady || !spreadsheetId}
+                startIcon={<CloudDownloadIcon />}
               >
-                {loading ? <CircularProgress size={24} /> : 'Initialize Google Sheets API'}
+                {loading ? <CircularProgress size={24} /> : 'Read Sheet'}
               </Button>
-            )}
 
-            {isInitialized && (
-              <Alert severity="success">✓ Google Sheets API initialized</Alert>
-            )}
+              <Button
+                variant="outlined"
+                color="info"
+                onClick={handleGetMetadata}
+                disabled={loading || !backendReady || !spreadsheetId}
+              >
+                {loading ? <CircularProgress size={24} /> : 'Get Sheet Names'}
+              </Button>
 
-            {isInitialized && (
-              <>
-                <TextField
-                  fullWidth
-                  label="Spreadsheet ID"
+              {loadedSheets.length > 0 && (
+                <Button
                   variant="outlined"
-                  placeholder="e.g., 1BxiMVs0XRA5nFMXU8B4RXpLN4QBKvnpKgXYP5F3eDnM"
-                  value={spreadsheetId}
-                  onChange={(e) => setSpreadsheetId(e.target.value)}
-                  size="small"
-                  helperText="Copy from your Google Sheets URL"
-                />
-
-                <TextField
-                  fullWidth
-                  label="Range"
-                  variant="outlined"
-                  placeholder="e.g., Sheet1!A1:Z1000"
-                  value={sheetRange}
-                  onChange={(e) => setSheetRange(e.target.value)}
-                  size="small"
-                  helperText="Specify the sheet name and cell range to read"
-                />
-
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    variant="contained"
-                    color="success"
-                    onClick={handleReadSheet}
-                    disabled={loading || !spreadsheetId}
-                    startIcon={<CloudDownloadIcon />}
-                  >
-                    {loading ? <CircularProgress size={24} /> : 'Read Sheet'}
-                  </Button>
-
-                  <Button
-                    variant="outlined"
-                    color="info"
-                    onClick={handleGetMetadata}
-                    disabled={loading || !spreadsheetId}
-                  >
-                    {loading ? <CircularProgress size={24} /> : 'Get Sheet Names'}
-                  </Button>
-
-                  {loadedSheets.length > 0 && (
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      onClick={handleClearSheets}
-                    >
-                      Clear
-                    </Button>
-                  )}
-                </Box>
-              </>
-            )}
+                  color="error"
+                  onClick={handleClearSheets}
+                >
+                  Clear
+                </Button>
+              )}
+            </Box>
           </Stack>
         </CardContent>
       </Card>
 
       {error && (
         <Alert
-          severity={error.startsWith('Found') ? 'info' : 'error'}
-          icon={error.startsWith('Found') ? undefined : <ErrorIcon />}
+          severity="error"
+          icon={<ErrorIcon />}
           sx={{ mb: 2 }}
           onClose={() => setError(null)}
         >
           {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert
+          severity="success"
+          icon={<CheckCircleIcon />}
+          sx={{ mb: 2 }}
+          onClose={() => setSuccess(null)}
+        >
+          {success}
         </Alert>
       )}
 

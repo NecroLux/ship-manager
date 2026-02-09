@@ -95,9 +95,7 @@ function App() {
 
         {/* Review Tab */}
         {activeTab === 2 && (
-          <GoogleSheetsViewer 
-            apiKey={(import.meta as any).env.VITE_GOOGLE_API_KEY}
-          />
+          <GoogleSheetsViewer />
         )}
 
         {/* Export Tab */}
