@@ -18,6 +18,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { lightTheme, darkTheme } from './theme';
 import { UsersTab } from './components/UsersTab';
+import { OverviewTab } from './components/OverviewTab';
 import { ActionsTab } from './components/ActionsTab';
 import { LinkedSheetsTab } from './components/LinkedSheetsTab';
 import { SheetProvider } from './context/SheetDataContext';
@@ -50,6 +51,7 @@ function AppContent() {
       <Container maxWidth="lg" sx={{ mt: 0 }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(_e, newValue) => setActiveTab(newValue)}>
+            <Tab label="Overview" />
             <Tab label="Sailors" />
             <Tab label="Actions" />
             <Tab label="Reports" />
@@ -57,18 +59,23 @@ function AppContent() {
           </Tabs>
         </Box>
 
-        {/* Sailors Tab */}
+        {/* Overview Tab */}
         {activeTab === 0 && (
+          <OverviewTab />
+        )}
+
+        {/* Sailors Tab */}
+        {activeTab === 1 && (
           <UsersTab />
         )}
 
         {/* Actions Tab */}
-        {activeTab === 1 && (
+        {activeTab === 2 && (
           <ActionsTab />
         )}
 
         {/* Reports Tab */}
-        {activeTab === 2 && (
+        {activeTab === 3 && (
           <Box sx={{ mt: 3 }}>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
               {/* Ship Report */}
@@ -111,7 +118,7 @@ function AppContent() {
         )}
 
         {/* Config Tab */}
-        {activeTab === 3 && (
+        {activeTab === 4 && (
           <LinkedSheetsTab />
         )}
       </Container>
