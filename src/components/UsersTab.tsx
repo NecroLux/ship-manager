@@ -23,15 +23,23 @@ import { useSheetData } from '../context/SheetDataContext';
 const getComplianceStatus = (complianceValue: string) => {
   if (!complianceValue) return { label: 'Unknown', color: 'default' as const, icon: '?', status: 'unknown' };
   const normalized = complianceValue.toLowerCase().trim();
-  if (normalized === 'in regulations' || normalized === 'yes' || normalized === 'compliant' || normalized === 'within regulations') {
+  
+  // Active Duty status = Compliant
+  if (normalized.includes('active') || normalized.includes('duty') || 
+      normalized === 'within regulations' || normalized === 'yes' || normalized === 'compliant') {
     return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
   }
+  
+  // LOA statuses (e.g., "LOA-1", "LOA-2") = Requires Attention
+  if (normalized.includes('loa') || normalized.includes('requires attention') || normalized.includes('warning')) {
+    return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
+  }
+  
+  // Flagged/Action required
   if (normalized === 'flagged' || normalized === 'no' || normalized === 'non-compliant' || normalized === 'requires action') {
     return { label: 'Requires Action', color: 'error' as const, icon: '✕', status: 'action-required' };
   }
-  if (normalized === 'requires attention' || normalized === 'warning') {
-    return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
-  }
+  
   return { label: normalized, color: 'default' as const, icon: '?', status: 'unknown' };
 };
 
@@ -70,11 +78,11 @@ export const UsersTab = () => {
   const sailors = data.gullinbursti.rows.map((row) => {
     // Try to find columns by various name patterns
     const rankCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('rank')) || data.gullinbursti.headers[0];
-    const nameCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('name') || h.toLowerCase().includes('sailor') || h.toLowerCase().includes('member')) || data.gullinbursti.headers[1];
-    const squadCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('squad') || h.toLowerCase().includes('team')) || data.gullinbursti.headers[2];
-    const complianceCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('compliance') || h.toLowerCase().includes('status')) || data.gullinbursti.headers[3];
-    const timezoneCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('timezone') || h.toLowerCase().includes('tz')) || data.gullinbursti.headers[4];
-    const starsCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('activity') || h.toLowerCase().includes('star')) || data.gullinbursti.headers[5];
+    const nameCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('name')) || data.gullinbursti.headers[1];
+    const squadCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('discord') || h.toLowerCase().includes('nickname')) || data.gullinbursti.headers[2];
+    const complianceCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('loa') || h.toLowerCase().includes('status')) || data.gullinbursti.headers[8];
+    const timezoneCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('timezone')) || data.gullinbursti.headers[7];
+    const activityCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('chat') || h.toLowerCase().includes('activity')) || data.gullinbursti.headers[10];
 
     return {
       rank: row[rankCol] || 'Sailor',
@@ -82,16 +90,16 @@ export const UsersTab = () => {
       squad: row[squadCol] || '-',
       compliance: row[complianceCol] || 'Unknown',
       timezone: row[timezoneCol] || '-',
-      stars: row[starsCol] || '0',
+      stars: row[activityCol] || '0',
     };
   });
 
   const complianceStats = {
     total: sailors.length,
     compliant: sailors.filter(s => 
-      s.compliance.toLowerCase().includes('regulation') || 
-      s.compliance.toLowerCase() === 'yes' ||
-      s.compliance.toLowerCase() === 'compliant'
+      s.compliance.toLowerCase().includes('active') ||
+      s.compliance.toLowerCase().includes('duty') ||
+      s.compliance === 'Within regulations'
     ).length,
   };
 
