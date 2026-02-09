@@ -33,10 +33,10 @@ interface LinkedSheet {
 }
 
 export const LinkedSheetsTab = () => {
-  const { data, loading, refreshData } = useSheetData();
-  const [ranges, setRanges] = useState<Record<string, string>>({
-    'voyage-awards': 'Time/Voyage Awards!A1:O900',
-    'gullinbursti': 'Gullinbursti!A1:W64',
+  const { data, loading, refreshData, updateSheetRange, ranges } = useSheetData();
+  const [localRanges, setLocalRanges] = useState<Record<string, string>>({
+    'voyage-awards': ranges.voyageAwards,
+    'gullinbursti': ranges.gullinbursti,
   });
   const [snackMessage, setSnackMessage] = useState<string | null>(null);
 
@@ -71,9 +71,14 @@ export const LinkedSheetsTab = () => {
     window.open(url, '_blank');
   };
 
-  const handleRangeUpdate = (sheetKey: string, newRange: string) => {
-    setRanges(prev => ({ ...prev, [sheetKey]: newRange }));
-    setSnackMessage(`Range updated for ${linkedSheets.find(s => s.spreadsheetId.includes(sheetKey))?.name || 'sheet'}`);
+  const handleRangeUpdate = async (sheetKey: 'voyage-awards' | 'gullinbursti', newRange: string) => {
+    try {
+      await updateSheetRange(sheetKey, newRange);
+      const sheetName = sheetKey === 'voyage-awards' ? 'Voyage Awards' : 'Gullinbursti';
+      setSnackMessage(`✓ ${sheetName} range updated and records refreshed`);
+    } catch (err) {
+      setSnackMessage(`✗ Failed to update range: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
   };
 
   return (
@@ -121,14 +126,15 @@ export const LinkedSheetsTab = () => {
             <TableBody>
               {linkedSheets.map((sheet, idx) => {
                 const sheetKey = sheet.name === 'Voyage Awards' ? 'voyage-awards' : 'gullinbursti';
+                const currentRange = sheetKey === 'voyage-awards' ? ranges.voyageAwards : ranges.gullinbursti;
                 return (
                   <TableRow key={idx} hover>
                     <TableCell sx={{ fontWeight: 500 }}>{sheet.name}</TableCell>
                     <TableCell>
                       <TextField
                         size="small"
-                        value={ranges[sheetKey]}
-                        onChange={(e) => setRanges(prev => ({ ...prev, [sheetKey]: e.target.value }))}
+                        value={currentRange}
+                        onChange={(e) => setLocalRanges(prev => ({ ...prev, [sheetKey]: e.target.value }))}
                         sx={{ width: 280 }}
                       />
                     </TableCell>
@@ -153,7 +159,7 @@ export const LinkedSheetsTab = () => {
                           variant="contained"
                           color="primary"
                           startIcon={<UpdateIcon />}
-                          onClick={() => handleRangeUpdate(sheetKey, ranges[sheetKey])}
+                          onClick={() => handleRangeUpdate(sheetKey as 'voyage-awards' | 'gullinbursti', localRanges[sheetKey] || currentRange)}
                           sx={{ textTransform: 'none' }}
                         >
                           Update

@@ -21,6 +21,8 @@ interface SheetContextType {
   loading: boolean;
   error: string | null;
   refreshData: () => Promise<void>;
+  updateSheetRange: (sheetKey: 'voyage-awards' | 'gullinbursti', newRange: string) => Promise<void>;
+  ranges: { voyageAwards: string; gullinbursti: string };
 }
 
 const SheetContext = createContext<SheetContextType | undefined>(undefined);
@@ -118,16 +120,20 @@ export const SheetProvider = ({ children }: { children: ReactNode }) => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ranges, setRanges] = useState({
+    voyageAwards: VOYAGE_AWARDS_RANGE,
+    gullinbursti: GULLINBURSTI_RANGE,
+  });
 
   const fetchAllData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch both sheets in parallel
+      // Fetch both sheets in parallel with current ranges
       const [voyageAwardsData, gullinburstiData] = await Promise.all([
-        fetchSheetData(VOYAGE_AWARDS_SPREADSHEET_ID, VOYAGE_AWARDS_RANGE, true),
-        fetchSheetData(GULLINBURSTI_SPREADSHEET_ID, GULLINBURSTI_RANGE, false),
+        fetchSheetData(VOYAGE_AWARDS_SPREADSHEET_ID, ranges.voyageAwards, true),
+        fetchSheetData(GULLINBURSTI_SPREADSHEET_ID, ranges.gullinbursti, false),
       ]);
 
       setData({
@@ -138,6 +144,43 @@ export const SheetProvider = ({ children }: { children: ReactNode }) => {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch sheet data';
       setError(`Backend Error: ${errorMessage}. Check browser console for details.`);
       console.error('Full error fetching all sheet data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateSheetRange = async (sheetKey: 'voyage-awards' | 'gullinbursti', newRange: string) => {
+    try {
+      // Update the range in state
+      if (sheetKey === 'voyage-awards') {
+        setRanges(prev => ({ ...prev, voyageAwards: newRange }));
+        // Save to localStorage
+        localStorage.setItem('sheetRange_voyageAwards', newRange);
+      } else {
+        setRanges(prev => ({ ...prev, gullinbursti: newRange }));
+        // Save to localStorage
+        localStorage.setItem('sheetRange_gullinbursti', newRange);
+      }
+
+      // Refetch data immediately with new range
+      setLoading(true);
+      setError(null);
+
+      const spreadsheetId = sheetKey === 'voyage-awards' 
+        ? VOYAGE_AWARDS_SPREADSHEET_ID 
+        : GULLINBURSTI_SPREADSHEET_ID;
+
+      const filterEmptyFirst = sheetKey === 'voyage-awards';
+      const newData = await fetchSheetData(spreadsheetId, newRange, filterEmptyFirst);
+
+      setData(prev => ({
+        ...prev,
+        [sheetKey === 'voyage-awards' ? 'voyageAwards' : 'gullinbursti']: newData,
+      }));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update sheet range';
+      setError(`Error updating range: ${errorMessage}`);
+      console.error('Error updating sheet range:', err);
     } finally {
       setLoading(false);
     }
@@ -159,6 +202,8 @@ export const SheetProvider = ({ children }: { children: ReactNode }) => {
         loading,
         error,
         refreshData: fetchAllData,
+        updateSheetRange,
+        ranges,
       }}
     >
       {children}
