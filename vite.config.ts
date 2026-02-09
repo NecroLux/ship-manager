@@ -2,8 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-// Base path for GitHub Pages serving from /dashboard/dist/
+// Deployed to GitHub Pages with Actions (root level)
 export default defineConfig({
-  base: '/',
+  base: '/ship-manager/',
   plugins: [react()],
 })
