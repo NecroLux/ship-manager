@@ -228,22 +228,74 @@ ship-manager/
 - `npm run lint` - Run ESLint
 - `npm run deploy` - Deploy to GitHub Pages
 
-1. Make sure the backend is running: `npm run server`
-2. Check that the backend is accessible at `http://localhost:5000`
-3. Verify CORS is enabled (it should be by default)
+## Deployment
 
-### Permission Denied / Access Denied
+### Frontend Deployment (GitHub Pages)
 
-1. Verify the service account email has been added to your Google Sheet
-2. Check that it has at least "Viewer" permissions
-3. Ensure the `credentials.json` file exists and is readable
-4. Check the backend logs for more details
+The frontend is automatically deployed to GitHub Pages when you push to the `main` branch. The site is available at: **https://NecroLux.github.io/ship-manager/**
 
-### Spreadsheet not found / Invalid range
+### Backend Deployment (Always-On Server)
 
-1. Verify the Spreadsheet ID is correct (from the URL)
-2. Check the range format: `SheetName!A1:Z1000`
-3. Ensure the range is within the bounds of the sheet
+**Important**: The backend server must run 24/7 for the dashboard to work properly. There are several options:
+
+#### Option 1: Deploy to Railway (Recommended)
+
+Railway offers a free tier with $5/month credit (more than enough for this backend).
+
+[See Railway Deployment Guide →](./RAILWAY_DEPLOYMENT.md)
+
+Quick steps:
+1. Create a [Railway account](https://railway.app)
+2. Connect your GitHub repository
+3. Add `GOOGLE_SERVICE_ACCOUNT_JSON` environment variable with your credentials
+4. Deploy (automatic on push to main)
+
+#### Option 2: Deploy to Render
+
+Render offers free tier with some limitations.
+
+1. Go to [render.com](https://render.com)
+2. Create new "Web Service"
+3. Select your GitHub repo
+4. Build Command: `npm install`
+5. Start Command: `npm run server`
+6. Add environment variables and deploy
+
+#### Option 3: Keep-Alive on Your Machine
+
+Run the backend automatically every time you log in:
+
+**Windows (Task Scheduler):**
+1. Create `run-backend.bat` with content:
+   ```batch
+   cd C:\Users\chips\OneDrive\Documents\ship-manager
+   npm run server
+   ```
+2. Open Task Scheduler → Create Basic Task
+3. Set trigger to "At log on" and action to run the `.bat` file
+
+**macOS/Linux (systemd or pm2):**
+```bash
+npm install -g pm2
+pm2 start npm --name "ship-manager-backend" -- run server
+pm2 startup
+pm2 save
+```
+
+### Updating Backend URL for Production
+
+After deploying the backend:
+
+1. Update the `VITE_BACKEND_URL` in `.env.local`:
+   ```
+   VITE_BACKEND_URL=https://your-railway-url.up.railway.app
+   ```
+
+2. Rebuild and redeploy the frontend:
+   ```bash
+   npm run build
+   npm run deploy
+   ```
 
 ## Future Features
 

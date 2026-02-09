@@ -24,12 +24,31 @@ app.use(express.json());
 
 // Google Sheets API setup with service account
 const getAuthClient = async () => {
+  // First, try to get credentials from environment variable (for cloud deployment)
+  const credentialsJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  
+  if (credentialsJson) {
+    try {
+      const credentials = JSON.parse(credentialsJson);
+      const auth = new google.auth.GoogleAuth({
+        credentials,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+      });
+      return auth;
+    } catch (err) {
+      console.error('Error parsing GOOGLE_SERVICE_ACCOUNT_JSON:', err);
+      throw new Error('Invalid GOOGLE_SERVICE_ACCOUNT_JSON format');
+    }
+  }
+
+  // Fall back to file-based credentials (for local development)
   const credentialsPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
   
   if (!credentialsPath) {
-    console.error('Error: GOOGLE_SERVICE_ACCOUNT_KEY_PATH environment variable not set');
-    console.error('Please create a .env.local file with: GOOGLE_SERVICE_ACCOUNT_KEY_PATH=./credentials.json');
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY_PATH environment variable not set');
+    console.error('Error: Neither GOOGLE_SERVICE_ACCOUNT_JSON nor GOOGLE_SERVICE_ACCOUNT_KEY_PATH environment variable is set');
+    console.error('For cloud deployment: set GOOGLE_SERVICE_ACCOUNT_JSON environment variable');
+    console.error('For local development: create a .env.local file with: GOOGLE_SERVICE_ACCOUNT_KEY_PATH=./credentials.json');
+    throw new Error('No credentials configured');
   }
 
   // Resolve the credentials path relative to the project root
