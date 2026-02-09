@@ -86,7 +86,7 @@ export const UsersTab = () => {
     stars: string;
   }> = [];
 
-  let currentSquad = 'Unknown';
+  let currentSquad = 'Command Staff';
   
   for (let i = 0; i < data.gullinbursti.rows.length; i++) {
     const row = data.gullinbursti.rows[i];
@@ -98,6 +98,13 @@ export const UsersTab = () => {
     // Skip completely empty rows
     if (rankVal === '' && nameVal === '') {
       console.log(`  -> Skipping empty row`);
+      continue;
+    }
+    
+    // Skip column header rows (where the row contains "Rank" and "Name" as values)
+    if ((rankVal === 'Rank' || rankVal.toLowerCase() === 'rank') && 
+        (nameVal === 'Name' || nameVal.toLowerCase() === 'name')) {
+      console.log(`  -> Skipping column header row`);
       continue;
     }
     
