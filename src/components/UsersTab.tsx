@@ -3,7 +3,6 @@ import {
   Paper,
   Typography,
   CircularProgress,
-  Alert,
   Table,
   TableBody,
   TableCell,
@@ -11,7 +10,6 @@ import {
   TableHead,
   TableRow,
   Button,
-  Stack,
   Card,
   CardContent,
   Chip,
@@ -19,7 +17,6 @@ import {
   useTheme,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import ErrorIcon from '@mui/icons-material/Error';
 import { useSheetData } from '../context/SheetDataContext';
 
 // Helper function to get compliance status
@@ -51,7 +48,7 @@ const getRankColor = (rank: string) => {
 };
 
 export const UsersTab = () => {
-  const { data, loading, error, refreshData } = useSheetData();
+  const { data, loading, refreshData } = useSheetData();
   const theme = useTheme();
 
   if (loading) {
@@ -62,15 +59,29 @@ export const UsersTab = () => {
     );
   }
 
-  // Parse sailor data - map from whatever columns exist in the sheet
-  const sailors = data.gullinbursti.rows.map((row) => ({
-    rank: row['Rank'] || row['rank'] || 'Sailor',
-    name: row['Name'] || row['name'] || row['Discord Name'] || 'Unknown',
-    squad: row['Squad'] || row['squad'] || row['Team'] || '-',
-    compliance: row['Compliance'] || row['compliance'] || row['Status'] || 'Unknown',
-    timezone: row['Timezone'] || row['timezone'] || row['TZ'] || '-',
-    stars: row['Chat Activity Stars'] || row['stars'] || row['Activity'] || '0',
-  }));
+  // Log headers for debugging
+  console.log('Gullinbursti headers:', data.gullinbursti.headers);
+  console.log('Sample row:', data.gullinbursti.rows[0]);
+
+  // Parse sailor data - flexible column matching
+  const sailors = data.gullinbursti.rows.map((row) => {
+    // Try to find columns by various name patterns
+    const rankCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('rank')) || data.gullinbursti.headers[0];
+    const nameCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('name') || h.toLowerCase().includes('sailor') || h.toLowerCase().includes('member')) || data.gullinbursti.headers[1];
+    const squadCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('squad') || h.toLowerCase().includes('team')) || data.gullinbursti.headers[2];
+    const complianceCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('compliance') || h.toLowerCase().includes('status')) || data.gullinbursti.headers[3];
+    const timezoneCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('timezone') || h.toLowerCase().includes('tz')) || data.gullinbursti.headers[4];
+    const starsCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('activity') || h.toLowerCase().includes('star')) || data.gullinbursti.headers[5];
+
+    return {
+      rank: row[rankCol] || 'Sailor',
+      name: row[nameCol] || 'Unknown',
+      squad: row[squadCol] || '-',
+      compliance: row[complianceCol] || 'Unknown',
+      timezone: row[timezoneCol] || '-',
+      stars: row[starsCol] || '0',
+    };
+  });
 
   const complianceStats = {
     total: sailors.length,
@@ -83,45 +94,17 @@ export const UsersTab = () => {
 
   return (
     <Box sx={{ mt: 3 }}>
-      {/* Header Card */}
-      <Card sx={{ 
-        mb: 3, 
-        background: theme.palette.mode === 'dark'
-          ? 'linear-gradient(135deg, #1e3a8a 0%, #2d5a96 100%)'
-          : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-        color: 'white'
-      }}>
-        <CardContent>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                ⚓ Ship's Crew
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                {sailors.length} crew members • {complianceStats.compliant} in compliance
-              </Typography>
-            </Box>
-            <Button
-              variant="contained"
-              startIcon={<RefreshIcon />}
-              onClick={refreshData}
-              disabled={loading}
-              sx={{ 
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                '&:hover': { backgroundColor: 'rgba(255,255,255,0.3)' }
-              }}
-            >
-              Refresh
-            </Button>
-          </Stack>
-
-          {error && (
-            <Alert severity="error" icon={<ErrorIcon />}>
-              {error}
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+      {/* Refresh Button */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          variant="contained"
+          startIcon={<RefreshIcon />}
+          onClick={refreshData}
+          disabled={loading}
+        >
+          Refresh
+        </Button>
+      </Box>
 
       {sailors.length === 0 ? (
         <Paper sx={{ p: 3, textAlign: 'center' }}>
