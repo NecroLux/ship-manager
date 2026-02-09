@@ -89,7 +89,12 @@ const fetchSheetData = async (
       lastUpdated: new Date(),
     };
   } catch (err) {
-    console.error(`Error fetching sheet data:`, err);
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`Error fetching sheet (${spreadsheetId}, ${range}):`, errorMsg);
+    // Log the full error for debugging
+    if (err instanceof Error) {
+      console.error('Stack trace:', err.stack);
+    }
     throw err;
   }
 };
@@ -119,8 +124,8 @@ export const SheetProvider = ({ children }: { children: ReactNode }) => {
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch sheet data';
-      setError(errorMessage);
-      console.error('Error fetching all sheet data:', err);
+      setError(`Backend Error: ${errorMessage}. Check browser console for details.`);
+      console.error('Full error fetching all sheet data:', err);
     } finally {
       setLoading(false);
     }
