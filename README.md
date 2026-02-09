@@ -230,72 +230,71 @@ ship-manager/
 
 ## Deployment
 
-### Frontend Deployment (GitHub Pages)
+### 🎉 **Completely Free Deployment**
 
-The frontend is automatically deployed to GitHub Pages when you push to the `main` branch. The site is available at: **https://NecroLux.github.io/ship-manager/**
+Both frontend and backend can be deployed completely free using free tier services!
 
-### Backend Deployment (Always-On Server)
+**[📖 See Free Deployment Guide →](./FREE_DEPLOYMENT.md)**
 
-**Important**: The backend server must run 24/7 for the dashboard to work properly. There are several options:
+| Component | Service | Cost | Status |
+|-----------|---------|------|--------|
+| **Frontend** | GitHub Pages | Free | ✅ Auto-deployed |
+| **Backend** | Render OR Railway | Free | ⏳ Follow guide |
+| **Data** | Your Google Sheets | Free | ✅ Connected |
+| **Total** | | **$0/month** | |
 
-#### Option 1: Deploy to Railway (Recommended)
+### Quick Deployment Steps
 
-Railway offers a free tier with $5/month credit (more than enough for this backend).
+1. **Choose your backend service**:
+   - **Render.com** (truly free, some inactivity sleep)
+   - **Railway** (free $5/month credit, no sleep)
+   - **Your Machine** (local, always-on, no cloud cost)
 
-[See Railway Deployment Guide →](./RAILWAY_DEPLOYMENT.md)
+2. **Deploy the backend** (5-10 minutes):
+   - [Full guide with screenshots →](./FREE_DEPLOYMENT.md)
 
-Quick steps:
-1. Create a [Railway account](https://railway.app)
-2. Connect your GitHub repository
-3. Add `GOOGLE_SERVICE_ACCOUNT_JSON` environment variable with your credentials
-4. Deploy (automatic on push to main)
-
-#### Option 2: Deploy to Render
-
-Render offers free tier with some limitations.
-
-1. Go to [render.com](https://render.com)
-2. Create new "Web Service"
-3. Select your GitHub repo
-4. Build Command: `npm install`
-5. Start Command: `npm run server`
-6. Add environment variables and deploy
-
-#### Option 3: Keep-Alive on Your Machine
-
-Run the backend automatically every time you log in:
-
-**Windows (Task Scheduler):**
-1. Create `run-backend.bat` with content:
-   ```batch
-   cd C:\Users\chips\OneDrive\Documents\ship-manager
-   npm run server
-   ```
-2. Open Task Scheduler → Create Basic Task
-3. Set trigger to "At log on" and action to run the `.bat` file
-
-**macOS/Linux (systemd or pm2):**
-```bash
-npm install -g pm2
-pm2 start npm --name "ship-manager-backend" -- run server
-pm2 startup
-pm2 save
-```
-
-### Updating Backend URL for Production
-
-After deploying the backend:
-
-1. Update the `VITE_BACKEND_URL` in `.env.local`:
-   ```
-   VITE_BACKEND_URL=https://your-railway-url.up.railway.app
-   ```
-
-2. Rebuild and redeploy the frontend:
+3. **Update frontend**:
    ```bash
+   # Edit .env.local with your new backend URL
+   VITE_BACKEND_URL=https://your-backend-url.com
+   
+   # Rebuild and deploy
    npm run build
    npm run deploy
    ```
+
+### Frontend: GitHub Pages (Already Done)
+
+The frontend is automatically deployed to GitHub Pages when you push to the `main` branch.
+
+**Live Site**: https://NecroLux.github.io/ship-manager/
+
+### Backend: Always-On Server
+
+The backend must run 24/7. Three completely free options:
+
+#### Option 1: Render.com (Recommended)
+- Sign up free at [render.com](https://render.com)
+- Connect GitHub repo → automatic deployment
+- Free tier includes one web service
+- **Cost**: $0/month
+- **Note**: Service sleeps after 15 min inactivity (wakes on first request)
+
+[Render setup guide →](./FREE_DEPLOYMENT.md#option-1-deploy-backend-to-rendercom-completely-free)
+
+#### Option 2: Railway
+- Free $5/month credit (more than enough)
+- Always-on (no sleep)
+- Automatic GitHub deployments
+
+[Railway setup guide →](./RAILWAY_DEPLOYMENT.md)
+
+#### Option 3: Local (Your Machine)
+- No cloud cost
+- Runs automatically at login (Windows/Mac)
+- Requires computer to be on
+
+[Local setup guide →](./FREE_DEPLOYMENT.md#option-3-free-local-alternative-your-machine)
 
 ## Future Features
 
