@@ -12,7 +12,6 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
   Rating,
   useTheme,
 } from '@mui/material';
@@ -228,18 +227,18 @@ export const UsersTab = () => {
                       <TableHead>
                         <TableRow 
                           sx={{
-                            backgroundColor: squadColor.bg,
+                            backgroundColor: 'transparent',
                             '& th': {
-                              backgroundColor: squadColor.bg,
+                              backgroundColor: 'transparent',
                               fontWeight: 'bold',
                               fontSize: '1rem',
-                              color: squadColor.border,
+                              color: '#FFFFFF',
                               borderBottom: `2px solid ${squadColor.border}`,
                               py: 1.5,
                             }
                           }}
                         >
-                          <TableCell colSpan={6} sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1rem', color: squadColor.border }}>
+                          <TableCell colSpan={5} sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1rem', color: '#FFFFFF', backgroundColor: 'transparent' }}>
                             {squad}
                           </TableCell>
                         </TableRow>
@@ -256,7 +255,6 @@ export const UsersTab = () => {
                         >
                           <TableCell sx={{ width: '12%' }}>Rank</TableCell>
                           <TableCell sx={{ width: '20%' }}>Name</TableCell>
-                          <TableCell sx={{ width: '18%' }}>Detail</TableCell>
                           <TableCell sx={{ width: '15%', textAlign: 'center' }}>Compliance</TableCell>
                           <TableCell sx={{ width: '18%' }}>Timezone</TableCell>
                           <TableCell sx={{ width: '17%', textAlign: 'center' }}>Activity</TableCell>
@@ -309,16 +307,6 @@ export const UsersTab = () => {
                               {/* Name */}
                               <TableCell sx={{ fontWeight: 500, py: 1.5 }}>
                                 {sailor.name}
-                              </TableCell>
-
-                              {/* Detail (was Squad) */}
-                              <TableCell sx={{ py: 1.5 }}>
-                                <Chip
-                                  label={sailor.squad}
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{ fontWeight: 500 }}
-                                />
                               </TableCell>
 
                               {/* Compliance */}
