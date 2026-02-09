@@ -2,6 +2,10 @@
 
 A modern React dashboard application for monitoring and managing Discord server members with Google Sheets integration and report export functionality.
 
+## 🚀 Live Demo
+
+**[View Live Dashboard](https://NecroLux.github.io/ship-manager/dashboard/dist/)**
+
 ## Features
 
 - **Dark/Light Mode**: Toggle between dark and light themes with persistent state
@@ -23,8 +27,8 @@ A modern React dashboard application for monitoring and managing Discord server 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/discord-member-dashboard.git
-cd discord-member-dashboard/dashboard
+git clone https://github.com/NecroLux/ship-manager.git
+cd ship-manager/dashboard
 
 # Install dependencies
 npm install
@@ -74,6 +78,30 @@ Place your credentials in the project (keep secure and never commit to git):
 - `npm run build` - Build for production
 - `npm run preview` - Build and preview production version
 - `npm run lint` - Run ESLint checks
+- `npm run deploy` - Deploy to GitHub (builds, commits, and pushes)
+
+## Deployment
+
+### Automatic Deployment to GitHub Pages
+
+To deploy your changes to GitHub Pages:
+
+```bash
+# Make your changes
+npm run build  # Always build before deploying
+npm run deploy # Commits and pushes to GitHub
+```
+
+The app will be live at: **https://NecroLux.github.io/ship-manager/dashboard/dist/**
+
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+### GitHub Pages Configuration
+
+The repository is already configured for GitHub Pages:
+- **Source**: `/dashboard/dist` folder on the `main` branch
+- **Updates**: Automatic when changes are pushed to `main`
+
 
 ## Technologies Used
 
