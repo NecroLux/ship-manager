@@ -46,11 +46,17 @@ const fetchSheetData = async (
   filterEmptyFirst: boolean = true
 ): Promise<SheetData> => {
   try {
-    // Use environment variable for backend URL, default to localhost for development
-    // In Vite, environment variables with VITE_ prefix are available at runtime
-    // @ts-ignore - Vite injects env variables at build time
-    const backendUrl = (import.meta.env.VITE_BACKEND_URL as string) || 'http://localhost:5000';
-    console.log('Backend URL:', backendUrl); // Debug log
+    // Determine backend URL based on environment
+    // In production (GitHub Pages), use Render backend
+    // In development, use localhost
+    const isDevelopment = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    
+    const backendUrl = isDevelopment 
+      ? 'http://localhost:5000'
+      : 'https://ship-manager.onrender.com';
+    
+    console.log('Backend URL:', backendUrl, '(isDevelopment:', isDevelopment, ')'); // Debug log
     const response = await fetch(`${backendUrl}/api/sheets/read`, {
       method: 'POST',
       headers: {
