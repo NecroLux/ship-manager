@@ -62,12 +62,20 @@ function AppContent() {
       </AppBar>
       <Container maxWidth="lg" sx={{ mt: 0 }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={activeTab} onChange={(_e, newValue) => setActiveTab(newValue)}>
-            <Tab label="Overview" />
-            <Tab label="Crew" />
-            <Tab label="Actions" />
-            <Tab label="Reports" />
-            <Tab label="Config" />
+          <Tabs 
+            value={activeTab} 
+            onChange={(_e, newValue) => setActiveTab(newValue)}
+            sx={{
+              '& .MuiTabs-flexContainer': {
+                justifyContent: 'space-around',
+              }
+            }}
+          >
+            <Tab label="Overview" sx={{ flex: 1 }} />
+            <Tab label="Crew" sx={{ flex: 1 }} />
+            <Tab label="Actions" sx={{ flex: 1 }} />
+            <Tab label="Reports" sx={{ flex: 1 }} />
+            <Tab label="Config" sx={{ flex: 1 }} />
           </Tabs>
         </Box>
 
