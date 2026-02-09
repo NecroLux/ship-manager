@@ -46,7 +46,9 @@ const fetchSheetData = async (
   filterEmptyFirst: boolean = true
 ): Promise<SheetData> => {
   try {
-    const response = await fetch('http://localhost:5000/api/sheets/read', {
+    // Use environment variable for backend URL, default to localhost for development
+    const backendUrl = (import.meta as any).env.VITE_BACKEND_URL || 'http://localhost:5000';
+    const response = await fetch(`${backendUrl}/api/sheets/read`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
