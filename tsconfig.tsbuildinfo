@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/theme.ts","./src/components/dashboardtab.tsx","./src/components/googlesheetsviewer.tsx","./src/context/sheetdatacontext.tsx","./src/services/googlesheetsservice.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/theme.ts","./src/components/dashboardtab.tsx","./src/components/googlesheetsviewer.tsx","./src/components/userstab.tsx","./src/context/sheetdatacontext.tsx","./src/services/googlesheetsservice.ts"],"version":"5.9.3"}

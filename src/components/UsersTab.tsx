@@ -19,7 +19,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import ErrorIcon from '@mui/icons-material/Error';
 import { useSheetData } from '../context/SheetDataContext';
 
-export const DashboardTab = () => {
+export const UsersTab = () => {
   const { data, loading, error, refreshData } = useSheetData();
 
   if (loading) {
@@ -37,11 +37,11 @@ export const DashboardTab = () => {
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Box>
               <Typography variant="h5" gutterBottom>
-                Voyage Awards Dashboard
+                Gullinbursti Members
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                {data.voyageAwards.rowCount} total records
-                {data.voyageAwards.lastUpdated && ` • Last updated: ${data.voyageAwards.lastUpdated.toLocaleTimeString()}`}
+                {data.gullinbursti.rowCount} total members
+                {data.gullinbursti.lastUpdated && ` • Last updated: ${data.gullinbursti.lastUpdated.toLocaleTimeString()}`}
               </Typography>
             </Box>
             <Button
@@ -62,10 +62,10 @@ export const DashboardTab = () => {
         </CardContent>
       </Card>
 
-      {data.voyageAwards.rowCount === 0 ? (
+      {data.gullinbursti.rowCount === 0 ? (
         <Paper sx={{ p: 3, textAlign: 'center' }}>
           <Typography color="textSecondary">
-            No data available. Check that the spreadsheet is properly configured.
+            No member data available. Check that the spreadsheet is properly configured.
           </Typography>
         </Paper>
       ) : (
@@ -74,7 +74,7 @@ export const DashboardTab = () => {
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                  {data.voyageAwards.headers.map((header, idx) => (
+                  {data.gullinbursti.headers.map((header, idx) => (
                     <TableCell key={idx} sx={{ fontWeight: 'bold' }}>
                       {header}
                     </TableCell>
@@ -82,9 +82,9 @@ export const DashboardTab = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {data.voyageAwards.rows.slice(0, 50).map((row, rowIdx) => (
+                {data.gullinbursti.rows.map((row, rowIdx) => (
                   <TableRow key={rowIdx} hover>
-                    {data.voyageAwards.headers.map((header, cellIdx) => (
+                    {data.gullinbursti.headers.map((header, cellIdx) => (
                       <TableCell key={cellIdx}>
                         {row[header] || '-'}
                       </TableCell>
@@ -94,13 +94,11 @@ export const DashboardTab = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          {data.voyageAwards.rowCount > 50 && (
-            <Box sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="caption" color="textSecondary">
-                Showing 50 of {data.voyageAwards.rowCount} records
-              </Typography>
-            </Box>
-          )}
+          <Box sx={{ p: 2, textAlign: 'center' }}>
+            <Typography variant="caption" color="textSecondary">
+              Total members: {data.gullinbursti.rowCount}
+            </Typography>
+          </Box>
         </Paper>
       )}
     </Box>

@@ -11,8 +11,13 @@ interface SheetData {
   lastUpdated: Date | null;
 }
 
+interface AppData {
+  voyageAwards: SheetData;
+  gullinbursti: SheetData;
+}
+
 interface SheetContextType {
-  data: SheetData;
+  data: AppData;
   loading: boolean;
   error: string | null;
   refreshData: () => Promise<void>;
@@ -20,66 +25,100 @@ interface SheetContextType {
 
 const SheetContext = createContext<SheetContextType | undefined>(undefined);
 
-const SPREADSHEET_ID = '1AK81fcdI9UTY4Nlp5ijwtPqyILE-e4DnRK3-IAgEIHI';
-const SHEET_RANGE = 'Time/Voyage Awards!A1:O900';
+// Sheet 1: Voyage Awards
+const VOYAGE_AWARDS_SPREADSHEET_ID = '1AK81fcdI9UTY4Nlp5ijwtPqyILE-e4DnRK3-IAgEIHI';
+const VOYAGE_AWARDS_RANGE = 'Time/Voyage Awards!A1:O900';
+
+// Sheet 2: Gullinbursti
+const GULLINBURSTI_SPREADSHEET_ID = '1EiLym2gcxcxmwoTHkHD9m9MisRqC3lmjJbBUBzqlZI0';
+const GULLINBURSTI_RANGE = 'Gullinbursti!A1:W64';
+
+const emptySheetData: SheetData = {
+  headers: [],
+  rows: [],
+  rowCount: 0,
+  lastUpdated: null,
+};
+
+const fetchSheetData = async (
+  spreadsheetId: string,
+  range: string,
+  filterEmptyFirst: boolean = true
+): Promise<SheetData> => {
+  try {
+    const response = await fetch('http://localhost:5000/api/sheets/read', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        spreadsheetId,
+        range,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    // Convert array rows to object rows for easier access
+    const rowsAsObjects: SheetRow[] = result.rows.map((row: string[]) => {
+      const obj: SheetRow = {};
+      result.headers.forEach((header: string, index: number) => {
+        obj[header] = row[index] || '';
+      });
+      return obj;
+    });
+
+    // Filter out rows that have "-" in the first column (column A) if enabled
+    const filteredRows = filterEmptyFirst
+      ? rowsAsObjects.filter((row: SheetRow) => {
+          const firstColumnValue = row[result.headers[0]];
+          return firstColumnValue && firstColumnValue.trim() !== '-';
+        })
+      : rowsAsObjects;
+
+    return {
+      headers: result.headers,
+      rows: filteredRows,
+      rowCount: filteredRows.length,
+      lastUpdated: new Date(),
+    };
+  } catch (err) {
+    console.error(`Error fetching sheet data:`, err);
+    throw err;
+  }
+};
 
 export const SheetProvider = ({ children }: { children: ReactNode }) => {
-  const [data, setData] = useState<SheetData>({
-    headers: [],
-    rows: [],
-    rowCount: 0,
-    lastUpdated: null,
+  const [data, setData] = useState<AppData>({
+    voyageAwards: emptySheetData,
+    gullinbursti: emptySheetData,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchAllData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('http://localhost:5000/api/sheets/read', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          spreadsheetId: SPREADSHEET_ID,
-          range: SHEET_RANGE,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      // Convert array rows to object rows for easier access
-      const rowsAsObjects: SheetRow[] = result.rows.map((row: string[]) => {
-        const obj: SheetRow = {};
-        result.headers.forEach((header: string, index: number) => {
-          obj[header] = row[index] || '';
-        });
-        return obj;
-      });
-
-      // Filter out rows that have "-" in the first column (column A)
-      const filteredRows = rowsAsObjects.filter((row: SheetRow) => {
-        const firstColumnValue = row[result.headers[0]];
-        return firstColumnValue && firstColumnValue.trim() !== '-';
-      });
+      // Fetch both sheets in parallel
+      const [voyageAwardsData, gullinburstiData] = await Promise.all([
+        fetchSheetData(VOYAGE_AWARDS_SPREADSHEET_ID, VOYAGE_AWARDS_RANGE, true),
+        fetchSheetData(GULLINBURSTI_SPREADSHEET_ID, GULLINBURSTI_RANGE, false),
+      ]);
 
       setData({
-        headers: result.headers,
-        rows: filteredRows,
-        rowCount: filteredRows.length,
-        lastUpdated: new Date(),
+        voyageAwards: voyageAwardsData,
+        gullinbursti: gullinburstiData,
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch sheet data';
       setError(errorMessage);
-      console.error('Error fetching sheet data:', err);
+      console.error('Error fetching all sheet data:', err);
     } finally {
       setLoading(false);
     }
@@ -87,10 +126,10 @@ export const SheetProvider = ({ children }: { children: ReactNode }) => {
 
   // Fetch data on mount
   useEffect(() => {
-    fetchData();
-    
+    fetchAllData();
+
     // Optional: Set up auto-refresh every 5 minutes
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    const interval = setInterval(fetchAllData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -100,7 +139,7 @@ export const SheetProvider = ({ children }: { children: ReactNode }) => {
         data,
         loading,
         error,
-        refreshData: fetchData,
+        refreshData: fetchAllData,
       }}
     >
       {children}

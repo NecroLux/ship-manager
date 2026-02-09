@@ -19,6 +19,7 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { lightTheme, darkTheme } from './theme';
 import { GoogleSheetsViewer } from './components/GoogleSheetsViewer';
 import { DashboardTab } from './components/DashboardTab';
+import { UsersTab } from './components/UsersTab';
 import { SheetProvider } from './context/SheetDataContext';
 import './App.css';
 
@@ -63,27 +64,7 @@ function AppContent() {
 
         {/* Users Tab */}
         {activeTab === 1 && (
-          <Box sx={{ mt: 3 }}>
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h5" gutterBottom>
-                Import Discord Members
-              </Typography>
-              <Button variant="contained" color="primary" sx={{ mr: 2 }}>
-                Import CSV
-              </Button>
-              <Button variant="outlined" color="secondary">
-                Manual Entry
-              </Button>
-            </Paper>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h5" gutterBottom>
-                Members List
-              </Typography>
-              <Typography color="textSecondary">
-                Members will appear here once imported.
-              </Typography>
-            </Paper>
-          </Box>
+          <UsersTab />
         )}
 
         {/* Review Tab */}
