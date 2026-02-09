@@ -14,13 +14,11 @@ import {
   TableHead,
   TableRow,
   Chip,
-  TextField,
   Snackbar,
   Alert,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import UpdateIcon from '@mui/icons-material/Update';
 import { useSheetData } from '../context/SheetDataContext';
 import { useState } from 'react';
 
@@ -33,11 +31,7 @@ interface LinkedSheet {
 }
 
 export const LinkedSheetsTab = () => {
-  const { data, loading, refreshData, updateSheetRange, ranges } = useSheetData();
-  const [localRanges, setLocalRanges] = useState<Record<string, string>>({
-    'voyage-awards': ranges.voyageAwards,
-    'gullinbursti': ranges.gullinbursti,
-  });
+  const { data, loading, refreshData } = useSheetData();
   const [snackMessage, setSnackMessage] = useState<string | null>(null);
 
   if (loading) {
@@ -48,37 +42,34 @@ export const LinkedSheetsTab = () => {
     );
   }
 
-  // Define the linked sheets
+  // Define the linked sheets with their sheet names
   const linkedSheets: LinkedSheet[] = [
     {
-      name: 'Voyage Awards',
+      name: 'Gullinbursti',
+      spreadsheetId: '1EiLym2gcxcxmwoTHkHD9m9MisRqC3lmjJbBUBzqlZI0',
+      range: 'Gullinbursti!A9:W49',
+      recordCount: data.gullinbursti.rowCount,
+      lastUpdated: data.gullinbursti.lastUpdated,
+    },
+    {
+      name: 'LH Time/Voyages',
       spreadsheetId: '1AK81fcdI9UTY4Nlp5ijwtPqyILE-e4DnRK3-IAgEIHI',
-      range: 'Time/Voyage Awards!A1:O900',
+      range: 'Time/Voyage Awards!A1:AH34',
       recordCount: data.voyageAwards.rowCount,
       lastUpdated: data.voyageAwards.lastUpdated,
     },
     {
-      name: 'Gullinbursti',
-      spreadsheetId: '1EiLym2gcxcxmwoTHkHD9m9MisRqC3lmjJbBUBzqlZI0',
-      range: 'Gullinbursti!A1:W64',
-      recordCount: data.gullinbursti.rowCount,
-      lastUpdated: data.gullinbursti.lastUpdated,
+      name: 'LH Role/Coin',
+      spreadsheetId: '1AK81fcdI9UTY4Nlp5ijwtPqyILE-e4DnRK3-IAgEIHI',
+      range: 'Role/Coin Awards!A1:O34',
+      recordCount: 0,
+      lastUpdated: null,
     },
   ];
 
   const openSheet = (spreadsheetId: string) => {
     const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
     window.open(url, '_blank');
-  };
-
-  const handleRangeUpdate = async (sheetKey: 'voyage-awards' | 'gullinbursti', newRange: string) => {
-    try {
-      await updateSheetRange(sheetKey, newRange);
-      const sheetName = sheetKey === 'voyage-awards' ? 'Voyage Awards' : 'Gullinbursti';
-      setSnackMessage(`✓ ${sheetName} range updated and records refreshed`);
-    } catch (err) {
-      setSnackMessage(`✗ Failed to update range: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
   };
 
   return (
@@ -112,72 +103,49 @@ export const LinkedSheetsTab = () => {
           <Table>
             <TableHead>
               <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                <TableCell sx={{ fontWeight: 'bold' }}>Spreadsheet</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Sheet Name</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Range</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Cell Range</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }} align="center">
                   Records
                 </TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Last Updated</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }} align="right">
                   Actions
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {linkedSheets.map((sheet, idx) => {
-                const sheetKey = sheet.name === 'Voyage Awards' ? 'voyage-awards' : 'gullinbursti';
-                const currentRange = sheetKey === 'voyage-awards' ? ranges.voyageAwards : ranges.gullinbursti;
-                return (
-                  <TableRow key={idx} hover>
-                    <TableCell sx={{ fontWeight: 500 }}>{sheet.name}</TableCell>
-                    <TableCell>
-                      <TextField
+              {linkedSheets.map((sheet, idx) => (
+                <TableRow key={idx} hover>
+                  <TableCell sx={{ fontWeight: 500 }}>{sheet.name}</TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      {sheet.range.split('!')[0]}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      {sheet.range.split('!')[1]}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip label={sheet.recordCount} color="primary" variant="outlined" size="small" />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Button
                         size="small"
-                        value={currentRange}
-                        onChange={(e) => setLocalRanges(prev => ({ ...prev, [sheetKey]: e.target.value }))}
-                        sx={{ width: 280 }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip label={sheet.recordCount} color="primary" variant="outlined" size="small" />
-                    </TableCell>
-                    <TableCell>
-                      {sheet.lastUpdated ? (
-                        <Typography variant="caption">
-                          {sheet.lastUpdated.toLocaleString()}
-                        </Typography>
-                      ) : (
-                        <Typography variant="caption" color="textSecondary">
-                          Never
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell align="right">
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        <Button
-                          size="small"
-                          variant="contained"
-                          color="primary"
-                          startIcon={<UpdateIcon />}
-                          onClick={() => handleRangeUpdate(sheetKey as 'voyage-awards' | 'gullinbursti', localRanges[sheetKey] || currentRange)}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          Update
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          endIcon={<OpenInNewIcon />}
-                          onClick={() => openSheet(sheet.spreadsheetId)}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          Open Sheet
-                        </Button>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                        variant="outlined"
+                        endIcon={<OpenInNewIcon />}
+                        onClick={() => openSheet(sheet.spreadsheetId)}
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Open Sheet
+                      </Button>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </TableContainer>

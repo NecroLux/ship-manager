@@ -31,21 +31,33 @@ function AppContent() {
   return (
     <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
       <CssBaseline />
-      <AppBar position="static" color="default" elevation={0}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+      <AppBar position="static" color="default" elevation={0} sx={{ py: 3 }}>
+        <Toolbar sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 2 }}>
+          <Typography 
+            variant="h3" 
+            sx={{ 
+              flexGrow: 1, 
+              fontWeight: 'bold',
+              fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem' },
+              letterSpacing: '-0.5px',
+              mb: 2,
+              width: '100%'
+            }}
+          >
             USN Ship Manager
           </Typography>
-          <IconButton
-            color="inherit"
-            onClick={() => setDarkMode(!darkMode)}
-          >
-            {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
-          <Switch
-            checked={darkMode}
-            onChange={() => setDarkMode(!darkMode)}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end' }}>
+            <IconButton
+              color="inherit"
+              onClick={() => setDarkMode(!darkMode)}
+            >
+              {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+            <Switch
+              checked={darkMode}
+              onChange={() => setDarkMode(!darkMode)}
+            />
+          </Box>
         </Toolbar>
       </AppBar>
       <Container maxWidth="lg" sx={{ mt: 0 }}>
