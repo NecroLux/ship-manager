@@ -72,27 +72,35 @@ export const UsersTab = () => {
 
   // Log headers for debugging
   console.log('Gullinbursti headers:', data.gullinbursti.headers);
-  console.log('Sample row:', data.gullinbursti.rows[0]);
+  console.log('Sample rows:', data.gullinbursti.rows.slice(0, 3));
 
-  // Parse sailor data - flexible column matching
-  const sailors = data.gullinbursti.rows.map((row) => {
-    // Try to find columns by various name patterns
-    const rankCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('rank')) || data.gullinbursti.headers[0];
-    const nameCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('name')) || data.gullinbursti.headers[1];
-    const squadCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('discord') || h.toLowerCase().includes('nickname')) || data.gullinbursti.headers[2];
-    const complianceCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('loa') || h.toLowerCase().includes('status')) || data.gullinbursti.headers[8];
-    const timezoneCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('timezone')) || data.gullinbursti.headers[7];
-    const activityCol = data.gullinbursti.headers.find(h => h.toLowerCase().includes('chat') || h.toLowerCase().includes('activity')) || data.gullinbursti.headers[10];
+  // Parse sailor data with proper column mapping
+  const sailors = data.gullinbursti.rows
+    .filter(row => {
+      // Only filter out rows where BOTH Rank and Name are empty
+      const rankVal = (row[data.gullinbursti.headers[0]] || '').trim();
+      const nameVal = (row[data.gullinbursti.headers[1]] || '').trim();
+      return rankVal !== '' || nameVal !== '';
+    })
+    .map((row) => {
+      // Direct column access based on known sheet structure
+      // Columns: Rank, Name, Discord nickname, In Guild?, Is Gametag added?, Gamertag, Is Timezone added?, Timezone, LOA Status, LOA End Date, Chat activity, Sailing, Hosting, Comments
+      const rankRaw = row[data.gullinbursti.headers[0]] || '';
+      const nameRaw = row[data.gullinbursti.headers[1]] || '';
+      const discordRaw = row[data.gullinbursti.headers[2]] || '';
+      const loaStatusRaw = row[data.gullinbursti.headers[8]] || '';
+      const timezoneRaw = row[data.gullinbursti.headers[7]] || '';
+      const chatActivityRaw = row[data.gullinbursti.headers[10]] || '';
 
-    return {
-      rank: row[rankCol] || 'Sailor',
-      name: row[nameCol] || 'Unknown',
-      squad: row[squadCol] || '-',
-      compliance: row[complianceCol] || 'Unknown',
-      timezone: row[timezoneCol] || '-',
-      stars: row[activityCol] || '0',
-    };
-  });
+      return {
+        rank: rankRaw.trim() || 'Sailor',
+        name: nameRaw.trim() === '' ? 'Unknown' : nameRaw.trim(),
+        squad: discordRaw.trim() === '' ? '-' : discordRaw.trim(),
+        compliance: loaStatusRaw.trim() === '' ? 'Unknown' : loaStatusRaw.trim(),
+        timezone: timezoneRaw.trim() === '' ? '-' : timezoneRaw.trim(),
+        stars: chatActivityRaw.trim() || '0',
+      };
+    });
 
   const complianceStats = {
     total: sailors.length,
@@ -157,7 +165,19 @@ export const UsersTab = () => {
               {sailors.map((sailor, idx) => {
                 const complianceStatus = getComplianceStatus(sailor.compliance);
                 const rankColor = getRankColor(sailor.rank);
-                const starCount = Math.min(5, Math.max(0, parseInt(sailor.stars) || 0));
+                
+                // Parse star count from chat activity field
+                // It might be "★★★★★" or a number or text
+                let starCount = 0;
+                const starString = sailor.stars.toLowerCase();
+                if (starString.includes('★')) {
+                  starCount = (sailor.stars.match(/★/g) || []).length;
+                } else {
+                  // Try to parse as number
+                  const parsed = parseInt(sailor.stars);
+                  starCount = isNaN(parsed) ? 0 : parsed;
+                }
+                starCount = Math.min(5, Math.max(0, starCount));
                 
                 return (
                   <TableRow
