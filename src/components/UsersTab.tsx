@@ -72,7 +72,7 @@ export const UsersTab = () => {
 
   // Log headers for debugging
   console.log('Gullinbursti headers:', data.gullinbursti.headers);
-  console.log('First 5 rows:', data.gullinbursti.rows.slice(0, 5));
+  console.log('All rows:', data.gullinbursti.rows);
 
   // Parse sailor data with proper column mapping
   // First pass: identify squad headers and assign squads to crew members
@@ -88,23 +88,29 @@ export const UsersTab = () => {
 
   let currentSquad = 'Unknown';
   
-  for (const row of data.gullinbursti.rows) {
+  for (let i = 0; i < data.gullinbursti.rows.length; i++) {
+    const row = data.gullinbursti.rows[i];
     const rankVal = (row[data.gullinbursti.headers[0]] || '').trim();
     const nameVal = (row[data.gullinbursti.headers[1]] || '').trim();
     
+    console.log(`Row ${i}: rank="${rankVal}", name="${nameVal}"`);
+    
     // Skip completely empty rows
     if (rankVal === '' && nameVal === '') {
+      console.log(`  -> Skipping empty row`);
       continue;
     }
     
-    // Update squad if this is a header row (rank but no name)
-    if (rankVal && !nameVal) {
+    // Update squad if this is a header row (rank with value but name is empty)
+    if (rankVal && nameVal === '') {
+      console.log(`  -> Squad header detected: ${rankVal}`);
       currentSquad = rankVal;
       continue; // Don't include header rows
     }
     
-    // Include actual crew rows (have both rank and name)
+    // Include actual crew rows (have rank and name)
     if (rankVal && nameVal) {
+      console.log(`  -> Crew member: ${rankVal} ${nameVal} -> squad: ${currentSquad}`);
       const discordRaw = row[data.gullinbursti.headers[2]] || '';
       const loaStatusRaw = row[data.gullinbursti.headers[8]] || '';
       const timezoneRaw = row[data.gullinbursti.headers[7]] || '';
@@ -121,6 +127,8 @@ export const UsersTab = () => {
       });
     }
   }
+  
+  console.log('Parsed sailors:', sailors);
 
   const complianceStats = {
     total: sailors.length,
