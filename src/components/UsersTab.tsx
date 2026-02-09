@@ -37,10 +37,10 @@ export const UsersTab = () => {
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Box>
               <Typography variant="h5" gutterBottom>
-                Gullinbursti Members
+                Ship Crew Roster
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                {data.gullinbursti.rowCount} total members
+                {data.gullinbursti.rowCount} total sailors
                 {data.gullinbursti.lastUpdated && ` • Last updated: ${data.gullinbursti.lastUpdated.toLocaleTimeString()}`}
               </Typography>
             </Box>
@@ -65,7 +65,7 @@ export const UsersTab = () => {
       {data.gullinbursti.rowCount === 0 ? (
         <Paper sx={{ p: 3, textAlign: 'center' }}>
           <Typography color="textSecondary">
-            No member data available. Check that the spreadsheet is properly configured.
+            No crew data available. Check that the spreadsheet is properly configured.
           </Typography>
         </Paper>
       ) : (

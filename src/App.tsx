@@ -17,7 +17,6 @@ import {
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { lightTheme, darkTheme } from './theme';
-import { DashboardTab } from './components/DashboardTab';
 import { UsersTab } from './components/UsersTab';
 import { OverviewTab } from './components/OverviewTab';
 import { ActionsTab } from './components/ActionsTab';
@@ -35,7 +34,7 @@ function AppContent() {
       <AppBar position="static" color="default" elevation={0}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Discord Member Dashboard
+            USN Ship Manager
           </Typography>
           <IconButton
             color="inherit"
@@ -53,11 +52,10 @@ function AppContent() {
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(_e, newValue) => setActiveTab(newValue)}>
             <Tab label="Overview" />
-            <Tab label="Dashboard" />
-            <Tab label="Users" />
+            <Tab label="Sailors" />
             <Tab label="Actions" />
             <Tab label="Linked Sheets" />
-            <Tab label="Export" />
+            <Tab label="Reports" />
           </Tabs>
         </Box>
 
@@ -66,48 +64,61 @@ function AppContent() {
           <OverviewTab />
         )}
 
-        {/* Dashboard Tab */}
+        {/* Sailors Tab */}
         {activeTab === 1 && (
-          <DashboardTab />
-        )}
-
-        {/* Users Tab */}
-        {activeTab === 2 && (
           <UsersTab />
         )}
 
         {/* Actions Tab */}
-        {activeTab === 3 && (
+        {activeTab === 2 && (
           <ActionsTab />
         )}
 
         {/* Linked Sheets Tab */}
-        {activeTab === 4 && (
+        {activeTab === 3 && (
           <LinkedSheetsTab />
         )}
 
-        {/* Export Tab */}
-        {activeTab === 5 && (
+        {/* Reports Tab */}
+        {activeTab === 4 && (
           <Box sx={{ mt: 3 }}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h5" gutterBottom>
-                Export Report
-              </Typography>
-              <Box sx={{ mt: 2 }}>
-                <Button variant="contained" color="info" sx={{ mr: 2 }}>
-                  Export PDF
-                </Button>
-                <Button variant="contained" color="secondary" sx={{ mr: 2 }}>
-                  Export Excel
-                </Button>
-                <Button variant="contained" color="primary">
-                  Export Word
-                </Button>
-              </Box>
-              <Typography variant="body2" sx={{ mt: 2 }} color="textSecondary">
-                Export your member data in multiple formats.
-              </Typography>
-            </Paper>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+              {/* Ship Report */}
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Ship Report
+                </Typography>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  Generate a comprehensive report of all crew members and their status.
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant="contained" color="primary" size="small">
+                    Download Word
+                  </Button>
+                  <Button variant="contained" color="info" size="small">
+                    Download PDF
+                  </Button>
+                </Box>
+              </Paper>
+
+              {/* Squad Report */}
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Squad Report
+                </Typography>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  Generate squad-specific reports with member details and metrics.
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant="contained" color="primary" size="small">
+                    Download Word
+                  </Button>
+                  <Button variant="contained" color="info" size="small">
+                    Download PDF
+                  </Button>
+                </Box>
+              </Paper>
+            </Box>
           </Box>
         )}
       </Container>

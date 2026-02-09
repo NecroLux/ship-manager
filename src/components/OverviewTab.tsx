@@ -171,7 +171,7 @@ export const OverviewTab = () => {
             <CardContent>
               <Stack spacing={1}>
                 <Typography color="textSecondary" gutterBottom>
-                  Total Sailors
+                  Total Crew
                 </Typography>
                 <Typography variant="h4">
                   {insights.sailorCount}
@@ -186,22 +186,7 @@ export const OverviewTab = () => {
             <CardContent>
               <Stack spacing={1}>
                 <Typography color="textSecondary" gutterBottom>
-                  Awards Given
-                </Typography>
-                <Typography variant="h4">
-                  {insights.awardCount}
-                </Typography>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Box>
-
-        <Box sx={{ flex: 1 }}>
-          <Card>
-            <CardContent>
-              <Stack spacing={1}>
-                <Typography color="textSecondary" gutterBottom>
-                  Action Items
+                  Flagged Crew
                 </Typography>
                 <Typography variant="h4" sx={{ color: 'error.main' }}>
                   {insights.actionItems.length}
@@ -216,7 +201,22 @@ export const OverviewTab = () => {
             <CardContent>
               <Stack spacing={1}>
                 <Typography color="textSecondary" gutterBottom>
-                  Promotion Ready
+                  Pending Awards
+                </Typography>
+                <Typography variant="h4" sx={{ color: 'warning.main' }}>
+                  {insights.awardCount}
+                </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Box>
+
+        <Box sx={{ flex: 1 }}>
+          <Card>
+            <CardContent>
+              <Stack spacing={1}>
+                <Typography color="textSecondary" gutterBottom>
+                  Pending Promotions
                 </Typography>
                 <Typography variant="h4" sx={{ color: 'success.main' }}>
                   {insights.promotionCandidates.length}
