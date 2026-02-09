@@ -43,19 +43,37 @@ const getComplianceStatus = (complianceValue: string) => {
   return { label: normalized, color: 'default' as const, icon: '?', status: 'unknown' };
 };
 
-// Helper function to get rank color
+// Helper function to get rank color and styling
 const getRankColor = (rank: string) => {
-  if (!rank) return '#999999';
+  if (!rank) return { color: '#999999', bgColor: 'rgba(153, 153, 153, 0.1)' };
   const rankLower = rank.toLowerCase();
   
-  // Admiral/Captain colors
-  if (rankLower.includes('admiral') || rankLower.includes('captain')) return '#FFD700'; // Gold
-  // Officer colors
-  if (rankLower.includes('commander') || rankLower.includes('lieutenant')) return '#C0C0C0'; // Silver
-  // Petty Officer colors
-  if (rankLower.includes('petty') || rankLower.includes('chief')) return '#CD7F32'; // Bronze
-  // Sailor colors
-  return '#4A90E2'; // Blue
+  // Lt. Commander - Red
+  if (rankLower.includes('commander') && !rankLower.includes('petty')) {
+    return { color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.1)' }; // Red
+  }
+  // Midshipwoman - Pink
+  if (rankLower.includes('midship')) {
+    return { color: '#EC4899', bgColor: 'rgba(236, 72, 153, 0.1)' }; // Pink
+  }
+  // SCPO - Purple
+  if (rankLower.includes('scpo') || (rankLower.includes('senior') && rankLower.includes('petty'))) {
+    return { color: '#A855F7', bgColor: 'rgba(168, 85, 247, 0.1)' }; // Purple
+  }
+  // PO (Petty Officer) & JPO (Jr. Petty Officer) - Blue
+  if (rankLower.includes('petty') || rankLower.includes('jr.')) {
+    return { color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.1)' }; // Blue
+  }
+  // Able Seaman & Seaman - Green
+  if (rankLower.includes('able') || rankLower.includes('seaman')) {
+    return { color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.1)' }; // Green
+  }
+  // Sailor - Blue
+  if (rankLower.includes('sailor')) {
+    return { color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.1)' }; // Blue
+  }
+  
+  return { color: '#999999', bgColor: 'rgba(153, 153, 153, 0.1)' };
 };
 
 export const UsersTab = () => {
@@ -188,12 +206,12 @@ export const UsersTab = () => {
                   }
                 }}
               >
-                <TableCell sx={{ width: '15%' }}>Rank</TableCell>
-                <TableCell sx={{ width: '25%' }}>Name</TableCell>
-                <TableCell sx={{ width: '15%' }}>Squad</TableCell>
-                <TableCell sx={{ width: '20%' }}>Compliance</TableCell>
-                <TableCell sx={{ width: '15%' }}>Timezone</TableCell>
-                <TableCell sx={{ width: '10%', textAlign: 'center' }}>Activity</TableCell>
+                <TableCell sx={{ width: '12%' }}>Rank</TableCell>
+                <TableCell sx={{ width: '20%' }}>Name</TableCell>
+                <TableCell sx={{ width: '18%' }}>Squad</TableCell>
+                <TableCell sx={{ width: '15%', textAlign: 'center' }}>Compliance</TableCell>
+                <TableCell sx={{ width: '18%' }}>Timezone</TableCell>
+                <TableCell sx={{ width: '17%', textAlign: 'center' }}>Activity</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -226,21 +244,16 @@ export const UsersTab = () => {
                     }}
                   >
                     {/* Rank */}
-                    <TableCell>
-                      <Box
-                        sx={{
-                          display: 'inline-block',
-                          px: 2,
-                          py: 0.75,
-                          borderRadius: 1,
-                          backgroundColor: rankColor,
-                          color: 'white',
+                    <TableCell sx={{ fontWeight: 'bold' }}>
+                      <Typography 
+                        sx={{ 
+                          color: rankColor.color,
                           fontWeight: 'bold',
-                          fontSize: '0.85rem',
+                          fontSize: '0.95rem'
                         }}
                       >
                         {sailor.rank}
-                      </Box>
+                      </Typography>
                     </TableCell>
 
                     {/* Name */}
@@ -259,15 +272,15 @@ export const UsersTab = () => {
                     </TableCell>
 
                     {/* Compliance */}
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Box
                           sx={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: 24,
-                            height: 24,
+                            width: 28,
+                            height: 28,
                             borderRadius: '50%',
                             backgroundColor: 
                               complianceStatus.status === 'compliant' ? 'rgba(34, 197, 94, 0.2)' :
@@ -279,7 +292,7 @@ export const UsersTab = () => {
                               complianceStatus.status === 'action-required' ? '#ef4444' :
                               complianceStatus.status === 'attention-required' ? '#eab308' :
                               '#6b7280',
-                            fontSize: '1rem',
+                            fontSize: '1.1rem',
                             fontWeight: 'bold',
                           }}
                         >
