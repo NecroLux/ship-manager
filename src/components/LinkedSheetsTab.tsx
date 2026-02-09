@@ -14,10 +14,15 @@ import {
   TableHead,
   TableRow,
   Chip,
+  TextField,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import UpdateIcon from '@mui/icons-material/Update';
 import { useSheetData } from '../context/SheetDataContext';
+import { useState } from 'react';
 
 interface LinkedSheet {
   name: string;
@@ -29,6 +34,11 @@ interface LinkedSheet {
 
 export const LinkedSheetsTab = () => {
   const { data, loading, refreshData } = useSheetData();
+  const [ranges, setRanges] = useState<Record<string, string>>({
+    'voyage-awards': 'Time/Voyage Awards!A1:O900',
+    'gullinbursti': 'Gullinbursti!A1:W64',
+  });
+  const [snackMessage, setSnackMessage] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -61,8 +71,9 @@ export const LinkedSheetsTab = () => {
     window.open(url, '_blank');
   };
 
-  const getSheetUrl = (spreadsheetId: string) => {
-    return `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+  const handleRangeUpdate = (sheetKey: string, newRange: string) => {
+    setRanges(prev => ({ ...prev, [sheetKey]: newRange }));
+    setSnackMessage(`Range updated for ${linkedSheets.find(s => s.spreadsheetId.includes(sheetKey))?.name || 'sheet'}`);
   };
 
   return (
@@ -72,10 +83,10 @@ export const LinkedSheetsTab = () => {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Box>
               <Typography variant="h5" gutterBottom>
-                Linked Google Sheets
+                Configuration
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                Manage connections to your data sources
+                Manage your data sources and settings
               </Typography>
             </Box>
             <Button
@@ -90,7 +101,7 @@ export const LinkedSheetsTab = () => {
         </CardContent>
       </Card>
 
-      {/* Sheets Table */}
+      {/* Sheets Table with Range Field */}
       <Paper sx={{ overflow: 'hidden', mb: 3 }}>
         <TableContainer>
           <Table>
@@ -108,126 +119,66 @@ export const LinkedSheetsTab = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {linkedSheets.map((sheet, idx) => (
-                <TableRow key={idx} hover>
-                  <TableCell sx={{ fontWeight: 500 }}>{sheet.name}</TableCell>
-                  <TableCell>
-                    <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
-                      {sheet.range}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip label={sheet.recordCount} color="primary" variant="outlined" size="small" />
-                  </TableCell>
-                  <TableCell>
-                    {sheet.lastUpdated ? (
-                      <Typography variant="caption">
-                        {sheet.lastUpdated.toLocaleString()}
-                      </Typography>
-                    ) : (
-                      <Typography variant="caption" color="textSecondary">
-                        Never
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      endIcon={<OpenInNewIcon />}
-                      onClick={() => openSheet(sheet.spreadsheetId)}
-                      sx={{ textTransform: 'none' }}
-                    >
-                      Open Sheet
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {linkedSheets.map((sheet, idx) => {
+                const sheetKey = sheet.name === 'Voyage Awards' ? 'voyage-awards' : 'gullinbursti';
+                return (
+                  <TableRow key={idx} hover>
+                    <TableCell sx={{ fontWeight: 500 }}>{sheet.name}</TableCell>
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        value={ranges[sheetKey]}
+                        onChange={(e) => setRanges(prev => ({ ...prev, [sheetKey]: e.target.value }))}
+                        sx={{ width: 280 }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip label={sheet.recordCount} color="primary" variant="outlined" size="small" />
+                    </TableCell>
+                    <TableCell>
+                      {sheet.lastUpdated ? (
+                        <Typography variant="caption">
+                          {sheet.lastUpdated.toLocaleString()}
+                        </Typography>
+                      ) : (
+                        <Typography variant="caption" color="textSecondary">
+                          Never
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          startIcon={<UpdateIcon />}
+                          onClick={() => handleRangeUpdate(sheetKey, ranges[sheetKey])}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Update
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          endIcon={<OpenInNewIcon />}
+                          onClick={() => openSheet(sheet.spreadsheetId)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Open Sheet
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
       </Paper>
 
-      {/* Sheet Details Cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-        {linkedSheets.map((sheet, idx) => (
-          <Card key={idx}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {sheet.name}
-              </Typography>
-
-              <Stack spacing={2} sx={{ mb: 2 }}>
-                <Box>
-                  <Typography variant="caption" color="textSecondary">
-                    Spreadsheet ID
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ fontFamily: 'monospace', wordBreak: 'break-all', mt: 0.5 }}
-                  >
-                    {sheet.spreadsheetId}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography variant="caption" color="textSecondary">
-                    Data Range
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ fontFamily: 'monospace', mt: 0.5 }}
-                  >
-                    {sheet.range}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography variant="caption" color="textSecondary">
-                    Record Count
-                  </Typography>
-                  <Typography variant="body2" sx={{ mt: 0.5 }}>
-                    {sheet.recordCount} rows
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography variant="caption" color="textSecondary">
-                    Last Refreshed
-                  </Typography>
-                  <Typography variant="body2" sx={{ mt: 0.5 }}>
-                    {sheet.lastUpdated ? sheet.lastUpdated.toLocaleString() : 'Never'}
-                  </Typography>
-                </Box>
-              </Stack>
-
-              <Stack direction="row" spacing={1}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  endIcon={<OpenInNewIcon />}
-                  onClick={() => openSheet(sheet.spreadsheetId)}
-                >
-                  Go to Sheet
-                </Button>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  onClick={() => {
-                    // Copy URL to clipboard
-                    navigator.clipboard.writeText(getSheetUrl(sheet.spreadsheetId));
-                  }}
-                >
-                  Copy URL
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
-
       {/* Connection Info */}
-      <Card sx={{ mt: 3 }}>
+      <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Connection Information
@@ -249,17 +200,20 @@ export const LinkedSheetsTab = () => {
                 Data refreshes automatically every 5 minutes
               </Typography>
             </Box>
-            <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                Last System Refresh
-              </Typography>
-              <Typography variant="body2">
-                {new Date().toLocaleString()}
-              </Typography>
-            </Box>
           </Stack>
         </CardContent>
       </Card>
+
+      <Snackbar
+        open={!!snackMessage}
+        autoHideDuration={3000}
+        onClose={() => setSnackMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Alert onClose={() => setSnackMessage(null)} severity="success">
+          {snackMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
