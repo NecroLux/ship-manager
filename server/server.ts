@@ -4,8 +4,16 @@ import dotenv from 'dotenv';
 import { google } from 'googleapis';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+// Get the directory of the current file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '..');
+
+// Load environment variables from .env.local or .env in the project root
+dotenv.config({ path: path.resolve(projectRoot, '.env.local') });
+dotenv.config({ path: path.resolve(projectRoot, '.env') });
 
 const app: Express = express();
 const port = process.env.PORT || 5000;
@@ -19,17 +27,28 @@ const getAuthClient = async () => {
   const credentialsPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
   
   if (!credentialsPath) {
+    console.error('Error: GOOGLE_SERVICE_ACCOUNT_KEY_PATH environment variable not set');
+    console.error('Please create a .env.local file with: GOOGLE_SERVICE_ACCOUNT_KEY_PATH=./credentials.json');
     throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY_PATH environment variable not set');
   }
 
-  const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf-8'));
+  // Resolve the credentials path relative to the project root
+  const resolvedPath = path.resolve(projectRoot, credentialsPath);
+  
+  if (!fs.existsSync(resolvedPath)) {
+    console.error(`Error: Credentials file not found at ${resolvedPath}`);
+    console.error(`Please ensure you have downloaded your service account key and placed it at: ${resolvedPath}`);
+    throw new Error(`Credentials file not found at ${resolvedPath}`);
+  }
+
+  const credentials = JSON.parse(fs.readFileSync(resolvedPath, 'utf-8'));
   
   const auth = new google.auth.GoogleAuth({
     credentials,
     scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
   });
 
-  return auth.getClient();
+  return auth;
 };
 
 // Health check endpoint
@@ -47,7 +66,7 @@ app.post('/api/sheets/read', async (req: Request, res: Response) => {
     }
 
     const authClient = await getAuthClient();
-    const sheets = google.sheets({ version: 'v4', auth: authClient });
+    const sheets = google.sheets({ version: 'v4', auth: authClient as any });
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -91,7 +110,7 @@ app.post('/api/sheets/batch-read', async (req: Request, res: Response) => {
     }
 
     const authClient = await getAuthClient();
-    const sheets = google.sheets({ version: 'v4', auth: authClient });
+    const sheets = google.sheets({ version: 'v4', auth: authClient as any });
 
     const response = await sheets.spreadsheets.values.batchGet({
       spreadsheetId,
@@ -144,7 +163,7 @@ app.post('/api/sheets/metadata', async (req: Request, res: Response) => {
     }
 
     const authClient = await getAuthClient();
-    const sheets = google.sheets({ version: 'v4', auth: authClient });
+    const sheets = google.sheets({ version: 'v4', auth: authClient as any });
 
     const response = await sheets.spreadsheets.get({
       spreadsheetId,

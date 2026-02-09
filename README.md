@@ -26,7 +26,21 @@ A React-based dashboard for monitoring and managing Discord server members with 
 
 ## Setup Instructions
 
-### 1. Clone and Install Dependencies
+### Quick Start (Automated)
+
+**Windows:**
+```bash
+setup.bat
+```
+
+**macOS/Linux:**
+```bash
+bash setup.sh
+```
+
+### Manual Setup
+
+#### 1. Clone and Install Dependencies
 
 ```bash
 git clone https://github.com/NecroLux/ship-manager.git
@@ -34,84 +48,121 @@ cd ship-manager
 npm install
 ```
 
-### 2. Create a Google Service Account
+#### 2. Create a Google Service Account
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project (or select an existing one)
+2. Create a new project or select an existing one
 3. Enable the **Google Sheets API**:
-   - Go to APIs & Services > Library
+   - Navigate to "APIs & Services" > "Library"
    - Search for "Google Sheets API"
-   - Click Enable
+   - Click "Enable"
 4. Create a Service Account:
-   - Go to APIs & Services > Credentials
+   - Go to "APIs & Services" > "Credentials"
    - Click "Create Credentials" > "Service Account"
-   - Fill in the service account details
+   - Enter a service account name (e.g., "discord-dashboard")
    - Click "Create and Continue"
-   - Skip the optional steps and click "Done"
+   - Skip optional steps, click "Done"
 5. Create a JSON Key:
-   - Go to the service account you just created
-   - Click on the "Keys" tab
+   - Click on the newly created service account
+   - Go to the "Keys" tab
    - Click "Add Key" > "Create new key"
-   - Choose JSON format
-   - A JSON file will download automatically
+   - Select "JSON" format
+   - Save the downloaded file as `credentials.json` in the project root
 
-### 3. Configure Environment Variables
+#### 3. Configure Environment Variables
 
-1. Copy the `credentials.json` file you downloaded to the project root:
+1. Create a `.env.local` file:
    ```bash
-   cp ~/Downloads/your-service-account-key.json ./credentials.json
+   cp .env.local.example .env.local
    ```
 
-2. Create a `.env.local` file in the project root:
-   ```bash
-   cp .env.example .env.local
-   ```
-
-3. Edit `.env.local` and set the path to your credentials:
+2. Edit `.env.local` and configure the credentials path (default is already set):
    ```
    GOOGLE_SERVICE_ACCOUNT_KEY_PATH=./credentials.json
    PORT=5000
    VITE_BACKEND_URL=http://localhost:5000
    ```
 
-### 4. Share Your Google Sheet with the Service Account
+#### 4. Share Your Google Sheet with the Service Account
 
-1. Open `credentials.json` and find the `client_email` value
-2. Open your Google Sheet
-3. Click "Share" and add the service account email (e.g., `my-service-account@my-project.iam.gserviceaccount.com`)
-4. Give it at least "Viewer" permissions
+1. Open the `credentials.json` file you downloaded
+2. Find the `client_email` value (looks like: `my-service-account@my-project.iam.gserviceaccount.com`)
+3. Open your Google Sheet in a browser
+4. Click the "Share" button in the top-right
+5. Paste the service account email and select "Viewer" permission
+6. Click "Share" (you can uncheck the notification email box)
 
-### 5. Run the Application
+#### 5. Run the Application
 
-#### Option A: Run Frontend and Backend Separately
+**Option A: Run Both Frontend and Backend Together** (Recommended)
 
-Terminal 1 - Backend:
+```bash
+npm run dev:all
+```
+
+Then open http://localhost:5173 in your browser
+
+**Option B: Run Frontend and Backend Separately**
+
+Terminal 1 - Start the backend:
 ```bash
 npm run server
 ```
 
-Terminal 2 - Frontend (dev mode):
+Terminal 2 - Start the frontend:
 ```bash
 npm run dev
 ```
 
 Then open http://localhost:5173
 
-#### Option B: Run Both Together
-
-```bash
-npm run dev:all
-```
-
-This runs both the frontend (Vite dev server) and backend (Express server) concurrently.
-
-### 6. Use the Dashboard
+#### 6. Use the Dashboard
 
 1. Go to the **Review** tab
-2. Wait for the backend health check to complete
+2. Wait for the backend health check to complete (you should see "Backend server is connected")
 3. Enter your **Spreadsheet ID** (from the URL: `docs.google.com/spreadsheets/d/SPREADSHEET_ID`)
 4. Enter the **Range** (e.g., `Sheet1!A1:Z1000`)
 5. Click **"Read Sheet"** to fetch and display the data
+
+## Troubleshooting
+
+### Error: "Backend server is not available"
+
+1. Make sure the backend is running:
+   ```bash
+   npm run server
+   ```
+2. Check that it's accessible at `http://localhost:5000`
+3. Check backend logs for detailed error messages
+4. Make sure `.env.local` file exists with `GOOGLE_SERVICE_ACCOUNT_KEY_PATH=./credentials.json`
+
+### Error: "GOOGLE_SERVICE_ACCOUNT_KEY_PATH environment variable not set"
+
+1. Verify `.env.local` file exists in the project root
+2. Check that it contains: `GOOGLE_SERVICE_ACCOUNT_KEY_PATH=./credentials.json`
+3. Verify `credentials.json` file exists in the project root
+4. Restart the backend server: `npm run server`
+
+### Error: "Credentials file not found"
+
+1. Download your service account JSON key from Google Cloud Console
+2. Save it in the project root folder and name it `credentials.json`
+3. Make sure it's not inside any subdirectories
+4. Verify the file contains valid JSON
+
+### Error: "Permission Denied / Access Denied"
+
+1. Open your service account's JSON file and find the `client_email` value
+2. Open your Google Sheet
+3. Click "Share" and ensure the service account email is added with "Viewer" permissions
+4. Wait a moment for permissions to propagate
+
+### Error: "Spreadsheet not found / Invalid range"
+
+1. Verify the Spreadsheet ID is correct (from the URL)
+2. Check the range format: `SheetName!A1:Z1000`
+3. Ensure the range is within the sheet's bounds
+4. Try using a smaller range first: `Sheet1!A1:A100`
 
 ## API Endpoints
 
@@ -141,7 +192,7 @@ The backend provides the following endpoints:
 - The service account credentials are kept server-side only
 - The frontend communicates with the backend, never directly with Google APIs
 - API credentials should **never** be committed to git
-- `.gitignore` is configured to exclude `credentials.json`
+- `.gitignore` is configured to exclude `credentials.json` and `.env.local`
 
 ## File Structure
 
@@ -158,12 +209,13 @@ ship-manager/
 │   └── index.css
 ├── server/
 │   └── server.ts
-├── .env.example
-├── .env.local (NOT committed)
-├── credentials.json (NOT committed)
+├── .env.local (NOT committed - create from .env.local.example)
+├── credentials.json (NOT committed - from Google Cloud)
 ├── package.json
 ├── tsconfig.json
-└── vite.config.ts
+├── vite.config.ts
+├── setup.bat (Windows setup helper)
+└── setup.sh (macOS/Linux setup helper)
 ```
 
 ## Available Scripts
@@ -175,10 +227,6 @@ ship-manager/
 - `npm run preview` - Preview production build locally
 - `npm run lint` - Run ESLint
 - `npm run deploy` - Deploy to GitHub Pages
-
-## Troubleshooting
-
-### Backend is not available / Cannot connect
 
 1. Make sure the backend is running: `npm run server`
 2. Check that the backend is accessible at `http://localhost:5000`
