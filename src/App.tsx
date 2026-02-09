@@ -20,6 +20,8 @@ import { lightTheme, darkTheme } from './theme';
 import { GoogleSheetsViewer } from './components/GoogleSheetsViewer';
 import { DashboardTab } from './components/DashboardTab';
 import { UsersTab } from './components/UsersTab';
+import { OverviewTab } from './components/OverviewTab';
+import { ActionsTab } from './components/ActionsTab';
 import { SheetProvider } from './context/SheetDataContext';
 import './App.css';
 
@@ -50,30 +52,42 @@ function AppContent() {
       <Container maxWidth="lg" sx={{ mt: 0 }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(_e, newValue) => setActiveTab(newValue)}>
+            <Tab label="Overview" />
             <Tab label="Dashboard" />
             <Tab label="Users" />
+            <Tab label="Actions" />
             <Tab label="Review" />
             <Tab label="Export" />
           </Tabs>
         </Box>
 
-        {/* Dashboard Tab */}
+        {/* Overview Tab */}
         {activeTab === 0 && (
+          <OverviewTab />
+        )}
+
+        {/* Dashboard Tab */}
+        {activeTab === 1 && (
           <DashboardTab />
         )}
 
         {/* Users Tab */}
-        {activeTab === 1 && (
+        {activeTab === 2 && (
           <UsersTab />
         )}
 
+        {/* Actions Tab */}
+        {activeTab === 3 && (
+          <ActionsTab />
+        )}
+
         {/* Review Tab */}
-        {activeTab === 2 && (
+        {activeTab === 4 && (
           <GoogleSheetsViewer />
         )}
 
         {/* Export Tab */}
-        {activeTab === 3 && (
+        {activeTab === 5 && (
           <Box sx={{ mt: 3 }}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h5" gutterBottom>
