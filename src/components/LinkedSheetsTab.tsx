@@ -47,7 +47,7 @@ export const LinkedSheetsTab = () => {
     {
       name: 'Gullinbursti',
       spreadsheetId: '1EiLym2gcxcxmwoTHkHD9m9MisRqC3lmjJbBUBzqlZI0',
-      range: 'Gullinbursti!A9:W49',
+      range: 'Gullinbursti!A8:W49',
       recordCount: data.gullinbursti.rowCount,
       lastUpdated: data.gullinbursti.lastUpdated,
     },
