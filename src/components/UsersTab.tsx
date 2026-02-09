@@ -72,35 +72,55 @@ export const UsersTab = () => {
 
   // Log headers for debugging
   console.log('Gullinbursti headers:', data.gullinbursti.headers);
-  console.log('Sample rows:', data.gullinbursti.rows.slice(0, 3));
+  console.log('First 5 rows:', data.gullinbursti.rows.slice(0, 5));
 
   // Parse sailor data with proper column mapping
-  const sailors = data.gullinbursti.rows
-    .filter(row => {
-      // Only filter out rows where BOTH Rank and Name are empty
-      const rankVal = (row[data.gullinbursti.headers[0]] || '').trim();
-      const nameVal = (row[data.gullinbursti.headers[1]] || '').trim();
-      return rankVal !== '' || nameVal !== '';
-    })
-    .map((row) => {
-      // Direct column access based on known sheet structure
-      // Columns: Rank, Name, Discord nickname, In Guild?, Is Gametag added?, Gamertag, Is Timezone added?, Timezone, LOA Status, LOA End Date, Chat activity, Sailing, Hosting, Comments
-      const rankRaw = row[data.gullinbursti.headers[0]] || '';
-      const nameRaw = row[data.gullinbursti.headers[1]] || '';
+  // First pass: identify squad headers and assign squads to crew members
+  const sailors: Array<{
+    rank: string;
+    name: string;
+    squad: string;
+    discordNickname: string;
+    compliance: string;
+    timezone: string;
+    stars: string;
+  }> = [];
+
+  let currentSquad = 'Unknown';
+  
+  for (const row of data.gullinbursti.rows) {
+    const rankVal = (row[data.gullinbursti.headers[0]] || '').trim();
+    const nameVal = (row[data.gullinbursti.headers[1]] || '').trim();
+    
+    // Skip completely empty rows
+    if (rankVal === '' && nameVal === '') {
+      continue;
+    }
+    
+    // Update squad if this is a header row (rank but no name)
+    if (rankVal && !nameVal) {
+      currentSquad = rankVal;
+      continue; // Don't include header rows
+    }
+    
+    // Include actual crew rows (have both rank and name)
+    if (rankVal && nameVal) {
       const discordRaw = row[data.gullinbursti.headers[2]] || '';
       const loaStatusRaw = row[data.gullinbursti.headers[8]] || '';
       const timezoneRaw = row[data.gullinbursti.headers[7]] || '';
       const chatActivityRaw = row[data.gullinbursti.headers[10]] || '';
 
-      return {
-        rank: rankRaw.trim() || 'Sailor',
-        name: nameRaw.trim() === '' ? 'Unknown' : nameRaw.trim(),
-        squad: discordRaw.trim() === '' ? '-' : discordRaw.trim(),
-        compliance: loaStatusRaw.trim() === '' ? 'Unknown' : loaStatusRaw.trim(),
-        timezone: timezoneRaw.trim() === '' ? '-' : timezoneRaw.trim(),
+      sailors.push({
+        rank: rankVal,
+        name: nameVal,
+        squad: currentSquad,
+        discordNickname: discordRaw.trim(),
+        compliance: loaStatusRaw.trim() || 'Unknown',
+        timezone: timezoneRaw.trim() || '-',
         stars: chatActivityRaw.trim() || '0',
-      };
-    });
+      });
+    }
+  }
 
   const complianceStats = {
     total: sailors.length,
@@ -225,14 +245,14 @@ export const UsersTab = () => {
 
                     {/* Compliance */}
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Box
                           sx={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: 32,
-                            height: 32,
+                            width: 24,
+                            height: 24,
                             borderRadius: '50%',
                             backgroundColor: 
                               complianceStatus.status === 'compliant' ? 'rgba(34, 197, 94, 0.2)' :
@@ -244,15 +264,12 @@ export const UsersTab = () => {
                               complianceStatus.status === 'action-required' ? '#ef4444' :
                               complianceStatus.status === 'attention-required' ? '#eab308' :
                               '#6b7280',
-                            fontSize: '1.2rem',
+                            fontSize: '1rem',
                             fontWeight: 'bold',
                           }}
                         >
                           {complianceStatus.icon}
                         </Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {complianceStatus.label}
-                        </Typography>
                       </Box>
                     </TableCell>
 
