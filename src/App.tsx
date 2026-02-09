@@ -17,11 +17,11 @@ import {
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { lightTheme, darkTheme } from './theme';
-import { GoogleSheetsViewer } from './components/GoogleSheetsViewer';
 import { DashboardTab } from './components/DashboardTab';
 import { UsersTab } from './components/UsersTab';
 import { OverviewTab } from './components/OverviewTab';
 import { ActionsTab } from './components/ActionsTab';
+import { LinkedSheetsTab } from './components/LinkedSheetsTab';
 import { SheetProvider } from './context/SheetDataContext';
 import './App.css';
 
@@ -56,7 +56,7 @@ function AppContent() {
             <Tab label="Dashboard" />
             <Tab label="Users" />
             <Tab label="Actions" />
-            <Tab label="Review" />
+            <Tab label="Linked Sheets" />
             <Tab label="Export" />
           </Tabs>
         </Box>
@@ -81,9 +81,9 @@ function AppContent() {
           <ActionsTab />
         )}
 
-        {/* Review Tab */}
+        {/* Linked Sheets Tab */}
         {activeTab === 4 && (
-          <GoogleSheetsViewer />
+          <LinkedSheetsTab />
         )}
 
         {/* Export Tab */}
