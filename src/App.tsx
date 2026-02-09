@@ -11,6 +11,8 @@ import {
   Box,
   Paper,
   Button,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
@@ -19,6 +21,7 @@ import './App.css';
 
 function App() {
   const [darkMode, setDarkMode] = useState(true);
+  const [activeTab, setActiveTab] = useState(0);
 
   return (
     <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
@@ -40,45 +43,99 @@ function App() {
           />
         </Toolbar>
       </AppBar>
-      <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h5" gutterBottom>
-            Import Discord Members
-          </Typography>
-          <Button variant="contained" color="primary" sx={{ mr: 2 }}>
-            Import CSV
-          </Button>
-          <Button variant="outlined" color="secondary">
-            Manual Entry
-          </Button>
-        </Paper>
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h5" gutterBottom>
-            Google Sheets Integration
-          </Typography>
-          <Button variant="contained" color="success" sx={{ mr: 2 }}>
-            Read Sheets
-          </Button>
-          <Button variant="contained" color="warning">
-            Update Sheets
-          </Button>
-        </Paper>
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h5" gutterBottom>
-            Export Report
-          </Typography>
-          <Box>
-            <Button variant="contained" color="info" sx={{ mr: 2 }}>
-              Export PDF
-            </Button>
-            <Button variant="contained" color="secondary" sx={{ mr: 2 }}>
-              Export Excel
-            </Button>
-            <Button variant="contained" color="primary">
-              Export Word
-            </Button>
+      <Container maxWidth="lg" sx={{ mt: 0 }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs value={activeTab} onChange={(_e, newValue) => setActiveTab(newValue)}>
+            <Tab label="Dashboard" />
+            <Tab label="Users" />
+            <Tab label="Review" />
+            <Tab label="Export" />
+          </Tabs>
+        </Box>
+
+        {/* Dashboard Tab */}
+        {activeTab === 0 && (
+          <Box sx={{ mt: 3 }}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h5" gutterBottom>
+                Dashboard Overview
+              </Typography>
+              <Typography color="textSecondary">
+                Welcome to the Discord Member Dashboard. Use the tabs above to manage members, review data, and export reports.
+              </Typography>
+            </Paper>
           </Box>
-        </Paper>
+        )}
+
+        {/* Users Tab */}
+        {activeTab === 1 && (
+          <Box sx={{ mt: 3 }}>
+            <Paper sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h5" gutterBottom>
+                Import Discord Members
+              </Typography>
+              <Button variant="contained" color="primary" sx={{ mr: 2 }}>
+                Import CSV
+              </Button>
+              <Button variant="outlined" color="secondary">
+                Manual Entry
+              </Button>
+            </Paper>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h5" gutterBottom>
+                Members List
+              </Typography>
+              <Typography color="textSecondary">
+                Members will appear here once imported.
+              </Typography>
+            </Paper>
+          </Box>
+        )}
+
+        {/* Review Tab */}
+        {activeTab === 2 && (
+          <Box sx={{ mt: 3 }}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h5" gutterBottom>
+                Google Sheets Integration
+              </Typography>
+              <Button variant="contained" color="success" sx={{ mr: 2 }}>
+                Read Sheets
+              </Button>
+              <Button variant="contained" color="warning">
+                Update Sheets
+              </Button>
+              <Typography variant="body2" sx={{ mt: 2 }} color="textSecondary">
+                Connect to Google Sheets to review and manage your data.
+              </Typography>
+            </Paper>
+          </Box>
+        )}
+
+        {/* Export Tab */}
+        {activeTab === 3 && (
+          <Box sx={{ mt: 3 }}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h5" gutterBottom>
+                Export Report
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                <Button variant="contained" color="info" sx={{ mr: 2 }}>
+                  Export PDF
+                </Button>
+                <Button variant="contained" color="secondary" sx={{ mr: 2 }}>
+                  Export Excel
+                </Button>
+                <Button variant="contained" color="primary">
+                  Export Word
+                </Button>
+              </Box>
+              <Typography variant="body2" sx={{ mt: 2 }} color="textSecondary">
+                Export your member data in multiple formats.
+              </Typography>
+            </Paper>
+          </Box>
+        )}
       </Container>
     </ThemeProvider>
   );
