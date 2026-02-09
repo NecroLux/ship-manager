@@ -112,9 +112,12 @@ app.post('/api/sheets/read', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error reading sheet:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Full error details:', errorMessage);
     res.status(500).json({
       error: 'Failed to read sheet',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: errorMessage,
+      details: error instanceof Error ? error.stack : undefined,
     });
   }
 });

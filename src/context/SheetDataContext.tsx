@@ -69,10 +69,13 @@ const fetchSheetData = async (
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const errorText = await response.text();
+      console.error(`HTTP ${response.status} error:`, errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
     const result = await response.json();
+    console.log('Sheet data received:', result);
 
     // Convert array rows to object rows for easier access
     const rowsAsObjects: SheetRow[] = result.rows.map((row: string[]) => {
