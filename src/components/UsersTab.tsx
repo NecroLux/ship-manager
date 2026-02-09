@@ -95,10 +95,10 @@ export const UsersTab = () => {
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                ⚓ Ship Crew Roster
+                ⚓ Ship's Crew
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                {sailors.length} active sailors • {complianceStats.compliant} in compliance
+                {sailors.length} crew members • {complianceStats.compliant} in compliance
               </Typography>
             </Box>
             <Button
@@ -255,7 +255,7 @@ export const UsersTab = () => {
           <Card sx={{ flex: 1, minWidth: 150 }}>
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography color="textSecondary" variant="body2" sx={{ mb: 1 }}>
-                Total Sailors
+                Total Crew
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#3b82f6' }}>
                 {sailors.length}

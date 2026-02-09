@@ -52,7 +52,7 @@ function AppContent() {
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(_e, newValue) => setActiveTab(newValue)}>
             <Tab label="Overview" />
-            <Tab label="Sailors" />
+            <Tab label="Crew" />
             <Tab label="Actions" />
             <Tab label="Reports" />
             <Tab label="Config" />
