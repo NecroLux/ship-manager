@@ -17,6 +17,7 @@ import {
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { lightTheme, darkTheme } from './theme';
+import { GoogleSheetsViewer } from './components/GoogleSheetsViewer';
 import './App.css';
 
 function App() {
@@ -94,22 +95,9 @@ function App() {
 
         {/* Review Tab */}
         {activeTab === 2 && (
-          <Box sx={{ mt: 3 }}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h5" gutterBottom>
-                Google Sheets Integration
-              </Typography>
-              <Button variant="contained" color="success" sx={{ mr: 2 }}>
-                Read Sheets
-              </Button>
-              <Button variant="contained" color="warning">
-                Update Sheets
-              </Button>
-              <Typography variant="body2" sx={{ mt: 2 }} color="textSecondary">
-                Connect to Google Sheets to review and manage your data.
-              </Typography>
-            </Paper>
-          </Box>
+          <GoogleSheetsViewer 
+            apiKey={(import.meta as any).env.VITE_GOOGLE_API_KEY}
+          />
         )}
 
         {/* Export Tab */}
