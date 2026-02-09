@@ -208,124 +208,169 @@ export const UsersTab = () => {
               >
                 <TableCell sx={{ width: '12%' }}>Rank</TableCell>
                 <TableCell sx={{ width: '20%' }}>Name</TableCell>
-                <TableCell sx={{ width: '18%' }}>Squad</TableCell>
+                <TableCell sx={{ width: '18%' }}>Detail</TableCell>
                 <TableCell sx={{ width: '15%', textAlign: 'center' }}>Compliance</TableCell>
                 <TableCell sx={{ width: '18%' }}>Timezone</TableCell>
                 <TableCell sx={{ width: '17%', textAlign: 'center' }}>Activity</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {sailors.map((sailor, idx) => {
-                const complianceStatus = getComplianceStatus(sailor.compliance);
-                const rankColor = getRankColor(sailor.rank);
-                
-                // Parse star count from chat activity field
-                // It might be "★★★★★" or a number or text
-                let starCount = 0;
-                const starString = sailor.stars.toLowerCase();
-                if (starString.includes('★')) {
-                  starCount = (sailor.stars.match(/★/g) || []).length;
-                } else {
-                  // Try to parse as number
-                  const parsed = parseInt(sailor.stars);
-                  starCount = isNaN(parsed) ? 0 : parsed;
-                }
-                starCount = Math.min(5, Math.max(0, starCount));
-                
-                return (
-                  <TableRow
-                    key={idx}
-                    hover
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
-                      },
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                    }}
-                  >
-                    {/* Rank */}
-                    <TableCell sx={{ fontWeight: 'bold' }}>
-                      <Typography 
-                        sx={{ 
-                          color: rankColor.color,
-                          fontWeight: 'bold',
-                          fontSize: '0.95rem'
+              {(() => {
+                // Group sailors by squad
+                const squadGroups: Record<string, typeof sailors> = {};
+                sailors.forEach(sailor => {
+                  if (!squadGroups[sailor.squad]) {
+                    squadGroups[sailor.squad] = [];
+                  }
+                  squadGroups[sailor.squad].push(sailor);
+                });
+
+                // Define squad colors
+                const squadColors: Record<string, { border: string; bg: string; light: string }> = {
+                  'Command Staff': { border: '#FCD34D', bg: 'rgba(252, 211, 77, 0.1)', light: 'rgba(252, 211, 77, 0.05)' }, // Gold
+                  'Necro Squad': { border: '#3B82F6', bg: 'rgba(59, 130, 246, 0.1)', light: 'rgba(59, 130, 246, 0.05)' }, // Blue
+                  'Shade Squad': { border: '#10B981', bg: 'rgba(16, 185, 129, 0.1)', light: 'rgba(16, 185, 129, 0.05)' }, // Green
+                };
+
+                const rows: JSX.Element[] = [];
+                let globalIdx = 0;
+
+                Object.entries(squadGroups).forEach(([squad, members]) => {
+                  const squadColor = squadColors[squad] || { border: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)', light: 'rgba(107, 114, 128, 0.05)' };
+                  
+                  // Add squad header row
+                  rows.push(
+                    <TableRow
+                      key={`squad-header-${squad}`}
+                      sx={{
+                        backgroundColor: squadColor.bg,
+                        borderLeft: `4px solid ${squadColor.border}`,
+                        '&:hover': { backgroundColor: squadColor.bg },
+                      }}
+                    >
+                      <TableCell colSpan={6} sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1rem', color: squadColor.border }}>
+                        {squad}
+                      </TableCell>
+                    </TableRow>
+                  );
+
+                  // Add crew members for this squad
+                  members.forEach((sailor) => {
+                    const complianceStatus = getComplianceStatus(sailor.compliance);
+                    const rankColor = getRankColor(sailor.rank);
+                    
+                    // Parse star count from chat activity field
+                    let starCount = 0;
+                    const starString = sailor.stars.toLowerCase();
+                    if (starString.includes('★')) {
+                      starCount = (sailor.stars.match(/★/g) || []).length;
+                    } else {
+                      const parsed = parseInt(sailor.stars);
+                      starCount = isNaN(parsed) ? 0 : parsed;
+                    }
+                    starCount = Math.min(5, Math.max(0, starCount));
+                    
+                    rows.push(
+                      <TableRow
+                        key={`sailor-${globalIdx}`}
+                        hover
+                        sx={{
+                          backgroundColor: squadColor.light,
+                          borderLeft: `4px solid ${squadColor.border}`,
+                          '&:hover': {
+                            backgroundColor: squadColor.light,
+                          },
+                          borderBottom: `1px solid ${theme.palette.divider}`,
                         }}
                       >
-                        {sailor.rank}
-                      </Typography>
-                    </TableCell>
+                        {/* Rank */}
+                        <TableCell sx={{ fontWeight: 'bold', py: 1.5 }}>
+                          <Typography 
+                            sx={{ 
+                              color: rankColor.color,
+                              fontWeight: 'bold',
+                              fontSize: '0.95rem'
+                            }}
+                          >
+                            {sailor.rank}
+                          </Typography>
+                        </TableCell>
 
-                    {/* Name */}
-                    <TableCell sx={{ fontWeight: 500 }}>
-                      {sailor.name}
-                    </TableCell>
+                        {/* Name */}
+                        <TableCell sx={{ fontWeight: 500, py: 1.5 }}>
+                          {sailor.name}
+                        </TableCell>
 
-                    {/* Squad */}
-                    <TableCell>
-                      <Chip
-                        label={sailor.squad}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontWeight: 500 }}
-                      />
-                    </TableCell>
+                        {/* Detail (was Squad) */}
+                        <TableCell sx={{ py: 1.5 }}>
+                          <Chip
+                            label={sailor.squad}
+                            size="small"
+                            variant="outlined"
+                            sx={{ fontWeight: 500 }}
+                          />
+                        </TableCell>
 
-                    {/* Compliance */}
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 28,
-                            height: 28,
-                            borderRadius: '50%',
-                            backgroundColor: 
-                              complianceStatus.status === 'compliant' ? 'rgba(34, 197, 94, 0.2)' :
-                              complianceStatus.status === 'action-required' ? 'rgba(239, 68, 68, 0.2)' :
-                              complianceStatus.status === 'attention-required' ? 'rgba(234, 179, 8, 0.2)' :
-                              'rgba(107, 114, 128, 0.2)',
-                            color:
-                              complianceStatus.status === 'compliant' ? '#22c55e' :
-                              complianceStatus.status === 'action-required' ? '#ef4444' :
-                              complianceStatus.status === 'attention-required' ? '#eab308' :
-                              '#6b7280',
-                            fontSize: '1.1rem',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          {complianceStatus.icon}
-                        </Box>
-                      </Box>
-                    </TableCell>
+                        {/* Compliance */}
+                        <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 28,
+                                height: 28,
+                                borderRadius: '50%',
+                                backgroundColor: 
+                                  complianceStatus.status === 'compliant' ? 'rgba(34, 197, 94, 0.2)' :
+                                  complianceStatus.status === 'action-required' ? 'rgba(239, 68, 68, 0.2)' :
+                                  complianceStatus.status === 'attention-required' ? 'rgba(234, 179, 8, 0.2)' :
+                                  'rgba(107, 114, 128, 0.2)',
+                                color:
+                                  complianceStatus.status === 'compliant' ? '#22c55e' :
+                                  complianceStatus.status === 'action-required' ? '#ef4444' :
+                                  complianceStatus.status === 'attention-required' ? '#eab308' :
+                                  '#6b7280',
+                                fontSize: '1.1rem',
+                                fontWeight: 'bold',
+                              }}
+                            >
+                              {complianceStatus.icon}
+                            </Box>
+                          </Box>
+                        </TableCell>
 
-                    {/* Timezone */}
-                    <TableCell sx={{ fontSize: '0.9rem' }}>
-                      {sailor.timezone !== '-' ? `${sailor.timezone}` : '-'}
-                    </TableCell>
+                        {/* Timezone */}
+                        <TableCell sx={{ fontSize: '0.9rem', py: 1.5 }}>
+                          {sailor.timezone !== '-' ? `${sailor.timezone}` : '-'}
+                        </TableCell>
 
-                    {/* Activity Stars */}
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Rating
-                        value={starCount}
-                        readOnly
-                        size="small"
-                        sx={{ 
-                          display: 'inline-flex',
-                          '& .MuiRating-iconFilled': {
-                            color: '#FFD700',
-                          },
-                          '& .MuiRating-iconEmpty': {
-                            color: theme.palette.mode === 'dark' ? '#444' : '#ddd',
-                          },
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                        {/* Activity Stars */}
+                        <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
+                          <Rating
+                            value={starCount}
+                            readOnly
+                            size="small"
+                            sx={{ 
+                              display: 'inline-flex',
+                              '& .MuiRating-iconFilled': {
+                                color: '#FFD700',
+                              },
+                              '& .MuiRating-iconEmpty': {
+                                color: theme.palette.mode === 'dark' ? '#444' : '#ddd',
+                              },
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                    globalIdx++;
+                  });
+                });
+
+                return rows;
+              })()}
             </TableBody>
           </Table>
         </TableContainer>
