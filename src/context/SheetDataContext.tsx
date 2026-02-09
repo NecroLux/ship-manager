@@ -29,11 +29,11 @@ const SheetContext = createContext<SheetContextType | undefined>(undefined);
 
 // Sheet 1: Voyage Awards
 const VOYAGE_AWARDS_SPREADSHEET_ID = '1AK81fcdI9UTY4Nlp5ijwtPqyILE-e4DnRK3-IAgEIHI';
-const VOYAGE_AWARDS_RANGE = 'Time/Voyage Awards!A1:O900';
+const VOYAGE_AWARDS_RANGE = 'Time/Voyage Awards!A1:AH34';
 
 // Sheet 2: Gullinbursti
 const GULLINBURSTI_SPREADSHEET_ID = '1EiLym2gcxcxmwoTHkHD9m9MisRqC3lmjJbBUBzqlZI0';
-const GULLINBURSTI_RANGE = 'Gullinbursti!A1:W64';
+const GULLINBURSTI_RANGE = 'Gullinbursti!A9:W49';
 
 const emptySheetData: SheetData = {
   headers: [],

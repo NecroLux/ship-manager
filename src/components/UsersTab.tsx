@@ -21,15 +21,18 @@ import { useSheetData } from '../context/SheetDataContext';
 
 // Helper function to get compliance status
 const getComplianceStatus = (complianceValue: string) => {
-  if (!complianceValue) return { label: 'Unknown', color: 'default' as const, showIcon: false };
+  if (!complianceValue) return { label: 'Unknown', color: 'default' as const, icon: '?', status: 'unknown' };
   const normalized = complianceValue.toLowerCase().trim();
-  if (normalized === 'in regulations' || normalized === 'yes' || normalized === 'compliant') {
-    return { label: 'In Compliance', color: 'success' as const, showIcon: true, icon: '✓' };
+  if (normalized === 'in regulations' || normalized === 'yes' || normalized === 'compliant' || normalized === 'within regulations') {
+    return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
   }
-  if (normalized === 'flagged' || normalized === 'no' || normalized === 'non-compliant') {
-    return { label: 'Flagged', color: 'error' as const, showIcon: true, icon: '⚠' };
+  if (normalized === 'flagged' || normalized === 'no' || normalized === 'non-compliant' || normalized === 'requires action') {
+    return { label: 'Requires Action', color: 'error' as const, icon: '✕', status: 'action-required' };
   }
-  return { label: normalized, color: 'warning' as const, showIcon: false };
+  if (normalized === 'requires attention' || normalized === 'warning') {
+    return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
+  }
+  return { label: normalized, color: 'default' as const, icon: '?', status: 'unknown' };
 };
 
 // Helper function to get rank color
@@ -194,12 +197,35 @@ export const UsersTab = () => {
 
                     {/* Compliance */}
                     <TableCell>
-                      <Chip
-                        label={`${complianceStatus.showIcon ? complianceStatus.icon + ' ' : ''}${complianceStatus.label}`}
-                        color={complianceStatus.color}
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            backgroundColor: 
+                              complianceStatus.status === 'compliant' ? 'rgba(34, 197, 94, 0.2)' :
+                              complianceStatus.status === 'action-required' ? 'rgba(239, 68, 68, 0.2)' :
+                              complianceStatus.status === 'attention-required' ? 'rgba(234, 179, 8, 0.2)' :
+                              'rgba(107, 114, 128, 0.2)',
+                            color:
+                              complianceStatus.status === 'compliant' ? '#22c55e' :
+                              complianceStatus.status === 'action-required' ? '#ef4444' :
+                              complianceStatus.status === 'attention-required' ? '#eab308' :
+                              '#6b7280',
+                            fontSize: '1.2rem',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          {complianceStatus.icon}
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {complianceStatus.label}
+                        </Typography>
+                      </Box>
                     </TableCell>
 
                     {/* Timezone */}
