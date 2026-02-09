@@ -47,7 +47,10 @@ const fetchSheetData = async (
 ): Promise<SheetData> => {
   try {
     // Use environment variable for backend URL, default to localhost for development
-    const backendUrl = (import.meta as any).env.VITE_BACKEND_URL || 'http://localhost:5000';
+    // In Vite, environment variables with VITE_ prefix are available at runtime
+    // @ts-ignore - Vite injects env variables at build time
+    const backendUrl = (import.meta.env.VITE_BACKEND_URL as string) || 'http://localhost:5000';
+    console.log('Backend URL:', backendUrl); // Debug log
     const response = await fetch(`${backendUrl}/api/sheets/read`, {
       method: 'POST',
       headers: {
