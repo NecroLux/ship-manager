@@ -19,6 +19,7 @@ import {
   Alert,
   Tabs,
   Tab,
+  TextField,
   useTheme,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
@@ -39,6 +40,7 @@ export const ReportsTab = () => {
   const [openSnapshotDialog, setOpenSnapshotDialog] = useState(false);
   const [saving, setSaving] = useState(false);
   const [currentMonthSnapshot, setCurrentMonthSnapshot] = useState<MonthlySnapshot | null>(null);
+  const [coNotes, setCoNotes] = useState<string>('');
 
   // Load snapshots on mount
   useEffect(() => {
@@ -202,7 +204,7 @@ export const ReportsTab = () => {
   };
 
   // Generate PDF report
-  const generatePDF = (snapshot: MonthlySnapshot) => {
+  const generatePDF = (snapshot: MonthlySnapshot, notes: string = '') => {
     try {
       const { topHosts, topVoyagers } = getLeaderboards();
       const doc = new jsPDF();
@@ -409,7 +411,7 @@ export const ReportsTab = () => {
 
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      const notesText = 'Please add any additional notes or observations about ship activities, crew performance, or operational concerns here. This section should contain key insights and recommendations for leadership.';
+      const notesText = notes || 'Please add any additional notes or observations about ship activities, crew performance, or operational concerns here. This section should contain key insights and recommendations for leadership.';
       const splitNotes = doc.splitTextToSize(notesText, pageWidth - margin * 2);
       doc.text(splitNotes, margin, yPosition);
       yPosition += splitNotes.length * 3 + 4;
@@ -481,6 +483,21 @@ export const ReportsTab = () => {
                 No snapshot for current month. Create one to track changes.
               </Alert>
             )}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                Commanding Officer Notes (optional)
+              </Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                placeholder="Add any notes, observations, or recommendations to include in the report..."
+                value={coNotes}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setCoNotes(e.target.value)}
+                variant="outlined"
+                size="small"
+              />
+            </Box>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
               <Button
                 variant="contained"
@@ -507,7 +524,7 @@ export const ReportsTab = () => {
                       {} as Record<string, number>
                     ),
                   };
-                  generatePDF(snapshot);
+                  generatePDF(snapshot, coNotes);
                 }}
               >
                 Download PDF

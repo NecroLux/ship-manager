@@ -191,11 +191,11 @@ export const UsersTab = () => {
   return (
     <Box sx={{ mt: 3 }}>
       {/* Refresh Button and Stats */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 1, flex: 1 }}>
           {sailors.length > 0 && (
             <>
-              <Card sx={{ flex: '0 1 auto', minWidth: 120 }}>
+              <Card sx={{ flex: 1, minWidth: 100 }}>
                 <CardContent sx={{ textAlign: 'center', py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
                   <Typography color="textSecondary" variant="caption" sx={{ mb: 0.5, display: 'block' }}>
                     Total Crew
@@ -205,7 +205,7 @@ export const UsersTab = () => {
                   </Typography>
                 </CardContent>
               </Card>
-              <Card sx={{ flex: '0 1 auto', minWidth: 120 }}>
+              <Card sx={{ flex: 1, minWidth: 100 }}>
                 <CardContent sx={{ textAlign: 'center', py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
                   <Typography color="textSecondary" variant="caption" sx={{ mb: 0.5, display: 'block' }}>
                     In Compliance
@@ -215,7 +215,7 @@ export const UsersTab = () => {
                   </Typography>
                 </CardContent>
               </Card>
-              <Card sx={{ flex: '0 1 auto', minWidth: 120 }}>
+              <Card sx={{ flex: 1, minWidth: 100 }}>
                 <CardContent sx={{ textAlign: 'center', py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
                   <Typography color="textSecondary" variant="caption" sx={{ mb: 0.5, display: 'block' }}>
                     Flagged
