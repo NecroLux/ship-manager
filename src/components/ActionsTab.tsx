@@ -55,6 +55,7 @@ export const ActionsTab = () => {
 
     console.log('=== ACTION DETECTION DEBUG ===');
     console.log('Headers:', headers);
+    console.log('First 3 rows:', data.gullinbursti.rows.slice(0, 3));
 
     let currentSquad = 'Command Staff'; // Start with Command Staff as default
 
@@ -62,9 +63,42 @@ export const ActionsTab = () => {
       // Extract crew data from row using headers
       const rank = (row[headers[0]] || '').trim();
       const name = (row[headers[1]] || '').trim();
-      const squadFromRow = (row[headers[3]] || '').trim();
-      const compliance = (row[headers[8]] || '').trim();
-      const starsRaw = (row[headers[10]] || '').trim();
+      
+      // Try to find squad column by header name, fallback to index 3
+      let squadFromRow = '';
+      for (let i = 0; i < headers.length; i++) {
+        if (headers[i].toLowerCase().includes('squad')) {
+          squadFromRow = (row[headers[i]] || '').trim();
+          break;
+        }
+      }
+      
+      // If no squad column found by name, try index 3 but validate it's not a boolean
+      if (!squadFromRow && row[headers[3]]) {
+        const val = (row[headers[3]] || '').trim();
+        if (val && val.toLowerCase() !== 'true' && val.toLowerCase() !== 'false') {
+          squadFromRow = val;
+        }
+      }
+
+      // Find compliance column
+      let compliance = '';
+      for (let i = 0; i < headers.length; i++) {
+        if (headers[i].toLowerCase().includes('compliance')) {
+          compliance = (row[headers[i]] || '').trim();
+          break;
+        }
+      }
+      
+      // Find chat activity/stars column
+      let starsRaw = '';
+      for (let i = 0; i < headers.length; i++) {
+        const headerLower = headers[i].toLowerCase();
+        if (headerLower.includes('chat') || headerLower.includes('activity') || headerLower.includes('star')) {
+          starsRaw = (row[headers[i]] || '').trim();
+          break;
+        }
+      }
       
       // Skip column header row
       if ((rank === 'Rank' || rank.toLowerCase() === 'rank') && 
@@ -87,16 +121,25 @@ export const ActionsTab = () => {
       // Use squad from row if available, otherwise use currentSquad
       const assignedSquad = squadFromRow || currentSquad;
 
-      // Parse stars (handle various formats) - stars between 0-5
+      // Parse stars - count actual stars (★ characters)
       let stars = 0;
       if (starsRaw) {
-        const starMatch = starsRaw.match(/\d+/);
-        if (starMatch) {
-          stars = parseInt(starMatch[0], 10);
+        // Count star characters (★ or *)
+        const starCount = (starsRaw.match(/[★*]/g) || []).length;
+        // If that doesn't work, try to extract a number
+        if (starCount === 0) {
+          const starMatch = starsRaw.match(/\d+/);
+          if (starMatch) {
+            stars = parseInt(starMatch[0], 10);
+          }
+        } else {
+          stars = starCount;
         }
       }
 
-      console.log(`Row ${rowIdx}: ${name} (${rank}, Squad: ${assignedSquad}, Compliance: "${compliance}", Stars: ${stars})`);
+      if (rowIdx < 5) {
+        console.log(`Row ${rowIdx}: ${name} (${rank}, Squad: "${assignedSquad}", Compliance: "${compliance}", Stars: ${stars}, Raw: "${starsRaw}")`);
+      }
 
       // ONLY flag "No Chat Activity" if stars = 0 AND compliance is not on LOA/Leave
       // This prevents false positives for people on legitimate leave
@@ -106,7 +149,7 @@ export const ActionsTab = () => {
                         complianceLower.includes('off-duty');
       
       if (stars === 0 && !isOnLeave) {
-        console.log(`  -> ACTION: No Chat Activity`);
+        console.log(`  -> ACTION: No Chat Activity (stars=${stars})`);
         actions.push({
           id: String(actionId++),
           type: 'no-chat-activity',
