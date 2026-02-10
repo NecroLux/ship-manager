@@ -28,6 +28,7 @@ import { useState, useEffect } from 'react';
 import { useSheetData } from '../context/SheetDataContext';
 import { useSnapshots, CrewSnapshot, MonthlySnapshot } from '../context/SnapshotContext';
 import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export const ReportsTab = () => {
   const { data } = useSheetData();
