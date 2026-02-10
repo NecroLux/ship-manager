@@ -207,6 +207,11 @@ export const ReportsTab = () => {
   const generatePDF = (snapshot: MonthlySnapshot, notes: string = '') => {
     try {
       const { topHosts, topVoyagers } = getLeaderboards();
+      console.log('PDF Generation - Top Hosts:', topHosts);
+      console.log('PDF Generation - Top Voyagers:', topVoyagers);
+      console.log('PDF Generation - Crew count:', snapshot.crew.length);
+      console.log('PDF Generation - Squad breakdown:', snapshot.squadBreakdown);
+      
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
@@ -280,7 +285,7 @@ export const ReportsTab = () => {
       yPosition = boxY + boxHeight + 8;
 
       // ===== SQUAD BREAKDOWN SECTION =====
-      yPosition = checkPageBreak(30);
+      yPosition = checkPageBreak(20);
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
@@ -293,7 +298,7 @@ export const ReportsTab = () => {
       });
 
       doc.setFontSize(9);
-      if ((doc as any).autoTable) {
+      if (squadData.length > 0) {
         (doc as any).autoTable({
           head: [['Squad', 'Members', 'Percentage']],
           body: squadData,
@@ -302,71 +307,78 @@ export const ReportsTab = () => {
           styles: { fontSize: 9, cellPadding: 3 },
           headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
           alternateRowStyles: { fillColor: [245, 245, 245] },
-          didDrawPage: () => {
-            yPosition = (doc as any).lastAutoTable.finalY + 8;
-          }
         });
         yPosition = (doc as any).lastAutoTable.finalY + 8;
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.text('No squad breakdown available', margin, yPosition);
+        yPosition += 6;
       }
 
       // ===== TOP HOSTS LEADERBOARD =====
-      yPosition = checkPageBreak(40);
+      yPosition = checkPageBreak(25);
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('TOP SHIP HOSTS', margin, yPosition);
+      yPosition += 6;
 
       if (topHosts.length > 0) {
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('TOP SHIP HOSTS', margin, yPosition);
-        yPosition += 6;
-
         const hostsData = topHosts.map((sailor) => [
           sailor.name,
           String(sailor.hostCount),
         ]);
 
-        if ((doc as any).autoTable) {
-          (doc as any).autoTable({
-            head: [['Sailor', 'Total Hosted']],
-            body: hostsData,
-            startY: yPosition,
-            margin: margin,
-            styles: { fontSize: 9, cellPadding: 3 },
-            headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
-            alternateRowStyles: { fillColor: [245, 245, 245] },
-          });
-          yPosition = (doc as any).lastAutoTable.finalY + 8;
-        }
+        (doc as any).autoTable({
+          head: [['Sailor', 'Total Hosted']],
+          body: hostsData,
+          startY: yPosition,
+          margin: margin,
+          styles: { fontSize: 9, cellPadding: 3 },
+          headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [245, 245, 245] },
+        });
+        yPosition = (doc as any).lastAutoTable.finalY + 8;
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text('No hosting data available', margin, yPosition);
+        yPosition += 6;
       }
 
       // ===== TOP VOYAGERS LEADERBOARD =====
-      yPosition = checkPageBreak(40);
+      yPosition = checkPageBreak(25);
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('TOP SHIP VOYAGERS', margin, yPosition);
+      yPosition += 6;
 
       if (topVoyagers.length > 0) {
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('TOP SHIP VOYAGERS', margin, yPosition);
-        yPosition += 6;
-
         const voyagersData = topVoyagers.map((sailor) => [
           sailor.name,
           String(sailor.voyageCount),
         ]);
 
-        if ((doc as any).autoTable) {
-          (doc as any).autoTable({
-            head: [['Sailor', 'Total Voyages']],
-            body: voyagersData,
-            startY: yPosition,
-            margin: margin,
-            styles: { fontSize: 9, cellPadding: 3 },
-            headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
-            alternateRowStyles: { fillColor: [245, 245, 245] },
-          });
-          yPosition = (doc as any).lastAutoTable.finalY + 8;
-        }
+        (doc as any).autoTable({
+          head: [['Sailor', 'Total Voyages']],
+          body: voyagersData,
+          startY: yPosition,
+          margin: margin,
+          styles: { fontSize: 9, cellPadding: 3 },
+          headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [245, 245, 245] },
+        });
+        yPosition = (doc as any).lastAutoTable.finalY + 8;
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text('No voyage data available', margin, yPosition);
+        yPosition += 6;
       }
 
       // ===== CREW ROSTER SECTION =====
-      yPosition = checkPageBreak(40);
+      yPosition = checkPageBreak(30);
 
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
@@ -381,7 +393,7 @@ export const ReportsTab = () => {
         sailor.timezone,
       ]);
 
-      if ((doc as any).autoTable) {
+      if (crewTableData.length > 0) {
         (doc as any).autoTable({
           head: [['Rank', 'Name', 'Squad', 'Status', 'Timezone']],
           body: crewTableData,
@@ -399,6 +411,11 @@ export const ReportsTab = () => {
           },
         });
         yPosition = (doc as any).lastAutoTable.finalY + 8;
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text('No crew roster data available', margin, yPosition);
+        yPosition += 6;
       }
 
       // ===== NOTES SECTION =====
