@@ -269,9 +269,9 @@ export const UsersTab = () => {
                         </TableRow>
                         <TableRow 
                           sx={{ 
-                            backgroundColor: theme.palette.mode === 'dark' ? '#1e293b' : '#f1f5f9',
+                            backgroundColor: 'transparent',
                             '& th': {
-                              backgroundColor: theme.palette.mode === 'dark' ? '#1e293b' : '#f1f5f9',
+                              backgroundColor: 'transparent',
                               fontWeight: 'bold',
                               fontSize: '0.95rem',
                               borderBottom: `2px solid ${theme.palette.divider}`,
@@ -307,9 +307,9 @@ export const UsersTab = () => {
                               key={`sailor-${squad}-${idx}`}
                               hover
                               sx={{
-                                backgroundColor: squadColor.light,
+                                backgroundColor: 'transparent',
                                 '&:hover': {
-                                  backgroundColor: squadColor.bg,
+                                  backgroundColor: 'transparent',
                                 },
                                 borderBottom: `1px solid ${theme.palette.divider}`,
                               }}
