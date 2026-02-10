@@ -29,7 +29,19 @@ import { useState, useEffect } from 'react';
 import { useSheetData } from '../context/SheetDataContext';
 import { useSnapshots, CrewSnapshot, MonthlySnapshot } from '../context/SnapshotContext';
 import jsPDF from 'jspdf';
+// @ts-ignore - jspdf-autotable side-effect import
 import 'jspdf-autotable';
+
+// Ensure autoTable is available
+const ensureAutoTable = (doc: any) => {
+  if (!doc.autoTable) {
+    console.warn('autoTable not available, using fallback');
+    (doc as any).autoTable = () => {
+      (doc as any).lastAutoTable = { finalY: (doc as any).lastAutoTable?.finalY || 0 };
+      return doc;
+    };
+  }
+};
 
 export const ReportsTab = () => {
   const { data } = useSheetData();
@@ -213,6 +225,8 @@ export const ReportsTab = () => {
       console.log('PDF Generation - Squad breakdown:', snapshot.squadBreakdown);
       
       const doc = new jsPDF();
+      ensureAutoTable(doc);
+      
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 12;
