@@ -116,37 +116,115 @@ export const ReportsTab = () => {
     try {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
-      let yPosition = 10;
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      let yPosition = margin;
 
-      // Title
-      doc.setFontSize(16);
-      doc.text('USN Ship Manager - Crew Report', pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 10;
+      // Header - Title
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('USN SHIP MANAGER', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 8;
 
-      // Date info
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Monthly Crew Report', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 12;
+
+      // Horizontal line
+      doc.setDrawColor(0, 0, 0);
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      yPosition += 8;
+
+      // Report metadata
       doc.setFontSize(10);
-      doc.text(`Report Date: ${new Date(snapshot.date).toLocaleDateString()}`, 10, yPosition);
-      doc.text(`Total Crew: ${snapshot.totalCrew}`, 10, yPosition + 5);
-      doc.text(`In Compliance: ${snapshot.complianceCount}`, 10, yPosition + 10);
-      yPosition += 20;
+      doc.setFont('helvetica', 'normal');
+      const reportDate = new Date(snapshot.date);
+      doc.text(`Report Date: ${reportDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, margin, yPosition);
+      yPosition += 5;
 
-      // Squad breakdown
+      // Executive Summary section
       doc.setFontSize(12);
-      doc.text('Squad Breakdown:', 10, yPosition);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Executive Summary', margin, yPosition);
       yPosition += 6;
 
       doc.setFontSize(10);
-      Object.entries(snapshot.squadBreakdown).forEach(([squad, count]) => {
-        doc.text(`${squad}: ${count}`, 15, yPosition);
-        yPosition += 5;
+      doc.setFont('helvetica', 'normal');
+      
+      // Summary stats in box format
+      const summaryBoxWidth = (pageWidth - margin * 2 - 4) / 3;
+      const boxHeight = 18;
+      
+      // Total Crew box
+      doc.setFillColor(240, 240, 240);
+      doc.rect(margin, yPosition, summaryBoxWidth, boxHeight, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.text('Total Crew', margin + 2, yPosition + 5);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(14);
+      doc.text(String(snapshot.totalCrew), margin + summaryBoxWidth / 2, yPosition + 12, { align: 'center' });
+
+      // In Compliance box
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('In Compliance', margin + summaryBoxWidth + 2, yPosition + 5);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(14);
+      doc.text(String(snapshot.complianceCount), margin + summaryBoxWidth + summaryBoxWidth / 2, yPosition + 12, { align: 'center' });
+
+      // Compliance % box
+      const compliancePercent = snapshot.totalCrew > 0 
+        ? Math.round((snapshot.complianceCount / snapshot.totalCrew) * 100)
+        : 0;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Compliance %', margin + summaryBoxWidth * 2 + 2, yPosition + 5);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(14);
+      doc.text(`${compliancePercent}%`, margin + summaryBoxWidth * 2 + summaryBoxWidth / 2, yPosition + 12, { align: 'center' });
+
+      yPosition += boxHeight + 10;
+
+      // Squad Breakdown section
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Squad Breakdown', margin, yPosition);
+      yPosition += 6;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      
+      const squadBreakdownData = Object.entries(snapshot.squadBreakdown).map(([squad, count]) => {
+        const percentage = snapshot.totalCrew > 0 
+          ? Math.round((count / snapshot.totalCrew) * 100)
+          : 0;
+        return [squad, String(count), `${percentage}%`];
       });
 
-      yPosition += 10;
+      if ((doc as any).autoTable) {
+        (doc as any).autoTable({
+          head: [['Squad', 'Members', 'Percentage']],
+          body: squadBreakdownData,
+          startY: yPosition,
+          margin: margin,
+          styles: { fontSize: 10, cellPadding: 3 },
+          headerStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
+        });
+        yPosition = (doc as any).lastAutoTable.finalY + 8;
+      }
 
-      // Crew table
-      doc.setFontSize(11);
-      doc.text('Crew Roster:', 10, yPosition);
-      yPosition += 8;
+      // Add page break if needed
+      if (yPosition > pageHeight - 50) {
+        doc.addPage();
+        yPosition = margin;
+      }
+
+      // Crew Roster section
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Crew Roster', margin, yPosition);
+      yPosition += 6;
 
       const tableData = snapshot.crew.map((sailor) => [
         sailor.rank,
@@ -162,11 +240,28 @@ export const ReportsTab = () => {
           head: [['Rank', 'Name', 'Squad', 'Compliance', 'Timezone']],
           body: tableData,
           startY: yPosition,
-          margin: 10,
-          styles: { fontSize: 8 },
+          margin: margin,
+          styles: { fontSize: 9, cellPadding: 3 },
+          headerStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [245, 245, 245] },
         });
       } else {
         console.warn('autoTable not available, generating PDF without table');
+      }
+
+      // Footer
+      const pageCount = (doc as any).internal.pages.length - 1;
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Page ${i} of ${pageCount}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
       }
 
       doc.save(`USN_Ship_Report_${snapshot.date}.pdf`);
