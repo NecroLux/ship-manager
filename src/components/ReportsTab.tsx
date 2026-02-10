@@ -196,7 +196,7 @@ export const ReportsTab = () => {
                 No snapshot for current month. Create one to track changes.
               </Alert>
             )}
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
               <Button
                 variant="contained"
                 color="primary"
@@ -240,7 +240,7 @@ export const ReportsTab = () => {
             <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
               Generate individual reports for each squad with member details.
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
               <Button variant="contained" color="primary" size="small" disabled>
                 Download All (Coming Soon)
               </Button>
