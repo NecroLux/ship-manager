@@ -33,11 +33,38 @@ interface ActionItem {
   type: string;
   severity: 'high' | 'medium' | 'low';
   sailor: string;
-  rank: string;
   squad: string;
+  responsible: string; // Who should handle this (squad leader, COS, etc.)
   description: string;
   details: string;
 }
+
+// Determine who should handle each action based on type and criteria
+const getResponsibleStaff = (actionType: string, squad: string): string => {
+  // HIGH PRIORITY actions go to Command/COS
+  if (
+    actionType === 'compliance-issue' ||
+    actionType === 'sailing-issue' ||
+    actionType === 'hosting-issue'
+  ) {
+    return 'Chief of Ship / Command';
+  }
+
+  // AWARDS/SUBCLASS go to First Officer
+  if (actionType === 'award-eligible' || actionType === 'subclass-ready') {
+    return 'First Officer';
+  }
+
+  // Chat activity goes to Squad Leaders
+  if (
+    actionType === 'no-chat-activity' ||
+    actionType === 'low-chat-activity'
+  ) {
+    return `${squad} Squad Leader`;
+  }
+
+  return 'Command';
+};
 
 export const ActionsTab = () => {
   const { data, loading, refreshData } = useSheetData();
@@ -153,10 +180,10 @@ export const ActionsTab = () => {
         actions.push({
           id: String(actionId++),
           type: 'no-chat-activity',
-          severity: 'low', // Changed to LOW priority
+          severity: 'low',
           sailor: name,
-          rank: rank,
           squad: assignedSquad,
+          responsible: getResponsibleStaff('no-chat-activity', assignedSquad),
           description: 'No Chat Activity',
           details: `${name} has not participated in chat. Encourage participation in squad channels.`,
         });
@@ -191,8 +218,8 @@ export const ActionsTab = () => {
             type: 'compliance-issue',
             severity: 'high',
             sailor: name,
-            rank: rank,
             squad: assignedSquad,
+            responsible: getResponsibleStaff('compliance-issue', assignedSquad),
             description: `Compliance: ${complianceType}`,
             details: `${name} is marked as ${complianceType}. Review status and take appropriate action.`,
           });
@@ -225,10 +252,10 @@ export const ActionsTab = () => {
         actions.push({
           id: String(actionId++),
           type: 'sailing-issue',
-          severity: 'high', // HIGH priority for sailing/hosting
+          severity: 'high',
           sailor: name,
-          rank: rank,
           squad: assignedSquad,
+          responsible: getResponsibleStaff('sailing-issue', assignedSquad),
           description: 'Sailing Issue',
           details: `${name} has a sailing/voyage issue that needs attention. Review and provide guidance.`,
         });
@@ -239,10 +266,10 @@ export const ActionsTab = () => {
         actions.push({
           id: String(actionId++),
           type: 'hosting-issue',
-          severity: 'high', // HIGH priority for sailing/hosting
+          severity: 'high',
           sailor: name,
-          rank: rank,
           squad: assignedSquad,
+          responsible: getResponsibleStaff('hosting-issue', assignedSquad),
           description: 'Hosting Issue',
           details: `${name} has a hosting issue that needs attention. Review and provide guidance.`,
         });
@@ -251,6 +278,11 @@ export const ActionsTab = () => {
 
     console.log('Total actions detected:', actions.length);
     console.log('=== END DEBUG ===');
+    // Sort by severity (high > medium > low)
+    actions.sort((a, b) => {
+      const severityOrder = { high: 0, medium: 1, low: 2 };
+      return severityOrder[a.severity] - severityOrder[b.severity];
+    });
     return actions;
   }, [data.gullinbursti]);
 
@@ -375,7 +407,8 @@ export const ActionsTab = () => {
                 <TableCell sx={{ fontWeight: 'bold', width: '5%' }}>Severity</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', width: '25%' }}>Action</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Sailor</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Rank</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Responsible</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Squad</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Squad</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Details</TableCell>
               </TableRow>
@@ -396,7 +429,9 @@ export const ActionsTab = () => {
                       <Typography variant="body2">{action.sailor}</Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{action.rank}</Typography>
+                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'primary.main' }}>
+                        {action.responsible}
+                      </Typography>
                     </TableCell>
                     <TableCell>
                       <Chip label={action.squad} size="small" variant="outlined" />
@@ -493,9 +528,11 @@ export const ActionsTab = () => {
             </Box>
             <Box>
               <Typography variant="subtitle2" color="textSecondary">
-                Rank
+                Responsible For Action
               </Typography>
-              <Typography variant="body1">{selectedAction?.rank}</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 500, color: 'primary.main' }}>
+                {selectedAction?.responsible}
+              </Typography>
             </Box>
             <Box>
               <Typography variant="subtitle2" color="textSecondary">
