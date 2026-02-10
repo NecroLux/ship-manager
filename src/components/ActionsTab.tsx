@@ -80,13 +80,11 @@ export const ActionsTab = () => {
     let actionId = 0;
     const headers = data.gullinbursti.headers;
 
-    console.log('=== ACTION DETECTION DEBUG ===');
-    console.log('Headers:', headers);
-    console.log('First 3 rows:', data.gullinbursti.rows.slice(0, 3));
+  // Action detection debug logs removed for production
 
     let currentSquad = 'Command Staff'; // Start with Command Staff as default
 
-    data.gullinbursti.rows.forEach((row, rowIdx) => {
+  data.gullinbursti.rows.forEach((row) => {
       // Extract crew data from row using headers
       const rank = (row[headers[0]] || '').trim();
       const name = (row[headers[1]] || '').trim();
@@ -164,9 +162,7 @@ export const ActionsTab = () => {
         }
       }
 
-      if (rowIdx < 5) {
-        console.log(`Row ${rowIdx}: ${name} (${rank}, Squad: "${assignedSquad}", Compliance: "${compliance}", Stars: ${stars}, Raw: "${starsRaw}")`);
-      }
+      // per-row debug logging removed
 
       // ONLY flag "No Chat Activity" if stars = 0 AND compliance is not on LOA/Leave
       // This prevents false positives for people on legitimate leave
@@ -176,7 +172,6 @@ export const ActionsTab = () => {
                         complianceLower.includes('off-duty');
       
       if (stars === 0 && !isOnLeave) {
-        console.log(`  -> ACTION: No Chat Activity (stars=${stars})`);
         actions.push({
           id: String(actionId++),
           type: 'no-chat-activity',
@@ -201,7 +196,6 @@ export const ActionsTab = () => {
           complianceLower === 'requires action';
         
         if (shouldFlag) {
-          console.log(`  -> ACTION: Compliance Issue (${compliance})`);
           let complianceType = '';
           if (complianceLower === 'inactive') {
             complianceType = 'Inactive';
@@ -248,7 +242,6 @@ export const ActionsTab = () => {
       const hostingLower = hostingStatus.toLowerCase();
 
       if (sailingLower.includes('requires') || sailingLower.includes('attention')) {
-        console.log(`  -> ACTION: Sailing Issue (${sailingStatus})`);
         actions.push({
           id: String(actionId++),
           type: 'sailing-issue',
@@ -262,7 +255,6 @@ export const ActionsTab = () => {
       }
 
       if (hostingLower.includes('requires') || hostingLower.includes('attention')) {
-        console.log(`  -> ACTION: Hosting Issue (${hostingStatus})`);
         actions.push({
           id: String(actionId++),
           type: 'hosting-issue',
@@ -276,8 +268,7 @@ export const ActionsTab = () => {
       }
     });
 
-    console.log('Total actions detected:', actions.length);
-    console.log('=== END DEBUG ===');
+  // Total actions detected: actions.length
     // Sort by severity (high > medium > low)
     actions.sort((a, b) => {
       const severityOrder = { high: 0, medium: 1, low: 2 };

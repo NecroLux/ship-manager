@@ -63,7 +63,7 @@ const fetchSheetData = async (
       ? 'http://localhost:5000'
       : 'https://ship-manager.onrender.com';
     
-    console.log('Backend URL:', backendUrl, '(isDevelopment:', isDevelopment, ')'); // Debug log
+  // Backend URL resolved (development/production) - debug logging removed
     
     // Create an abort controller with 10 second timeout
     const controller = new AbortController();
@@ -89,8 +89,7 @@ const fetchSheetData = async (
       throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
-    const result = await response.json();
-    console.log('Sheet data received:', result);
+  const result = await response.json();
 
     // Convert array rows to object rows for easier access
     const rowsAsObjects: SheetRow[] = result.rows.map((row: string[]) => {

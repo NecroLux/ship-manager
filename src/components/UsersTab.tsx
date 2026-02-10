@@ -112,9 +112,7 @@ export const UsersTab = () => {
     );
   }
 
-  // Log headers for debugging
-  console.log('Gullinbursti headers:', data.gullinbursti.headers);
-  console.log('All rows:', data.gullinbursti.rows);
+  // Debug logs removed for production
 
   // Parse sailor data with proper column mapping
   // First pass: identify squad headers and assign squads to crew members
@@ -135,31 +133,31 @@ export const UsersTab = () => {
     const rankVal = (row[data.gullinbursti.headers[0]] || '').trim();
     const nameVal = (row[data.gullinbursti.headers[1]] || '').trim();
     
-    console.log(`Row ${i}: rank="${rankVal}", name="${nameVal}"`);
+  // per-row debug log removed
     
     // Skip completely empty rows
     if (rankVal === '' && nameVal === '') {
-      console.log(`  -> Skipping empty row`);
+  // skipping empty row
       continue;
     }
     
     // Skip column header rows (where the row contains "Rank" and "Name" as values)
     if ((rankVal === 'Rank' || rankVal.toLowerCase() === 'rank') && 
         (nameVal === 'Name' || nameVal.toLowerCase() === 'name')) {
-      console.log(`  -> Skipping column header row`);
+  // skipping column header row
       continue;
     }
     
     // Update squad if this is a header row (rank with value but name is empty)
     if (rankVal && nameVal === '') {
-      console.log(`  -> Squad header detected: ${rankVal}`);
+  // squad header detected: ${rankVal}
       currentSquad = rankVal;
       continue; // Don't include header rows
     }
     
     // Include actual crew rows (have rank and name)
     if (rankVal && nameVal) {
-      console.log(`  -> Crew member: ${rankVal} ${nameVal} -> squad: ${currentSquad}`);
+  // crew member parsed -> added to list
       const discordRaw = row[data.gullinbursti.headers[2]] || '';
       const loaStatusRaw = row[data.gullinbursti.headers[8]] || '';
       const timezoneRaw = row[data.gullinbursti.headers[7]] || '';
@@ -177,7 +175,7 @@ export const UsersTab = () => {
     }
   }
   
-  console.log('Parsed sailors:', sailors);
+  // parsed sailors available
 
   const complianceStats = {
     total: sailors.length,

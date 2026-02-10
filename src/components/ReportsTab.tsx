@@ -29,19 +29,6 @@ import { useState, useEffect } from 'react';
 import { useSheetData } from '../context/SheetDataContext';
 import { useSnapshots, CrewSnapshot, MonthlySnapshot } from '../context/SnapshotContext';
 import jsPDF from 'jspdf';
-// @ts-ignore - jspdf-autotable side-effect import
-import 'jspdf-autotable';
-
-// Ensure autoTable is available
-const ensureAutoTable = (doc: any) => {
-  if (!doc.autoTable) {
-    console.warn('autoTable not available, using fallback');
-    (doc as any).autoTable = () => {
-      (doc as any).lastAutoTable = { finalY: (doc as any).lastAutoTable?.finalY || 0 };
-      return doc;
-    };
-  }
-};
 
 export const ReportsTab = () => {
   const { data } = useSheetData();
@@ -127,12 +114,9 @@ export const ReportsTab = () => {
 
   // Extract leaderboards from voyage awards sheet
   const getLeaderboards = () => {
-    const voyageRows = data.voyageAwards.rows;
-    const headers = data.voyageAwards.headers;
+  const voyageRows = data.voyageAwards.rows;
 
-    console.log('=== LEADERBOARD EXTRACTION DEBUG ===');
-    console.log('Voyage Awards Headers:', headers);
-    console.log('Voyage Awards Row Count:', voyageRows.length);
+  // Leaderboard extraction - debug logs removed for production
 
     if (!voyageRows || voyageRows.length === 0) {
       return { topHosts: [], topVoyagers: [] };
@@ -156,7 +140,7 @@ export const ReportsTab = () => {
       }
     });
 
-    console.log('Crew names to match:', Array.from(crewNames).slice(0, 5));
+  // crew names to match (debugging removed)
 
     voyageRows.forEach((row) => {
       // Check each column value to find if it matches a known crew name
@@ -185,7 +169,7 @@ export const ReportsTab = () => {
       });
 
       if (matchedName && (hostCount > 0 || voyageCount > 0)) {
-        console.log(`Matched: ${matchedName} - Hosts: ${hostCount}, Voyages: ${voyageCount}`);
+  // matched entry (debugging removed)
         if (!crew[matchedName]) {
           crew[matchedName] = { name: matchedName, hostCount: 0, voyageCount: 0 };
         }
@@ -207,47 +191,37 @@ export const ReportsTab = () => {
       .sort((a, b) => b.voyageCount - a.voyageCount)
       .slice(0, 5);
 
-    console.log('Matched Crew Found:', crewArray.length);
-    console.log('Top Hosts:', topHosts);
-    console.log('Top Voyagers:', topVoyagers);
-    console.log('=== END LEADERBOARD DEBUG ===');
-
+  // Leaderboard extraction complete
     return { topHosts, topVoyagers };
   };
 
-  // Generate PDF report
+  // Generate PDF report - SIMPLE VERSION without autoTable
   const generatePDF = (snapshot: MonthlySnapshot, notes: string = '') => {
     try {
-      const { topHosts, topVoyagers } = getLeaderboards();
-      console.log('PDF Generation - Top Hosts:', topHosts);
-      console.log('PDF Generation - Top Voyagers:', topVoyagers);
-      console.log('PDF Generation - Crew count:', snapshot.crew.length);
-      console.log('PDF Generation - Squad breakdown:', snapshot.squadBreakdown);
-      
+      const result = getLeaderboards() as any;
+      const topHosts = (result?.topHosts) || [];
+      const topVoyagers = (result?.topVoyagers) || [];
       const doc = new jsPDF();
-      ensureAutoTable(doc);
       
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 12;
+      const margin = 15;
       let yPosition = margin;
 
-      // Helper function to add a new page if needed
-      const checkPageBreak = (spaceNeeded: number) => {
-        if (yPosition + spaceNeeded > pageHeight - 15) {
+      const addPageIfNeeded = (spaceNeeded: number) => {
+        if (yPosition + spaceNeeded > pageHeight - 10) {
           doc.addPage();
           yPosition = margin;
         }
-        return yPosition;
       };
 
-      // ===== HEADER SECTION =====
-      doc.setFontSize(22);
+      // ===== HEADER =====
+      doc.setFontSize(24);
       doc.setFont('helvetica', 'bold');
       doc.text('MONTHLY SHIP REPORT', pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 7;
+      yPosition += 10;
 
-      doc.setFontSize(11);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       const reportDate = new Date(snapshot.date);
       const monthName = reportDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -256,227 +230,140 @@ export const ReportsTab = () => {
       doc.text(`Report Date: ${reportDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 8;
 
-      // Horizontal line
-      doc.setDrawColor(0, 0, 0);
+      // Line
+      doc.setDrawColor(0);
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 6;
 
-      // ===== SHIP STATISTICS SECTION =====
-      doc.setFontSize(12);
+      // ===== SHIP STATISTICS =====
+      doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.text('SHIP STATISTICS', margin, yPosition);
-      yPosition += 6;
+      yPosition += 8;
 
-      doc.setFontSize(10);
+      const complianceRate = snapshot.totalCrew > 0 ? Math.round((snapshot.complianceCount / snapshot.totalCrew) * 100) : 0;
+      const statText = `Total Members: ${snapshot.totalCrew}  |  In Compliance: ${snapshot.complianceCount}  |  Compliance Rate: ${complianceRate}%`;
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
-      
-      // Stats boxes
-      const boxWidth = (pageWidth - margin * 2 - 2) / 3;
-      const boxHeight = 16;
-      const boxY = yPosition;
+      doc.text(statText, margin, yPosition);
+      yPosition += 8;
 
-      const stats = [
-        { label: 'Total Members', value: String(snapshot.totalCrew) },
-        { label: 'In Compliance', value: String(snapshot.complianceCount) },
-        { label: 'Compliance Rate', value: snapshot.totalCrew > 0 ? `${Math.round((snapshot.complianceCount / snapshot.totalCrew) * 100)}%` : 'N/A' },
-      ];
-
-      stats.forEach((stat, idx) => {
-        const boxX = margin + (idx * (boxWidth + 1));
-        doc.setFillColor(245, 245, 245);
-        doc.rect(boxX, boxY, boxWidth, boxHeight, 'F');
-        doc.setDrawColor(200, 200, 200);
-        doc.rect(boxX, boxY, boxWidth, boxHeight);
-        
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.text(stat.label, boxX + boxWidth / 2, boxY + 4, { align: 'center' });
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-        doc.text(stat.value, boxX + boxWidth / 2, boxY + 11, { align: 'center' });
-      });
-
-      yPosition = boxY + boxHeight + 8;
-
-      // ===== SQUAD BREAKDOWN SECTION =====
-      yPosition = checkPageBreak(20);
-      
-      doc.setFontSize(12);
+      // ===== SQUAD BREAKDOWN =====
+      addPageIfNeeded(25);
+      doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.text('SQUAD BREAKDOWN', margin, yPosition);
       yPosition += 6;
 
-      const squadData = Object.entries(snapshot.squadBreakdown).map(([squad, count]) => {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      Object.entries(snapshot.squadBreakdown).forEach(([squad, count]) => {
         const percentage = snapshot.totalCrew > 0 ? Math.round((count / snapshot.totalCrew) * 100) : 0;
-        return [squad, String(count), `${percentage}%`];
+        doc.text(`${squad}: ${count} members (${percentage}%)`, margin + 5, yPosition);
+        yPosition += 5;
       });
+      yPosition += 3;
 
-      doc.setFontSize(9);
-      if (squadData.length > 0) {
-        (doc as any).autoTable({
-          head: [['Squad', 'Members', 'Percentage']],
-          body: squadData,
-          startY: yPosition,
-          margin: margin,
-          styles: { fontSize: 9, cellPadding: 3 },
-          headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [245, 245, 245] },
-        });
-        yPosition = (doc as any).lastAutoTable.finalY + 8;
-      } else {
-        doc.setFont('helvetica', 'normal');
-        doc.text('No squad breakdown available', margin, yPosition);
-        yPosition += 6;
-      }
-
-      // ===== TOP HOSTS LEADERBOARD =====
-      yPosition = checkPageBreak(25);
-
-      doc.setFontSize(12);
+      // ===== TOP HOSTS =====
+      addPageIfNeeded(25);
+      doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.text('TOP SHIP HOSTS', margin, yPosition);
       yPosition += 6;
 
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
       if (topHosts.length > 0) {
-        const hostsData = topHosts.map((sailor) => [
-          sailor.name,
-          String(sailor.hostCount),
-        ]);
-
-        (doc as any).autoTable({
-          head: [['Sailor', 'Total Hosted']],
-          body: hostsData,
-          startY: yPosition,
-          margin: margin,
-          styles: { fontSize: 9, cellPadding: 3 },
-          headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [245, 245, 245] },
+        topHosts.forEach((sailor: any, idx: number) => {
+          doc.text(`${idx + 1}. ${sailor.name}: ${sailor.hostCount} voyages hosted`, margin + 5, yPosition);
+          yPosition += 5;
         });
-        yPosition = (doc as any).lastAutoTable.finalY + 8;
       } else {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.text('No hosting data available', margin, yPosition);
-        yPosition += 6;
+        doc.text('No hosting data available', margin + 5, yPosition);
+        yPosition += 5;
       }
+      yPosition += 3;
 
-      // ===== TOP VOYAGERS LEADERBOARD =====
-      yPosition = checkPageBreak(25);
-
-      doc.setFontSize(12);
+      // ===== TOP VOYAGERS =====
+      addPageIfNeeded(25);
+      doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.text('TOP SHIP VOYAGERS', margin, yPosition);
       yPosition += 6;
 
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
       if (topVoyagers.length > 0) {
-        const voyagersData = topVoyagers.map((sailor) => [
-          sailor.name,
-          String(sailor.voyageCount),
-        ]);
-
-        (doc as any).autoTable({
-          head: [['Sailor', 'Total Voyages']],
-          body: voyagersData,
-          startY: yPosition,
-          margin: margin,
-          styles: { fontSize: 9, cellPadding: 3 },
-          headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [245, 245, 245] },
+        topVoyagers.forEach((sailor: any, idx: number) => {
+          doc.text(`${idx + 1}. ${sailor.name}: ${sailor.voyageCount} voyages attended`, margin + 5, yPosition);
+          yPosition += 5;
         });
-        yPosition = (doc as any).lastAutoTable.finalY + 8;
       } else {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.text('No voyage data available', margin, yPosition);
-        yPosition += 6;
+        doc.text('No voyage data available', margin + 5, yPosition);
+        yPosition += 5;
       }
+      yPosition += 3;
 
-      // ===== CREW ROSTER SECTION =====
-      yPosition = checkPageBreak(30);
-
-      doc.setFontSize(12);
+      // ===== CREW ROSTER =====
+      addPageIfNeeded(30);
+      doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.text('CREW ROSTER', margin, yPosition);
       yPosition += 6;
 
-      const crewTableData = snapshot.crew.map((sailor) => [
-        sailor.rank,
-        sailor.name,
-        sailor.squad,
-        sailor.compliance || 'Active',
-        sailor.timezone,
-      ]);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      // Header row
+      doc.setFont('helvetica', 'bold');
+      doc.text('Rank', margin, yPosition);
+      doc.text('Name', margin + 20, yPosition);
+      doc.text('Squad', margin + 50, yPosition);
+      doc.text('Status', margin + 85, yPosition);
+      doc.text('Timezone', margin + 110, yPosition);
+      yPosition += 5;
 
-      if (crewTableData.length > 0) {
-        (doc as any).autoTable({
-          head: [['Rank', 'Name', 'Squad', 'Status', 'Timezone']],
-          body: crewTableData,
-          startY: yPosition,
-          margin: margin,
-          styles: { fontSize: 8, cellPadding: 2 },
-          headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [245, 245, 245] },
-          columnStyles: {
-            0: { cellWidth: 20 },
-            1: { cellWidth: 30 },
-            2: { cellWidth: 25 },
-            3: { cellWidth: 20 },
-            4: { cellWidth: 25 },
-          },
-        });
-        yPosition = (doc as any).lastAutoTable.finalY + 8;
-      } else {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.text('No crew roster data available', margin, yPosition);
-        yPosition += 6;
-      }
+      // Separator
+      doc.setDrawColor(200);
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      yPosition += 4;
 
-      // ===== NOTES SECTION =====
-      yPosition = checkPageBreak(20);
+      // Crew data
+      doc.setFont('helvetica', 'normal');
+      snapshot.crew.forEach((sailor) => {
+        addPageIfNeeded(5);
+        doc.text(sailor.rank.substring(0, 8), margin, yPosition);
+        doc.text(sailor.name.substring(0, 15), margin + 20, yPosition);
+        doc.text(sailor.squad.substring(0, 12), margin + 50, yPosition);
+        doc.text((sailor.compliance || 'Active').substring(0, 15), margin + 85, yPosition);
+        doc.text(sailor.timezone.substring(0, 10), margin + 110, yPosition);
+        yPosition += 4;
+      });
 
-      doc.setFontSize(11);
+      yPosition += 3;
+
+      // ===== CO NOTES =====
+      addPageIfNeeded(20);
+      doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.text('COMMANDING OFFICER NOTES', margin, yPosition);
       yPosition += 6;
 
-      doc.setFontSize(9);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       const notesText = notes || 'Please add any additional notes or observations about ship activities, crew performance, or operational concerns here. This section should contain key insights and recommendations for leadership.';
       const splitNotes = doc.splitTextToSize(notesText, pageWidth - margin * 2);
       doc.text(splitNotes, margin, yPosition);
-      yPosition += splitNotes.length * 3 + 4;
+      yPosition += splitNotes.length * 4 + 5;
 
-      // ===== REPORT SIGNATURE SECTION =====
-      yPosition = checkPageBreak(15);
-
-      doc.setFontSize(10);
+      // ===== FOOTER =====
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(128);
       doc.text('Generated by USN Ship Manager', margin, yPosition);
-      yPosition += 5;
+      yPosition += 4;
       doc.text(`Report Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
-      yPosition += 5;
 
-      // ===== FOOTER WITH PAGE NUMBERS =====
-      const pageCount = (doc as any).internal.pages.length - 1;
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(128, 128, 128);
-        doc.text(
-          `Page ${i} of ${pageCount}`,
-          pageWidth / 2,
-          pageHeight - 8,
-          { align: 'center' }
-        );
-        doc.text(
-          `USS Gullinbursti Monthly Report - ${monthName}`,
-          margin,
-          pageHeight - 8
-        );
-      }
-
+      // Save
       doc.save(`USS_Gullinbursti_Report_${snapshot.date}.pdf`);
     } catch (err) {
       console.error('Error generating PDF:', err);

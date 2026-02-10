@@ -57,8 +57,7 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (dayOfMonth === 1) {
         const hasSnapshot = snapshots.some(s => s.month === currentMonth);
         if (!hasSnapshot) {
-          console.log('[Auto-Snapshot] 1st of month detected, snapshot will be created when crew data is available');
-          // The actual snapshot creation will be triggered from ReportsTab when user has crew data
+          // Auto-snapshot condition detected (1st of month) - will be created when crew data available
         }
       }
     };
@@ -81,8 +80,7 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
         const currentMonth = now.toISOString().substring(0, 7);
         const hasReport = reports.some(r => r.month === currentMonth);
         if (!hasReport) {
-          console.log('[Auto-Report] Last day of month detected, report should be generated');
-          // The actual report generation will be triggered from ReportsTab
+          // Auto-report condition detected (last day of month) - report generation deferred to ReportsTab
         }
       }
     };
@@ -234,7 +232,7 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
         console.warn('Failed to save reports to localStorage:', e);
       }
 
-      console.log(`[Report Generated] Report for ${month} created on ${dateStr}`);
+  // Report generated and saved to history
       return report;
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to generate report';
