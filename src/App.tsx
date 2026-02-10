@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import DirectionsBoatIcon from '@mui/icons-material/DirectionsBoat';
 import { lightTheme, darkTheme } from './theme';
 import { UsersTab } from './components/UsersTab';
 import { OverviewTab } from './components/OverviewTab';
@@ -33,19 +34,20 @@ function AppContent() {
       <CssBaseline />
       <AppBar position="static" color="default" elevation={0} sx={{ py: 3 }}>
         <Toolbar sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 2 }}>
-          <Typography 
-            variant="h3" 
-            sx={{ 
-              flexGrow: 1, 
-              fontWeight: 'bold',
-              fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem' },
-              letterSpacing: '-0.5px',
-              mb: 2,
-              width: '100%'
-            }}
-          >
-            USN Ship Manager
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 2 }}>
+            <DirectionsBoatIcon sx={{ fontSize: '3.5rem', mr: 2 }} />
+            <Typography 
+              variant="h3" 
+              sx={{ 
+                flexGrow: 1, 
+                fontWeight: 'bold',
+                fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem' },
+                letterSpacing: '-0.5px',
+              }}
+            >
+              USN Ship Manager
+            </Typography>
+          </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end' }}>
             <IconButton
               color="inherit"
