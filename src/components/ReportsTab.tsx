@@ -113,57 +113,67 @@ export const ReportsTab = () => {
 
   // Generate PDF report
   const generatePDF = (snapshot: MonthlySnapshot) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let yPosition = 10;
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let yPosition = 10;
 
-    // Title
-    doc.setFontSize(16);
-    doc.text('USN Ship Manager - Crew Report', pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 10;
+      // Title
+      doc.setFontSize(16);
+      doc.text('USN Ship Manager - Crew Report', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 10;
 
-    // Date info
-    doc.setFontSize(10);
-    doc.text(`Report Date: ${new Date(snapshot.date).toLocaleDateString()}`, 10, yPosition);
-    doc.text(`Total Crew: ${snapshot.totalCrew}`, 10, yPosition + 5);
-    doc.text(`In Compliance: ${snapshot.complianceCount}`, 10, yPosition + 10);
-    yPosition += 20;
+      // Date info
+      doc.setFontSize(10);
+      doc.text(`Report Date: ${new Date(snapshot.date).toLocaleDateString()}`, 10, yPosition);
+      doc.text(`Total Crew: ${snapshot.totalCrew}`, 10, yPosition + 5);
+      doc.text(`In Compliance: ${snapshot.complianceCount}`, 10, yPosition + 10);
+      yPosition += 20;
 
-    // Squad breakdown
-    doc.setFontSize(12);
-    doc.text('Squad Breakdown:', 10, yPosition);
-    yPosition += 6;
+      // Squad breakdown
+      doc.setFontSize(12);
+      doc.text('Squad Breakdown:', 10, yPosition);
+      yPosition += 6;
 
-    doc.setFontSize(10);
-    Object.entries(snapshot.squadBreakdown).forEach(([squad, count]) => {
-      doc.text(`${squad}: ${count}`, 15, yPosition);
-      yPosition += 5;
-    });
+      doc.setFontSize(10);
+      Object.entries(snapshot.squadBreakdown).forEach(([squad, count]) => {
+        doc.text(`${squad}: ${count}`, 15, yPosition);
+        yPosition += 5;
+      });
 
-    yPosition += 10;
+      yPosition += 10;
 
-    // Crew table
-    doc.setFontSize(11);
-    doc.text('Crew Roster:', 10, yPosition);
-    yPosition += 8;
+      // Crew table
+      doc.setFontSize(11);
+      doc.text('Crew Roster:', 10, yPosition);
+      yPosition += 8;
 
-    const tableData = snapshot.crew.map((sailor) => [
-      sailor.rank,
-      sailor.name,
-      sailor.squad,
-      sailor.compliance,
-      sailor.timezone,
-    ]);
+      const tableData = snapshot.crew.map((sailor) => [
+        sailor.rank,
+        sailor.name,
+        sailor.squad,
+        sailor.compliance,
+        sailor.timezone,
+      ]);
 
-    (doc as any).autoTable({
-      head: [['Rank', 'Name', 'Squad', 'Compliance', 'Timezone']],
-      body: tableData,
-      startY: yPosition,
-      margin: 10,
-      styles: { fontSize: 8 },
-    });
+      // Check if autoTable exists
+      if ((doc as any).autoTable) {
+        (doc as any).autoTable({
+          head: [['Rank', 'Name', 'Squad', 'Compliance', 'Timezone']],
+          body: tableData,
+          startY: yPosition,
+          margin: 10,
+          styles: { fontSize: 8 },
+        });
+      } else {
+        console.warn('autoTable not available, generating PDF without table');
+      }
 
-    doc.save(`USN_Ship_Report_${snapshot.date}.pdf`);
+      doc.save(`USN_Ship_Report_${snapshot.date}.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Failed to generate PDF. Check console for details.');
+    }
   };
 
   return (
