@@ -16,28 +16,154 @@ import {
   Button,
   Tabs,
   Tab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
+import ErrorIcon from '@mui/icons-material/Error';
+import WarningIcon from '@mui/icons-material/Warning';
+import InfoIcon from '@mui/icons-material/Info';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSheetData } from '../context/SheetDataContext';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { RANKS } from '../config/NavalConfig';
 
-interface RoleAction {
+interface ActionItem {
   id: string;
-  actionItem: string;
-  assignedSailor: string;
-  dueDate?: string;
-  status: 'pending' | 'in-progress' | 'completed';
-  priority: 'high' | 'medium' | 'low';
-}
-
-interface RoleTab {
-  role: 'Command' | 'First Officer' | 'Chief of Ship' | 'Squad Leaders';
-  actions: RoleAction[];
+  type: string;
+  severity: 'high' | 'medium' | 'low';
+  sailor: string;
+  rank: string;
+  squad: string;
+  description: string;
+  details: string;
 }
 
 export const ActionsTab = () => {
-  const { loading, refreshData } = useSheetData();
-  const [activeRole, setActiveRole] = useState(0);
+  const { data, loading, refreshData } = useSheetData();
+  const [activeTab, setActiveTab] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [selectedAction, setSelectedAction] = useState<ActionItem | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  // Detect crew actions based on naval rules
+  const detectedActions = useMemo(() => {
+    if (!data.gullinbursti || data.gullinbursti.rows.length === 0) return [];
+
+    const actions: ActionItem[] = [];
+    let actionId = 0;
+    const headers = data.gullinbursti.headers;
+
+    data.gullinbursti.rows.forEach((row) => {
+      // Extract crew data from row using headers
+      const rank = (row[headers[0]] || '').trim();
+      const name = (row[headers[1]] || '').trim();
+      const squad = (row[headers[3]] || '').trim();
+      const compliance = (row[headers[8]] || '').trim();
+      const starsRaw = (row[headers[10]] || '').trim();
+      
+      // Skip empty rows
+      if (!rank || !name) return;
+
+      // Parse stars (handle various formats)
+      let stars = 0;
+      if (starsRaw) {
+        const starMatch = starsRaw.match(/\d+/);
+        if (starMatch) {
+          stars = parseInt(starMatch[0], 10);
+        }
+      }
+
+      // NO_CHAT_ACTIVITY - 0 stars
+      if (stars === 0) {
+        actions.push({
+          id: String(actionId++),
+          type: 'no-chat-activity',
+          severity: 'high',
+          sailor: name,
+          rank: rank,
+          squad: squad,
+          description: 'No Chat Activity',
+          details: `${name} has no recorded chat activity (0 stars). Encourage participation in squad channels.`,
+        });
+      }
+
+      // LOW_CHAT_ACTIVITY - less than 2 stars
+      if (stars > 0 && stars < 2) {
+        actions.push({
+          id: String(actionId++),
+          type: 'low-chat-activity',
+          severity: 'medium',
+          sailor: name,
+          rank: rank,
+          squad: squad,
+          description: 'Low Chat Activity',
+          details: `${name} has low chat activity (${stars} stars). Consider outreach or mentoring.`,
+        });
+      }
+
+      // COMPLIANCE_ISSUE - LOA, inactive, or no value
+      if (compliance && compliance.toLowerCase() !== 'active' && compliance !== '') {
+        let complianceType = '';
+        if (compliance.toLowerCase() === 'loa') {
+          complianceType = 'Leave of Absence';
+        } else if (compliance.toLowerCase() === 'inactive') {
+          complianceType = 'Inactive';
+        } else {
+          complianceType = compliance;
+        }
+
+        actions.push({
+          id: String(actionId++),
+          type: 'compliance-issue',
+          severity: 'high',
+          sailor: name,
+          rank: rank,
+          squad: squad,
+          description: `Compliance: ${complianceType}`,
+          details: `${name} is marked as ${complianceType}. Review status and update as needed.`,
+        });
+      }
+
+      // MISSING_NCO_RIBBON - NCO ranks without improvement ribbon
+      const rankData = RANKS[rank];
+      if (rankData && (rankData.rate === 'NCO' || rankData.rate === 'SNCO')) {
+        // This would require medal tracking data - placeholder for now
+        // In full implementation, check against crewMedals or similar data
+      }
+
+      // MISSING_OFFICER_RIBBON - Officer ranks without improvement ribbon
+      if (rankData && (rankData.rate === 'JO' || rankData.rate === 'SO')) {
+        // This would require medal tracking data - placeholder for now
+      }
+    });
+
+    return actions;
+  }, [data.gullinbursti]);
+
+  // Filter actions by severity
+  const filteredActions = useMemo(() => {
+    switch (activeTab) {
+      case 'high':
+        return detectedActions.filter(a => a.severity === 'high');
+      case 'medium':
+        return detectedActions.filter(a => a.severity === 'medium');
+      case 'low':
+        return detectedActions.filter(a => a.severity === 'low');
+      default:
+        return detectedActions;
+    }
+  }, [detectedActions, activeTab]);
+
+  // Count by severity
+  const counts = useMemo(() => {
+    return {
+      all: detectedActions.length,
+      high: detectedActions.filter(a => a.severity === 'high').length,
+      medium: detectedActions.filter(a => a.severity === 'medium').length,
+      low: detectedActions.filter(a => a.severity === 'low').length,
+    };
+  }, [detectedActions]);
 
   if (loading) {
     return (
@@ -47,170 +173,31 @@ export const ActionsTab = () => {
     );
   }
 
-  // Mock action data structure - this will be populated from sheet data
-  const roleActions: RoleTab[] = [
-    {
-      role: 'Command',
-      actions: [
-        {
-          id: '1',
-          actionItem: 'Review promotion recommendations for Q1',
-          assignedSailor: 'Captain',
-          dueDate: '2026-02-28',
-          status: 'pending',
-          priority: 'high',
-        },
-        {
-          id: '2',
-          actionItem: 'Approve expedition plan for Fleet Operations',
-          assignedSailor: 'Captain',
-          dueDate: '2026-02-15',
-          status: 'in-progress',
-          priority: 'high',
-        },
-        {
-          id: '3',
-          actionItem: 'Conduct crew evaluations',
-          assignedSailor: 'Captain',
-          status: 'pending',
-          priority: 'medium',
-        },
-      ],
-    },
-    {
-      role: 'First Officer',
-      actions: [
-        {
-          id: '4',
-          actionItem: 'Coordinate training schedule for new recruits',
-          assignedSailor: 'First Officer',
-          dueDate: '2026-02-20',
-          status: 'pending',
-          priority: 'high',
-        },
-        {
-          id: '5',
-          actionItem: 'Submit monthly operational report',
-          assignedSailor: 'First Officer',
-          dueDate: '2026-02-28',
-          status: 'pending',
-          priority: 'medium',
-        },
-        {
-          id: '6',
-          actionItem: 'Review sail maintenance logs',
-          assignedSailor: 'First Officer',
-          status: 'completed',
-          priority: 'low',
-        },
-      ],
-    },
-    {
-      role: 'Chief of Ship',
-      actions: [
-        {
-          id: '7',
-          actionItem: 'Inventory ship supplies and equipment',
-          assignedSailor: 'Chief of Ship',
-          dueDate: '2026-02-14',
-          status: 'in-progress',
-          priority: 'high',
-        },
-        {
-          id: '8',
-          actionItem: 'Schedule maintenance for ship systems',
-          assignedSailor: 'Chief of Ship',
-          status: 'pending',
-          priority: 'medium',
-        },
-        {
-          id: '9',
-          actionItem: 'Brief crew on safety protocols',
-          assignedSailor: 'Chief of Ship',
-          dueDate: '2026-02-21',
-          status: 'pending',
-          priority: 'high',
-        },
-      ],
-    },
-    {
-      role: 'Squad Leaders',
-      actions: [
-        {
-          id: '10',
-          actionItem: 'Conduct weekly squad reviews',
-          assignedSailor: 'All Squad Leaders',
-          dueDate: '2026-02-13',
-          status: 'pending',
-          priority: 'medium',
-        },
-        {
-          id: '11',
-          actionItem: 'Submit attendance reports',
-          assignedSailor: 'All Squad Leaders',
-          dueDate: '2026-02-28',
-          status: 'pending',
-          priority: 'medium',
-        },
-        {
-          id: '12',
-          actionItem: 'Identify sailors needing mentorship',
-          assignedSailor: 'All Squad Leaders',
-          status: 'in-progress',
-          priority: 'high',
-        },
-        {
-          id: '13',
-          actionItem: 'Monitor Discord activity in squads',
-          assignedSailor: 'All Squad Leaders',
-          status: 'pending',
-          priority: 'low',
-        },
-      ],
-    },
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'warning';
-      case 'in-progress':
-        return 'info';
-      case 'completed':
-        return 'success';
-      default:
-        return 'default';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
       case 'high':
-        return '#d32f2f';
+        return <ErrorIcon sx={{ color: '#d32f2f' }} />;
       case 'medium':
-        return '#f57c00';
+        return <WarningIcon sx={{ color: '#f57c00' }} />;
       case 'low':
-        return '#1976d2';
+        return <InfoIcon sx={{ color: '#1976d2' }} />;
       default:
-        return '#757575';
+        return null;
     }
   };
-
-  const currentRole = roleActions[activeRole];
-  const pendingCount = currentRole.actions.filter(a => a.status === 'pending').length;
-  const completedCount = currentRole.actions.filter(a => a.status === 'completed').length;
 
   return (
     <Box sx={{ mt: 3 }}>
+      {/* Header Card */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Box>
               <Typography variant="h5" gutterBottom>
-                Leadership Action Items
+                Crew Action Items
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                Track and manage responsibilities for each leadership role
+                Intelligent detection of crew concerns requiring attention
               </Typography>
             </Box>
             <Button
@@ -223,137 +210,198 @@ export const ActionsTab = () => {
             </Button>
           </Box>
 
+          {/* Priority Tabs */}
           <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <Tabs value={activeRole} onChange={(_e, newValue) => setActiveRole(newValue)}>
-              {roleActions.map((roleTab, idx) => (
-                <Tab key={idx} label={roleTab.role} />
-              ))}
+            <Tabs 
+              value={activeTab} 
+              onChange={(_e, newValue) => setActiveTab(newValue)}
+            >
+              <Tab label={`All Actions (${counts.all})`} value="all" />
+              <Tab label={`High Priority (${counts.high})`} value="high" />
+              <Tab label={`Medium Priority (${counts.medium})`} value="medium" />
+              <Tab label={`Low Priority (${counts.low})`} value="low" />
             </Tabs>
           </Box>
 
-          {/* Role Summary */}
+          {/* Summary Stats */}
           <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
             <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
               <Typography variant="caption" color="textSecondary">
-                Pending Actions
+                High Severity
               </Typography>
-              <Typography variant="h6" sx={{ color: 'warning.main' }}>
-                {pendingCount}
-              </Typography>
-            </Paper>
-            <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
-              <Typography variant="caption" color="textSecondary">
-                In Progress
-              </Typography>
-              <Typography variant="h6" sx={{ color: 'info.main' }}>
-                {currentRole.actions.filter(a => a.status === 'in-progress').length}
+              <Typography variant="h6" sx={{ color: '#d32f2f' }}>
+                {counts.high}
               </Typography>
             </Paper>
             <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
               <Typography variant="caption" color="textSecondary">
-                Completed
+                Medium Severity
               </Typography>
-              <Typography variant="h6" sx={{ color: 'success.main' }}>
-                {completedCount}
+              <Typography variant="h6" sx={{ color: '#f57c00' }}>
+                {counts.medium}
+              </Typography>
+            </Paper>
+            <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
+              <Typography variant="caption" color="textSecondary">
+                Low Severity
+              </Typography>
+              <Typography variant="h6" sx={{ color: '#1976d2' }}>
+                {counts.low}
               </Typography>
             </Paper>
           </Stack>
         </CardContent>
       </Card>
 
-      {/* Action Items Table */}
+      {/* Actions Table */}
       <Paper sx={{ overflow: 'hidden' }}>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                <TableCell sx={{ fontWeight: 'bold' }}>Action Item</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Due Date</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Priority</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: '5%' }}>Severity</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: '25%' }}>Action</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Sailor</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Rank</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Squad</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Details</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {currentRole.actions.map((action) => (
-                <TableRow key={action.id} hover>
-                  <TableCell>
-                    <Box>
+              {filteredActions.length > 0 ? (
+                filteredActions.map((action) => (
+                  <TableRow key={action.id} hover>
+                    <TableCell align="center">
+                      {getSeverityIcon(action.severity)}
+                    </TableCell>
+                    <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {action.actionItem}
+                        {action.description}
                       </Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        {action.assignedSailor}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    {action.dueDate ? (
-                      <Typography variant="body2">{new Date(action.dueDate).toLocaleDateString()}</Typography>
-                    ) : (
-                      <Typography variant="caption" color="textSecondary">
-                        No due date
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={action.status.charAt(0).toUpperCase() + action.status.slice(1)}
-                      color={getStatusColor(action.status) as any}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={action.priority.toUpperCase()}
-                      size="small"
-                      sx={{
-                        backgroundColor: getPriorityColor(action.priority),
-                        color: 'white',
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={1}>
-                      {action.status !== 'completed' && (
-                        <Button size="small" variant="outlined">
-                          Mark Done
-                        </Button>
-                      )}
-                      <Button size="small" variant="text">
-                        Edit
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{action.sailor}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{action.rank}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={action.squad} size="small" variant="outlined" />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => {
+                          setSelectedAction(action);
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        View Details
                       </Button>
-                    </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                    <Typography color="textSecondary">
+                      No action items for this priority level
+                    </Typography>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </TableContainer>
       </Paper>
 
-      {/* Notes Section */}
+      {/* Info Section */}
       <Card sx={{ mt: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Role Notes for {currentRole.role}
+            Action Categories
           </Typography>
-          <Typography variant="body2" color="textSecondary" paragraph>
-            {currentRole.role === 'Command' && (
-              'Commanding Officer is responsible for overall strategic decisions, crew welfare, promotions, and major ship operations. Focus on long-term goals and crew development.'
-            )}
-            {currentRole.role === 'First Officer' && (
-              'First Officer manages day-to-day operations, training programs, and coordinates between command and crew. Ensure smooth workflow and crew satisfaction.'
-            )}
-            {currentRole.role === 'Chief of Ship' && (
-              'Chief of Ship oversees ship maintenance, supplies, safety protocols, and technical operations. Maintain ship readiness and crew safety.'
-            )}
-            {currentRole.role === 'Squad Leaders' && (
-              'Squad Leaders are responsible for their specific squads\' performance, attendance, mentorship, and engagement. Report issues to higher command as needed.'
-            )}
-          </Typography>
+          <Stack spacing={2}>
+            <Box>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                <ErrorIcon sx={{ color: '#d32f2f', fontSize: 20 }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  High Priority
+                </Typography>
+              </Stack>
+              <Typography variant="body2" color="textSecondary" sx={{ ml: 4 }}>
+                No chat activity or compliance issues (LOA/Inactive) requiring immediate attention
+              </Typography>
+            </Box>
+            <Box>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                <WarningIcon sx={{ color: '#f57c00', fontSize: 20 }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  Medium Priority
+                </Typography>
+              </Stack>
+              <Typography variant="body2" color="textSecondary" sx={{ ml: 4 }}>
+                Low chat activity or missing recommended ribbons
+              </Typography>
+            </Box>
+            <Box>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                <InfoIcon sx={{ color: '#1976d2', fontSize: 20 }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  Low Priority
+                </Typography>
+              </Stack>
+              <Typography variant="body2" color="textSecondary" sx={{ ml: 4 }}>
+                Informational items or crew development opportunities
+              </Typography>
+            </Box>
+          </Stack>
         </CardContent>
       </Card>
+
+      {/* Details Dialog */}
+      <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {selectedAction && getSeverityIcon(selectedAction.severity)}
+            <Typography variant="h6">
+              {selectedAction?.description}
+            </Typography>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box>
+              <Typography variant="subtitle2" color="textSecondary">
+                Sailor
+              </Typography>
+              <Typography variant="body1">{selectedAction?.sailor}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" color="textSecondary">
+                Rank
+              </Typography>
+              <Typography variant="body1">{selectedAction?.rank}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" color="textSecondary">
+                Squad
+              </Typography>
+              <Typography variant="body1">{selectedAction?.squad}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" color="textSecondary">
+                Details
+              </Typography>
+              <Typography variant="body2">{selectedAction?.details}</Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailsOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
