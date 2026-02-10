@@ -54,7 +54,10 @@ export const ActionsTab = () => {
     let actionId = 0;
     const headers = data.gullinbursti.headers;
 
-    data.gullinbursti.rows.forEach((row) => {
+    console.log('=== ACTION DETECTION DEBUG ===');
+    console.log('Headers:', headers);
+
+    data.gullinbursti.rows.forEach((row, rowIdx) => {
       // Extract crew data from row using headers
       const rank = (row[headers[0]] || '').trim();
       const name = (row[headers[1]] || '').trim();
@@ -74,8 +77,11 @@ export const ActionsTab = () => {
         }
       }
 
+      console.log(`Row ${rowIdx}: ${name} (${rank}, Squad: ${squad}, Compliance: "${compliance}", Stars: ${stars})`);
+
       // NO_CHAT_ACTIVITY - 0 stars
       if (stars === 0) {
+        console.log(`  -> ACTION: No Chat Activity`);
         actions.push({
           id: String(actionId++),
           type: 'no-chat-activity',
@@ -90,6 +96,7 @@ export const ActionsTab = () => {
 
       // LOW_CHAT_ACTIVITY - less than 2 stars
       if (stars > 0 && stars < 2) {
+        console.log(`  -> ACTION: Low Chat Activity`);
         actions.push({
           id: String(actionId++),
           type: 'low-chat-activity',
@@ -102,27 +109,43 @@ export const ActionsTab = () => {
         });
       }
 
-      // COMPLIANCE_ISSUE - LOA, inactive, or no value
-      if (compliance && compliance.toLowerCase() !== 'active' && compliance !== '') {
-        let complianceType = '';
-        if (compliance.toLowerCase() === 'loa') {
-          complianceType = 'Leave of Absence';
-        } else if (compliance.toLowerCase() === 'inactive') {
-          complianceType = 'Inactive';
-        } else {
-          complianceType = compliance;
-        }
+      // COMPLIANCE_ISSUE - Only flag serious compliance issues (Inactive, Flagged, No)
+      // Don't flag: Empty cells, "Active", or temporary LOA statuses
+      if (compliance) {
+        const complianceLower = compliance.toLowerCase().trim();
+        
+        // Only flag specific problematic statuses
+        const shouldFlag = 
+          complianceLower === 'inactive' || 
+          complianceLower === 'flagged' || 
+          complianceLower === 'no' ||
+          complianceLower === 'non-compliant' ||
+          complianceLower === 'requires action';
+        
+        if (shouldFlag) {
+          console.log(`  -> ACTION: Compliance Issue (${compliance})`);
+          let complianceType = '';
+          if (complianceLower === 'inactive') {
+            complianceType = 'Inactive';
+          } else if (complianceLower === 'flagged') {
+            complianceType = 'Flagged';
+          } else if (complianceLower === 'no') {
+            complianceType = 'Non-Compliant';
+          } else {
+            complianceType = compliance;
+          }
 
-        actions.push({
-          id: String(actionId++),
-          type: 'compliance-issue',
-          severity: 'high',
-          sailor: name,
-          rank: rank,
-          squad: squad,
-          description: `Compliance: ${complianceType}`,
-          details: `${name} is marked as ${complianceType}. Review status and update as needed.`,
-        });
+          actions.push({
+            id: String(actionId++),
+            type: 'compliance-issue',
+            severity: 'high',
+            sailor: name,
+            rank: rank,
+            squad: squad,
+            description: `Compliance: ${complianceType}`,
+            details: `${name} is marked as ${complianceType}. Review status and take appropriate action.`,
+          });
+        }
       }
 
       // MISSING_NCO_RIBBON - NCO ranks without improvement ribbon
@@ -138,6 +161,8 @@ export const ActionsTab = () => {
       }
     });
 
+    console.log('Total actions detected:', actions.length);
+    console.log('=== END DEBUG ===');
     return actions;
   }, [data.gullinbursti]);
 
