@@ -23,7 +23,7 @@ import { ReportsTab } from './components/ReportsTab';
 import { LinkedSheetsTab } from './components/LinkedSheetsTab';
 import { SheetProvider } from './context/SheetDataContext';
 import { SnapshotProvider } from './context/SnapshotContext';
-import { VERSION_COMMIT } from './version';
+import { VERSION_SHORT } from './version';
 import './App.css';
 
 function AppContent() {
@@ -61,7 +61,7 @@ function AppContent() {
               }}
               title="Commit hash for reference"
             >
-              v: {VERSION_COMMIT.slice(0, 7)}
+              v: {VERSION_SHORT}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end' }}>
