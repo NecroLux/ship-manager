@@ -35,7 +35,7 @@ function AppContent() {
       <AppBar position="static" color="default" elevation={0} sx={{ py: 3 }}>
         <Toolbar sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 2 }}>
-            <DirectionsBoatIcon sx={{ fontSize: '3.5rem', mr: 2 }} />
+            <DirectionsBoatIcon sx={{ fontSize: '3.5rem', mr: 0.5 }} />
             <Typography 
               variant="h3" 
               sx={{ 
