@@ -9,8 +9,6 @@ import {
   IconButton,
   Switch,
   Box,
-  Paper,
-  Button,
   Tabs,
   Tab,
 } from '@mui/material';
@@ -20,8 +18,10 @@ import { lightTheme, darkTheme } from './theme';
 import { UsersTab } from './components/UsersTab';
 import { OverviewTab } from './components/OverviewTab';
 import { ActionsTab } from './components/ActionsTab';
+import { ReportsTab } from './components/ReportsTab';
 import { LinkedSheetsTab } from './components/LinkedSheetsTab';
 import { SheetProvider } from './context/SheetDataContext';
+import { SnapshotProvider } from './context/SnapshotContext';
 import './App.css';
 
 function AppContent() {
@@ -96,45 +96,7 @@ function AppContent() {
 
         {/* Reports Tab */}
         {activeTab === 3 && (
-          <Box sx={{ mt: 3 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-              {/* Ship Report */}
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Ship Report
-                </Typography>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                  Generate a comprehensive report of all crew members and their status.
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button variant="contained" color="primary" size="small">
-                    Download Word
-                  </Button>
-                  <Button variant="contained" color="info" size="small">
-                    Download PDF
-                  </Button>
-                </Box>
-              </Paper>
-
-              {/* Squad Report */}
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Squad Report
-                </Typography>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                  Generate squad-specific reports with member details and metrics.
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button variant="contained" color="primary" size="small">
-                    Download Word
-                  </Button>
-                  <Button variant="contained" color="info" size="small">
-                    Download PDF
-                  </Button>
-                </Box>
-              </Paper>
-            </Box>
-          </Box>
+          <ReportsTab />
         )}
 
         {/* Config Tab */}
@@ -149,7 +111,9 @@ function AppContent() {
 function App() {
   return (
     <SheetProvider>
-      <AppContent />
+      <SnapshotProvider>
+        <AppContent />
+      </SnapshotProvider>
     </SheetProvider>
   );
 }
