@@ -119,9 +119,6 @@ export const ReportsTab = () => {
     console.log('=== LEADERBOARD EXTRACTION DEBUG ===');
     console.log('Voyage Awards Headers:', headers);
     console.log('Voyage Awards Row Count:', voyageRows.length);
-    if (voyageRows.length > 0) {
-      console.log('First 3 rows:', voyageRows.slice(0, 3));
-    }
 
     if (!voyageRows || voyageRows.length === 0) {
       return { topHosts: [], topVoyagers: [] };
@@ -136,39 +133,51 @@ export const ReportsTab = () => {
 
     const crew: Record<string, VoyageRow> = {};
 
-    // Parse voyage sheet data
-    voyageRows.forEach((row, rowIdx) => {
-      const name = row[headers[0]] || row['Name'] || row['Sailor'] || '';
-      if (!name || name === '-' || name.toLowerCase() === 'name') return;
+    // Parse voyage sheet data - match names from gullinbursti crew list
+    const crewNames = new Set<string>();
+    data.gullinbursti.rows.forEach((row) => {
+      const name = (row[data.gullinbursti.headers[1]] || '').trim();
+      if (name && name !== 'Name') {
+        crewNames.add(name);
+      }
+    });
 
-      // Look for host and voyage count columns
+    console.log('Crew names to match:', Array.from(crewNames).slice(0, 5));
+
+    voyageRows.forEach((row) => {
+      // Check each column value to find if it matches a known crew name
+      let matchedName = '';
       let hostCount = 0;
       let voyageCount = 0;
 
-      // Try to find columns with hosting or voyage data
       Object.entries(row).forEach(([key, value]) => {
-        const keyLower = key.toLowerCase();
-        // Count numeric values in columns that might be host-related
-        if ((keyLower.includes('host') || keyLower.includes('time')) && !isNaN(Number(value))) {
-          const numVal = parseInt(value as string, 10) || 0;
-          if (numVal > hostCount) hostCount = numVal;
+        const valueStr = (value || '').trim();
+        
+        // Check if this value is a known crew member name
+        if (!matchedName && crewNames.has(valueStr)) {
+          matchedName = valueStr;
         }
-        // Count numeric values in columns that might be voyage-related
-        if ((keyLower.includes('voyage') || keyLower.includes('total')) && !isNaN(Number(value))) {
-          const numVal = parseInt(value as string, 10) || 0;
-          if (numVal > voyageCount) voyageCount = numVal;
+
+        // Extract host count (usually in a "Host" or similar column)
+        const keyLower = key.toLowerCase();
+        if (keyLower.includes('host') && !isNaN(Number(value))) {
+          hostCount = Math.max(hostCount, parseInt(value as string, 10) || 0);
+        }
+        
+        // Extract voyage count (usually in a "Voyage" or "Total" column)
+        if (keyLower.includes('voyage') && !isNaN(Number(value))) {
+          voyageCount = Math.max(voyageCount, parseInt(value as string, 10) || 0);
         }
       });
 
-      if (hostCount > 0 || voyageCount > 0) {
-        console.log(`Row ${rowIdx}: ${name} - Hosts: ${hostCount}, Voyages: ${voyageCount}`);
+      if (matchedName && (hostCount > 0 || voyageCount > 0)) {
+        console.log(`Matched: ${matchedName} - Hosts: ${hostCount}, Voyages: ${voyageCount}`);
+        if (!crew[matchedName]) {
+          crew[matchedName] = { name: matchedName, hostCount: 0, voyageCount: 0 };
+        }
+        crew[matchedName].hostCount = Math.max(crew[matchedName].hostCount, hostCount);
+        crew[matchedName].voyageCount = Math.max(crew[matchedName].voyageCount, voyageCount);
       }
-
-      if (!crew[name]) {
-        crew[name] = { name, hostCount: 0, voyageCount: 0 };
-      }
-      crew[name].hostCount = Math.max(crew[name].hostCount, hostCount);
-      crew[name].voyageCount = Math.max(crew[name].voyageCount, voyageCount);
     });
 
     // Convert to arrays and sort
@@ -184,6 +193,7 @@ export const ReportsTab = () => {
       .sort((a, b) => b.voyageCount - a.voyageCount)
       .slice(0, 5);
 
+    console.log('Matched Crew Found:', crewArray.length);
     console.log('Top Hosts:', topHosts);
     console.log('Top Voyagers:', topVoyagers);
     console.log('=== END LEADERBOARD DEBUG ===');
