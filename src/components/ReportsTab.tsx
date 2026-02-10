@@ -111,9 +111,74 @@ export const ReportsTab = () => {
     }
   };
 
+  // Extract leaderboards from voyage awards sheet
+  const getLeaderboards = () => {
+    const voyageRows = data.voyageAwards.rows;
+    const headers = data.voyageAwards.headers;
+
+    if (!voyageRows || voyageRows.length === 0) {
+      return { topHosts: [], topVoyagers: [] };
+    }
+
+    interface VoyageRow {
+      name: string;
+      hostCount: number;
+      voyageCount: number;
+      [key: string]: string | number;
+    }
+
+    const crew: Record<string, VoyageRow> = {};
+
+    // Parse voyage sheet data
+    voyageRows.forEach((row) => {
+      const name = row[headers[0]] || row['Name'] || row['Sailor'] || '';
+      if (!name || name === '-' || name.toLowerCase() === 'name') return;
+
+      // Look for host and voyage count columns
+      let hostCount = 0;
+      let voyageCount = 0;
+
+      // Try to find columns with hosting or voyage data
+      Object.entries(row).forEach(([key, value]) => {
+        const keyLower = key.toLowerCase();
+        // Count numeric values in columns that might be host-related
+        if ((keyLower.includes('host') || keyLower.includes('time')) && !isNaN(Number(value))) {
+          hostCount = Math.max(hostCount, parseInt(value as string, 10) || 0);
+        }
+        // Count numeric values in columns that might be voyage-related
+        if ((keyLower.includes('voyage') || keyLower.includes('total')) && !isNaN(Number(value))) {
+          const numVal = parseInt(value as string, 10) || 0;
+          if (numVal > voyageCount) voyageCount = numVal;
+        }
+      });
+
+      if (!crew[name]) {
+        crew[name] = { name, hostCount: 0, voyageCount: 0 };
+      }
+      crew[name].hostCount = Math.max(crew[name].hostCount, hostCount);
+      crew[name].voyageCount = Math.max(crew[name].voyageCount, voyageCount);
+    });
+
+    // Convert to arrays and sort
+    const crewArray = Object.values(crew).filter(c => c.name && c.name !== '-');
+    
+    const topHosts = crewArray
+      .filter(c => c.hostCount > 0)
+      .sort((a, b) => b.hostCount - a.hostCount)
+      .slice(0, 5);
+
+    const topVoyagers = crewArray
+      .filter(c => c.voyageCount > 0)
+      .sort((a, b) => b.voyageCount - a.voyageCount)
+      .slice(0, 5);
+
+    return { topHosts, topVoyagers };
+  };
+
   // Generate PDF report
   const generatePDF = (snapshot: MonthlySnapshot) => {
     try {
+      const { topHosts, topVoyagers } = getLeaderboards();
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
@@ -215,6 +280,62 @@ export const ReportsTab = () => {
           }
         });
         yPosition = (doc as any).lastAutoTable.finalY + 8;
+      }
+
+      // ===== TOP HOSTS LEADERBOARD =====
+      yPosition = checkPageBreak(40);
+
+      if (topHosts.length > 0) {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('TOP SHIP HOSTS', margin, yPosition);
+        yPosition += 6;
+
+        const hostsData = topHosts.map((sailor) => [
+          sailor.name,
+          String(sailor.hostCount),
+        ]);
+
+        if ((doc as any).autoTable) {
+          (doc as any).autoTable({
+            head: [['Sailor', 'Total Hosted']],
+            body: hostsData,
+            startY: yPosition,
+            margin: margin,
+            styles: { fontSize: 9, cellPadding: 3 },
+            headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+          });
+          yPosition = (doc as any).lastAutoTable.finalY + 8;
+        }
+      }
+
+      // ===== TOP VOYAGERS LEADERBOARD =====
+      yPosition = checkPageBreak(40);
+
+      if (topVoyagers.length > 0) {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('TOP SHIP VOYAGERS', margin, yPosition);
+        yPosition += 6;
+
+        const voyagersData = topVoyagers.map((sailor) => [
+          sailor.name,
+          String(sailor.voyageCount),
+        ]);
+
+        if ((doc as any).autoTable) {
+          (doc as any).autoTable({
+            head: [['Sailor', 'Total Voyages']],
+            body: voyagersData,
+            startY: yPosition,
+            margin: margin,
+            styles: { fontSize: 9, cellPadding: 3 },
+            headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+          });
+          yPosition = (doc as any).lastAutoTable.finalY + 8;
+        }
       }
 
       // ===== CREW ROSTER SECTION =====
