@@ -117,154 +117,188 @@ export const ReportsTab = () => {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 15;
+      const margin = 12;
       let yPosition = margin;
 
-      // Header - Title
-      doc.setFontSize(24);
-      doc.setFont('helvetica', 'bold');
-      doc.text('USN SHIP MANAGER', pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 8;
+      // Helper function to add a new page if needed
+      const checkPageBreak = (spaceNeeded: number) => {
+        if (yPosition + spaceNeeded > pageHeight - 15) {
+          doc.addPage();
+          yPosition = margin;
+        }
+        return yPosition;
+      };
 
-      doc.setFontSize(14);
+      // ===== HEADER SECTION =====
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text('MONTHLY SHIP REPORT', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 7;
+
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
-      doc.text('Monthly Crew Report', pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 12;
+      const reportDate = new Date(snapshot.date);
+      const monthName = reportDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      doc.text(`USS Gullinbursti - Report for ${monthName}`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 5;
+      doc.text(`Report Date: ${reportDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 8;
 
       // Horizontal line
       doc.setDrawColor(0, 0, 0);
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 8;
+      yPosition += 6;
 
-      // Report metadata
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      const reportDate = new Date(snapshot.date);
-      doc.text(`Report Date: ${reportDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, margin, yPosition);
-      yPosition += 5;
-
-      // Executive Summary section
+      // ===== SHIP STATISTICS SECTION =====
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Executive Summary', margin, yPosition);
+      doc.text('SHIP STATISTICS', margin, yPosition);
       yPosition += 6;
 
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       
-      // Summary stats in box format
-      const summaryBoxWidth = (pageWidth - margin * 2 - 4) / 3;
-      const boxHeight = 18;
+      // Stats boxes
+      const boxWidth = (pageWidth - margin * 2 - 3) / 4;
+      const boxHeight = 16;
+      const boxY = yPosition;
+
+      const stats = [
+        { label: 'Total Members', value: String(snapshot.totalCrew) },
+        { label: 'In Compliance', value: String(snapshot.complianceCount) },
+        { label: 'Compliance Rate', value: snapshot.totalCrew > 0 ? `${Math.round((snapshot.complianceCount / snapshot.totalCrew) * 100)}%` : 'N/A' },
+        { label: 'Months Active', value: '1' },
+      ];
+
+      stats.forEach((stat, idx) => {
+        const boxX = margin + (idx * (boxWidth + 1));
+        doc.setFillColor(245, 245, 245);
+        doc.rect(boxX, boxY, boxWidth, boxHeight, 'F');
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(boxX, boxY, boxWidth, boxHeight);
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text(stat.label, boxX + boxWidth / 2, boxY + 4, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.text(stat.value, boxX + boxWidth / 2, boxY + 11, { align: 'center' });
+      });
+
+      yPosition = boxY + boxHeight + 8;
+
+      // ===== SQUAD BREAKDOWN SECTION =====
+      yPosition = checkPageBreak(30);
       
-      // Total Crew box
-      doc.setFillColor(240, 240, 240);
-      doc.rect(margin, yPosition, summaryBoxWidth, boxHeight, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.text('Total Crew', margin + 2, yPosition + 5);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(14);
-      doc.text(String(snapshot.totalCrew), margin + summaryBoxWidth / 2, yPosition + 12, { align: 'center' });
-
-      // In Compliance box
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('In Compliance', margin + summaryBoxWidth + 2, yPosition + 5);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(14);
-      doc.text(String(snapshot.complianceCount), margin + summaryBoxWidth + summaryBoxWidth / 2, yPosition + 12, { align: 'center' });
-
-      // Compliance % box
-      const compliancePercent = snapshot.totalCrew > 0 
-        ? Math.round((snapshot.complianceCount / snapshot.totalCrew) * 100)
-        : 0;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Compliance %', margin + summaryBoxWidth * 2 + 2, yPosition + 5);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(14);
-      doc.text(`${compliancePercent}%`, margin + summaryBoxWidth * 2 + summaryBoxWidth / 2, yPosition + 12, { align: 'center' });
-
-      yPosition += boxHeight + 10;
-
-      // Squad Breakdown section
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Squad Breakdown', margin, yPosition);
+      doc.text('SQUAD BREAKDOWN', margin, yPosition);
       yPosition += 6;
 
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      
-      const squadBreakdownData = Object.entries(snapshot.squadBreakdown).map(([squad, count]) => {
-        const percentage = snapshot.totalCrew > 0 
-          ? Math.round((count / snapshot.totalCrew) * 100)
-          : 0;
+      const squadData = Object.entries(snapshot.squadBreakdown).map(([squad, count]) => {
+        const percentage = snapshot.totalCrew > 0 ? Math.round((count / snapshot.totalCrew) * 100) : 0;
         return [squad, String(count), `${percentage}%`];
       });
 
+      doc.setFontSize(9);
       if ((doc as any).autoTable) {
         (doc as any).autoTable({
           head: [['Squad', 'Members', 'Percentage']],
-          body: squadBreakdownData,
+          body: squadData,
           startY: yPosition,
           margin: margin,
-          styles: { fontSize: 10, cellPadding: 3 },
-          headerStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fontSize: 9, cellPadding: 3 },
+          headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [245, 245, 245] },
+          didDrawPage: () => {
+            yPosition = (doc as any).lastAutoTable.finalY + 8;
+          }
         });
         yPosition = (doc as any).lastAutoTable.finalY + 8;
       }
 
-      // Add page break if needed
-      if (yPosition > pageHeight - 50) {
-        doc.addPage();
-        yPosition = margin;
-      }
+      // ===== CREW ROSTER SECTION =====
+      yPosition = checkPageBreak(40);
 
-      // Crew Roster section
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Crew Roster', margin, yPosition);
+      doc.text('CREW ROSTER', margin, yPosition);
       yPosition += 6;
 
-      const tableData = snapshot.crew.map((sailor) => [
+      const crewTableData = snapshot.crew.map((sailor) => [
         sailor.rank,
         sailor.name,
         sailor.squad,
-        sailor.compliance,
+        sailor.compliance || 'Active',
         sailor.timezone,
       ]);
 
-      // Check if autoTable exists
       if ((doc as any).autoTable) {
         (doc as any).autoTable({
-          head: [['Rank', 'Name', 'Squad', 'Compliance', 'Timezone']],
-          body: tableData,
+          head: [['Rank', 'Name', 'Squad', 'Status', 'Timezone']],
+          body: crewTableData,
           startY: yPosition,
           margin: margin,
-          styles: { fontSize: 9, cellPadding: 3 },
-          headerStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fontSize: 8, cellPadding: 2 },
+          headerStyles: { fillColor: [30, 100, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
           alternateRowStyles: { fillColor: [245, 245, 245] },
+          columnStyles: {
+            0: { cellWidth: 20 },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 25 },
+            3: { cellWidth: 20 },
+            4: { cellWidth: 25 },
+          },
         });
-      } else {
-        console.warn('autoTable not available, generating PDF without table');
+        yPosition = (doc as any).lastAutoTable.finalY + 8;
       }
 
-      // Footer
+      // ===== NOTES SECTION =====
+      yPosition = checkPageBreak(20);
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('COMMANDING OFFICER NOTES', margin, yPosition);
+      yPosition += 6;
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      const notesText = 'Please add any additional notes or observations about ship activities, crew performance, or operational concerns here. This section should contain key insights and recommendations for leadership.';
+      const splitNotes = doc.splitTextToSize(notesText, pageWidth - margin * 2);
+      doc.text(splitNotes, margin, yPosition);
+      yPosition += splitNotes.length * 3 + 4;
+
+      // ===== REPORT SIGNATURE SECTION =====
+      yPosition = checkPageBreak(15);
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Generated by USN Ship Manager', margin, yPosition);
+      yPosition += 5;
+      doc.text(`Report Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
+      yPosition += 5;
+
+      // ===== FOOTER WITH PAGE NUMBERS =====
       const pageCount = (doc as any).internal.pages.length - 1;
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(128, 128, 128);
         doc.text(
           `Page ${i} of ${pageCount}`,
           pageWidth / 2,
-          pageHeight - 10,
+          pageHeight - 8,
           { align: 'center' }
+        );
+        doc.text(
+          `USS Gullinbursti Monthly Report - ${monthName}`,
+          margin,
+          pageHeight - 8
         );
       }
 
-      doc.save(`USN_Ship_Report_${snapshot.date}.pdf`);
+      doc.save(`USS_Gullinbursti_Report_${snapshot.date}.pdf`);
     } catch (err) {
       console.error('Error generating PDF:', err);
       alert('Failed to generate PDF. Check console for details.');
