@@ -27,7 +27,6 @@ import InfoIcon from '@mui/icons-material/Info';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSheetData } from '../context/SheetDataContext';
 import { useState, useMemo } from 'react';
-import { RANKS } from '../config/NavalConfig';
 
 interface ActionItem {
   id: string;
@@ -57,13 +56,13 @@ export const ActionsTab = () => {
     console.log('=== ACTION DETECTION DEBUG ===');
     console.log('Headers:', headers);
 
-    let currentSquad = 'Unknown';
+    let currentSquad = 'Command Staff'; // Start with Command Staff as default
 
     data.gullinbursti.rows.forEach((row, rowIdx) => {
       // Extract crew data from row using headers
       const rank = (row[headers[0]] || '').trim();
       const name = (row[headers[1]] || '').trim();
-      const squad = (row[headers[3]] || '').trim();
+      const squadFromRow = (row[headers[3]] || '').trim();
       const compliance = (row[headers[8]] || '').trim();
       const starsRaw = (row[headers[10]] || '').trim();
       
@@ -85,7 +84,10 @@ export const ActionsTab = () => {
       // Skip rows without both rank and name
       if (!rank || !name) return;
 
-      // Parse stars (handle various formats)
+      // Use squad from row if available, otherwise use currentSquad
+      const assignedSquad = squadFromRow || currentSquad;
+
+      // Parse stars (handle various formats) - stars between 0-5
       let stars = 0;
       if (starsRaw) {
         const starMatch = starsRaw.match(/\d+/);
@@ -94,43 +96,32 @@ export const ActionsTab = () => {
         }
       }
 
-      console.log(`Row ${rowIdx}: ${name} (${rank}, Squad: ${currentSquad}, Compliance: "${compliance}", Stars: ${stars})`);
+      console.log(`Row ${rowIdx}: ${name} (${rank}, Squad: ${assignedSquad}, Compliance: "${compliance}", Stars: ${stars})`);
 
-      // NO_CHAT_ACTIVITY - 0 stars
-      if (stars === 0) {
+      // ONLY flag "No Chat Activity" if stars = 0 AND compliance is not on LOA/Leave
+      // This prevents false positives for people on legitimate leave
+      const complianceLower = compliance.toLowerCase().trim();
+      const isOnLeave = complianceLower.includes('loa') || 
+                        complianceLower.includes('leave') || 
+                        complianceLower.includes('off-duty');
+      
+      if (stars === 0 && !isOnLeave) {
         console.log(`  -> ACTION: No Chat Activity`);
         actions.push({
           id: String(actionId++),
           type: 'no-chat-activity',
-          severity: 'high',
+          severity: 'low', // Changed to LOW priority
           sailor: name,
           rank: rank,
-          squad: currentSquad,
+          squad: assignedSquad,
           description: 'No Chat Activity',
-          details: `${name} has no recorded chat activity (0 stars). Encourage participation in squad channels.`,
+          details: `${name} has not participated in chat. Encourage participation in squad channels.`,
         });
       }
 
-      // LOW_CHAT_ACTIVITY - less than 2 stars
-      if (stars > 0 && stars < 2) {
-        console.log(`  -> ACTION: Low Chat Activity`);
-        actions.push({
-          id: String(actionId++),
-          type: 'low-chat-activity',
-          severity: 'medium',
-          sailor: name,
-          rank: rank,
-          squad: squad,
-          description: 'Low Chat Activity',
-          details: `${name} has low chat activity (${stars} stars). Consider outreach or mentoring.`,
-        });
-      }
-
-      // COMPLIANCE_ISSUE - Only flag serious compliance issues (Inactive, Flagged, No)
+      // COMPLIANCE_ISSUE - Only flag serious compliance issues
       // Don't flag: Empty cells, "Active", or temporary LOA statuses
       if (compliance) {
-        const complianceLower = compliance.toLowerCase().trim();
-        
         // Only flag specific problematic statuses
         const shouldFlag = 
           complianceLower === 'inactive' || 
@@ -158,23 +149,60 @@ export const ActionsTab = () => {
             severity: 'high',
             sailor: name,
             rank: rank,
-            squad: squad,
+            squad: assignedSquad,
             description: `Compliance: ${complianceType}`,
             details: `${name} is marked as ${complianceType}. Review status and take appropriate action.`,
           });
         }
       }
 
-      // MISSING_NCO_RIBBON - NCO ranks without improvement ribbon
-      const rankData = RANKS[rank];
-      if (rankData && (rankData.rate === 'NCO' || rankData.rate === 'SNCO')) {
-        // This would require medal tracking data - placeholder for now
-        // In full implementation, check against crewMedals or similar data
+      // SAILING/HOSTING ISSUES - Check if they should be sailing/hosting but aren't
+      // Look for "Requires attention" or similar indicators in Sailing and Hosting columns
+      // These are typically columns after the stars column
+      let sailingStatus = '';
+      let hostingStatus = '';
+      
+      // Search through row for Sailing and Hosting columns
+      Object.entries(row).forEach(([colKey, colValue]) => {
+        const keyLower = colKey.toLowerCase();
+        if (keyLower.includes('sailing') || keyLower.includes('voyage')) {
+          sailingStatus = (colValue || '').trim();
+        }
+        if (keyLower.includes('hosting') || keyLower.includes('host')) {
+          hostingStatus = (colValue || '').trim();
+        }
+      });
+
+      // Flag if sailing or hosting "Requires attention"
+      const sailingLower = sailingStatus.toLowerCase();
+      const hostingLower = hostingStatus.toLowerCase();
+
+      if (sailingLower.includes('requires') || sailingLower.includes('attention')) {
+        console.log(`  -> ACTION: Sailing Issue (${sailingStatus})`);
+        actions.push({
+          id: String(actionId++),
+          type: 'sailing-issue',
+          severity: 'high', // HIGH priority for sailing/hosting
+          sailor: name,
+          rank: rank,
+          squad: assignedSquad,
+          description: 'Sailing Issue',
+          details: `${name} has a sailing/voyage issue that needs attention. Review and provide guidance.`,
+        });
       }
 
-      // MISSING_OFFICER_RIBBON - Officer ranks without improvement ribbon
-      if (rankData && (rankData.rate === 'JO' || rankData.rate === 'SO')) {
-        // This would require medal tracking data - placeholder for now
+      if (hostingLower.includes('requires') || hostingLower.includes('attention')) {
+        console.log(`  -> ACTION: Hosting Issue (${hostingStatus})`);
+        actions.push({
+          id: String(actionId++),
+          type: 'hosting-issue',
+          severity: 'high', // HIGH priority for sailing/hosting
+          sailor: name,
+          rank: rank,
+          squad: assignedSquad,
+          description: 'Hosting Issue',
+          details: `${name} has a hosting issue that needs attention. Review and provide guidance.`,
+        });
       }
     });
 
