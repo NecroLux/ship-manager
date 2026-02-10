@@ -69,8 +69,8 @@ export const LinkedSheetsTab = () => {
       name: 'LH Role/Coin',
       spreadsheetId: '1AK81fcdI9UTY4Nlp5ijwtPqyILE-e4DnRK3-IAgEIHI',
       range: 'Role/Coin Awards!A1:O34',
-      recordCount: 0,
-      lastUpdated: null,
+      recordCount: data.roleCoinAwards.rowCount,
+      lastUpdated: data.roleCoinAwards.lastUpdated,
     },
   ];
 

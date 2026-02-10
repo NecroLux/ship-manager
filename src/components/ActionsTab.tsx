@@ -57,6 +57,8 @@ export const ActionsTab = () => {
     console.log('=== ACTION DETECTION DEBUG ===');
     console.log('Headers:', headers);
 
+    let currentSquad = 'Unknown';
+
     data.gullinbursti.rows.forEach((row, rowIdx) => {
       // Extract crew data from row using headers
       const rank = (row[headers[0]] || '').trim();
@@ -65,7 +67,22 @@ export const ActionsTab = () => {
       const compliance = (row[headers[8]] || '').trim();
       const starsRaw = (row[headers[10]] || '').trim();
       
-      // Skip empty rows
+      // Skip column header row
+      if ((rank === 'Rank' || rank.toLowerCase() === 'rank') && 
+          (name === 'Name' || name.toLowerCase() === 'name')) {
+        return;
+      }
+
+      // Skip completely empty rows
+      if (!rank && !name) return;
+
+      // Check if this is a squad header row (rank has value but name is empty)
+      if (rank && !name) {
+        currentSquad = rank;
+        return;
+      }
+
+      // Skip rows without both rank and name
       if (!rank || !name) return;
 
       // Parse stars (handle various formats)
@@ -77,7 +94,7 @@ export const ActionsTab = () => {
         }
       }
 
-      console.log(`Row ${rowIdx}: ${name} (${rank}, Squad: ${squad}, Compliance: "${compliance}", Stars: ${stars})`);
+      console.log(`Row ${rowIdx}: ${name} (${rank}, Squad: ${currentSquad}, Compliance: "${compliance}", Stars: ${stars})`);
 
       // NO_CHAT_ACTIVITY - 0 stars
       if (stars === 0) {
@@ -88,7 +105,7 @@ export const ActionsTab = () => {
           severity: 'high',
           sailor: name,
           rank: rank,
-          squad: squad,
+          squad: currentSquad,
           description: 'No Chat Activity',
           details: `${name} has no recorded chat activity (0 stars). Encourage participation in squad channels.`,
         });

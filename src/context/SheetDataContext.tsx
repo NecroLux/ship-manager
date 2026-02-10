@@ -14,6 +14,7 @@ interface SheetData {
 interface AppData {
   voyageAwards: SheetData;
   gullinbursti: SheetData;
+  roleCoinAwards: SheetData;
 }
 
 interface SheetContextType {
@@ -21,8 +22,8 @@ interface SheetContextType {
   loading: boolean;
   error: string | null;
   refreshData: () => Promise<void>;
-  updateSheetRange: (sheetKey: 'voyage-awards' | 'gullinbursti', newRange: string) => Promise<void>;
-  ranges: { voyageAwards: string; gullinbursti: string };
+  updateSheetRange: (sheetKey: 'voyage-awards' | 'gullinbursti' | 'role-coin', newRange: string) => Promise<void>;
+  ranges: { voyageAwards: string; gullinbursti: string; roleCoin: string };
 }
 
 const SheetContext = createContext<SheetContextType | undefined>(undefined);
@@ -34,6 +35,10 @@ const VOYAGE_AWARDS_RANGE = 'Time/Voyage Awards!A1:AH34';
 // Sheet 2: Gullinbursti
 const GULLINBURSTI_SPREADSHEET_ID = '1EiLym2gcxcxmwoTHkHD9m9MisRqC3lmjJbBUBzqlZI0';
 const GULLINBURSTI_RANGE = 'Gullinbursti!A8:W49';
+
+// Sheet 3: Role/Coin Awards
+const ROLE_COIN_SPREADSHEET_ID = '1AK81fcdI9UTY4Nlp5ijwtPqyILE-e4DnRK3-IAgEIHI';
+const ROLE_COIN_RANGE = 'Role/Coin Awards!A1:O34';
 
 const emptySheetData: SheetData = {
   headers: [],
@@ -134,12 +139,14 @@ export const SheetProvider = ({ children }: { children: ReactNode }) => {
   const [data, setData] = useState<AppData>({
     voyageAwards: emptySheetData,
     gullinbursti: emptySheetData,
+    roleCoinAwards: emptySheetData,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ranges, setRanges] = useState({
     voyageAwards: VOYAGE_AWARDS_RANGE,
     gullinbursti: GULLINBURSTI_RANGE,
+    roleCoin: ROLE_COIN_RANGE,
   });
 
   const fetchAllData = async () => {
@@ -147,15 +154,17 @@ export const SheetProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setError(null);
 
-      // Fetch both sheets in parallel with current ranges
-      const [voyageAwardsData, gullinburstiData] = await Promise.all([
+      // Fetch all sheets in parallel with current ranges
+      const [voyageAwardsData, gullinburstiData, roleCoinData] = await Promise.all([
         fetchSheetData(VOYAGE_AWARDS_SPREADSHEET_ID, ranges.voyageAwards, true),
         fetchSheetData(GULLINBURSTI_SPREADSHEET_ID, ranges.gullinbursti, false),
+        fetchSheetData(ROLE_COIN_SPREADSHEET_ID, ranges.roleCoin, true),
       ]);
 
       setData({
         voyageAwards: voyageAwardsData,
         gullinbursti: gullinburstiData,
+        roleCoinAwards: roleCoinData,
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch sheet data';
@@ -166,16 +175,17 @@ export const SheetProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateSheetRange = async (sheetKey: 'voyage-awards' | 'gullinbursti', newRange: string) => {
+  const updateSheetRange = async (sheetKey: 'voyage-awards' | 'gullinbursti' | 'role-coin', newRange: string) => {
     try {
       // Update the range in state
       if (sheetKey === 'voyage-awards') {
         setRanges(prev => ({ ...prev, voyageAwards: newRange }));
-        // Save to localStorage
         localStorage.setItem('sheetRange_voyageAwards', newRange);
+      } else if (sheetKey === 'role-coin') {
+        setRanges(prev => ({ ...prev, roleCoin: newRange }));
+        localStorage.setItem('sheetRange_roleCoin', newRange);
       } else {
         setRanges(prev => ({ ...prev, gullinbursti: newRange }));
-        // Save to localStorage
         localStorage.setItem('sheetRange_gullinbursti', newRange);
       }
 
@@ -183,17 +193,26 @@ export const SheetProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setError(null);
 
-      const spreadsheetId = sheetKey === 'voyage-awards' 
-        ? VOYAGE_AWARDS_SPREADSHEET_ID 
-        : GULLINBURSTI_SPREADSHEET_ID;
+      let spreadsheetId = GULLINBURSTI_SPREADSHEET_ID;
+      let filterEmptyFirst = false;
 
-      const filterEmptyFirst = sheetKey === 'voyage-awards';
+      if (sheetKey === 'voyage-awards') {
+        spreadsheetId = VOYAGE_AWARDS_SPREADSHEET_ID;
+        filterEmptyFirst = true;
+      } else if (sheetKey === 'role-coin') {
+        spreadsheetId = ROLE_COIN_SPREADSHEET_ID;
+        filterEmptyFirst = true;
+      }
+
       const newData = await fetchSheetData(spreadsheetId, newRange, filterEmptyFirst);
 
-      setData(prev => ({
-        ...prev,
-        [sheetKey === 'voyage-awards' ? 'voyageAwards' : 'gullinbursti']: newData,
-      }));
+      if (sheetKey === 'voyage-awards') {
+        setData(prev => ({ ...prev, voyageAwards: newData }));
+      } else if (sheetKey === 'role-coin') {
+        setData(prev => ({ ...prev, roleCoinAwards: newData }));
+      } else {
+        setData(prev => ({ ...prev, gullinbursti: newData }));
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update sheet range';
       setError(`Error updating range: ${errorMessage}`);

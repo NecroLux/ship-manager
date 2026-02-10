@@ -459,13 +459,12 @@ export const ReportsTab = () => {
         sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
       >
         <Tab label="Ship Report" />
-        <Tab label="Squad Reports" />
         <Tab label="Snapshots" />
       </Tabs>
 
       {/* Ship Report Tab */}
       {activeTab === 0 && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Full Ship Report
@@ -519,40 +518,28 @@ export const ReportsTab = () => {
             </Box>
           </Paper>
 
+          {/* Reports History Section */}
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Squad Reports
+              Report History
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-              Generate individual reports for each squad with member details.
+              Download previously generated monthly reports.
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Button variant="contained" color="primary" size="small" disabled>
-                Download All (Coming Soon)
-              </Button>
-              <Button variant="contained" color="info" size="small" disabled>
-                Individual Squad Reports (Coming Soon)
-              </Button>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Alert severity="info">
+                Report history will be populated as monthly reports are automatically generated on the last day of each month.
+              </Alert>
+              <Typography variant="caption" color="textSecondary">
+                No reports available yet. Check back at the end of the month!
+              </Typography>
             </Box>
           </Paper>
         </Box>
       )}
 
-      {/* Squad Reports Tab */}
-      {activeTab === 1 && (
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Squad Reports
-          </Typography>
-          <Typography color="textSecondary">
-            Squad-specific reporting features coming soon. You'll be able to generate detailed reports
-            for each squad with metrics, member status, and historical comparisons.
-          </Typography>
-        </Paper>
-      )}
-
       {/* Snapshots Tab */}
-      {activeTab === 2 && (
+      {activeTab === 1 && (
         <Box>
           <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h6">Monthly Snapshots</Typography>

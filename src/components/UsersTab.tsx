@@ -190,8 +190,44 @@ export const UsersTab = () => {
 
   return (
     <Box sx={{ mt: 3 }}>
-      {/* Refresh Button */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+      {/* Refresh Button and Stats */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {sailors.length > 0 && (
+            <>
+              <Card sx={{ flex: '0 1 auto', minWidth: 120 }}>
+                <CardContent sx={{ textAlign: 'center', py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
+                  <Typography color="textSecondary" variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+                    Total Crew
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#3b82f6' }}>
+                    {sailors.length}
+                  </Typography>
+                </CardContent>
+              </Card>
+              <Card sx={{ flex: '0 1 auto', minWidth: 120 }}>
+                <CardContent sx={{ textAlign: 'center', py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
+                  <Typography color="textSecondary" variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+                    In Compliance
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#10b981' }}>
+                    {complianceStats.compliant}
+                  </Typography>
+                </CardContent>
+              </Card>
+              <Card sx={{ flex: '0 1 auto', minWidth: 120 }}>
+                <CardContent sx={{ textAlign: 'center', py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
+                  <Typography color="textSecondary" variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+                    Flagged
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#ef4444' }}>
+                    {sailors.length - complianceStats.compliant}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </Box>
         <Button
           variant="contained"
           startIcon={<RefreshIcon />}
@@ -420,54 +456,6 @@ export const UsersTab = () => {
               );
             });
           })()}
-        </Box>
-      )}
-
-      {/* Footer Stats */}
-      {sailors.length > 0 && (
-        <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'space-around', flexWrap: 'wrap' }}>
-          <Card sx={{ flex: 1, minWidth: 150 }}>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography color="textSecondary" variant="body2" sx={{ mb: 1 }}>
-                Total Crew
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#3b82f6' }}>
-                {sailors.length}
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1, minWidth: 150 }}>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography color="textSecondary" variant="body2" sx={{ mb: 1 }}>
-                In Compliance
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#10b981' }}>
-                {complianceStats.compliant}
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1, minWidth: 150 }}>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography color="textSecondary" variant="body2" sx={{ mb: 1 }}>
-                Flagged
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#ef4444' }}>
-                {sailors.length - complianceStats.compliant}
-              </Typography>
-            </CardContent>
-          </Card>
-          {data.gullinbursti.lastUpdated && (
-            <Card sx={{ flex: 1, minWidth: 150 }}>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography color="textSecondary" variant="body2" sx={{ mb: 1 }}>
-                  Last Updated
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {data.gullinbursti.lastUpdated.toLocaleTimeString()}
-                </Typography>
-              </CardContent>
-            </Card>
-          )}
         </Box>
       )}
     </Box>
