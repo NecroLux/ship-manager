@@ -59,6 +59,11 @@ const fetchSheetData = async (
       : 'https://ship-manager.onrender.com';
     
     console.log('Backend URL:', backendUrl, '(isDevelopment:', isDevelopment, ')'); // Debug log
+    
+    // Create an abort controller with 10 second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(`${backendUrl}/api/sheets/read`, {
       method: 'POST',
       headers: {
@@ -68,7 +73,10 @@ const fetchSheetData = async (
         spreadsheetId,
         range,
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -103,7 +111,16 @@ const fetchSheetData = async (
       lastUpdated: new Date(),
     };
   } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
+    let errorMsg = '';
+    if (err instanceof Error) {
+      if (err.name === 'AbortError') {
+        errorMsg = 'Request timeout - backend service not responding';
+      } else {
+        errorMsg = err.message;
+      }
+    } else {
+      errorMsg = String(err);
+    }
     console.error(`Error fetching sheet (${spreadsheetId}, ${range}):`, errorMsg);
     // Log the full error for debugging
     if (err instanceof Error) {
