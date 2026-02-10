@@ -33,15 +33,14 @@ function AppContent() {
     <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
       <CssBaseline />
       <AppBar position="static" color="default" elevation={0} sx={{ py: 3 }}>
-        <Toolbar sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 2 }}>
+        <Toolbar sx={{ flexDirection: 'column', alignItems: 'center', py: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center', mb: 2 }}>
             <Typography 
               variant="h3" 
               sx={{ 
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
-                flexGrow: 1, 
                 fontWeight: 'bold',
                 fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem' },
                 letterSpacing: '-0.5px',
