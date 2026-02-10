@@ -198,6 +198,12 @@ export const ReportsTab = () => {
   // Generate PDF report - SIMPLE VERSION without autoTable
   const generatePDF = (snapshot: MonthlySnapshot, notes: string = '') => {
     try {
+      // Basic guard: ensure snapshot has crew entries
+      if (!snapshot || !snapshot.crew || snapshot.crew.length === 0) {
+        alert('No crew data available for the report. Create a snapshot first.');
+        return;
+      }
+
       const result = getLeaderboards() as any;
       const topHosts = (result?.topHosts) || [];
       const topVoyagers = (result?.topVoyagers) || [];
@@ -215,14 +221,14 @@ export const ReportsTab = () => {
         }
       };
 
-      // ===== HEADER =====
-      doc.setFontSize(24);
-      doc.setFont('helvetica', 'bold');
-      doc.text('MONTHLY SHIP REPORT', pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 10;
+  // ===== HEADER =====
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('MONTHLY SHIP REPORT', pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 9;
 
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
       const reportDate = new Date(snapshot.date);
       const monthName = reportDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
       doc.text(`USS Gullinbursti - Report for ${monthName}`, pageWidth / 2, yPosition, { align: 'center' });
@@ -235,18 +241,18 @@ export const ReportsTab = () => {
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 6;
 
-      // ===== SHIP STATISTICS =====
-      doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
-      doc.text('SHIP STATISTICS', margin, yPosition);
-      yPosition += 8;
+  // ===== SHIP STATISTICS =====
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SHIP STATISTICS', margin, yPosition);
+  yPosition += 7;
 
-      const complianceRate = snapshot.totalCrew > 0 ? Math.round((snapshot.complianceCount / snapshot.totalCrew) * 100) : 0;
-      const statText = `Total Members: ${snapshot.totalCrew}  |  In Compliance: ${snapshot.complianceCount}  |  Compliance Rate: ${complianceRate}%`;
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      doc.text(statText, margin, yPosition);
-      yPosition += 8;
+  const complianceRate = snapshot.totalCrew > 0 ? Math.round((snapshot.complianceCount / snapshot.totalCrew) * 100) : 0;
+  const statText = `Total Members: ${snapshot.totalCrew}  |  In Compliance: ${snapshot.complianceCount}  |  Compliance Rate: ${complianceRate}%`;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(statText, margin, yPosition);
+  yPosition += 8;
 
       // ===== SQUAD BREAKDOWN =====
       addPageIfNeeded(25);
