@@ -116,6 +116,13 @@ export const ReportsTab = () => {
     const voyageRows = data.voyageAwards.rows;
     const headers = data.voyageAwards.headers;
 
+    console.log('=== LEADERBOARD EXTRACTION DEBUG ===');
+    console.log('Voyage Awards Headers:', headers);
+    console.log('Voyage Awards Row Count:', voyageRows.length);
+    if (voyageRows.length > 0) {
+      console.log('First 3 rows:', voyageRows.slice(0, 3));
+    }
+
     if (!voyageRows || voyageRows.length === 0) {
       return { topHosts: [], topVoyagers: [] };
     }
@@ -130,7 +137,7 @@ export const ReportsTab = () => {
     const crew: Record<string, VoyageRow> = {};
 
     // Parse voyage sheet data
-    voyageRows.forEach((row) => {
+    voyageRows.forEach((row, rowIdx) => {
       const name = row[headers[0]] || row['Name'] || row['Sailor'] || '';
       if (!name || name === '-' || name.toLowerCase() === 'name') return;
 
@@ -143,7 +150,8 @@ export const ReportsTab = () => {
         const keyLower = key.toLowerCase();
         // Count numeric values in columns that might be host-related
         if ((keyLower.includes('host') || keyLower.includes('time')) && !isNaN(Number(value))) {
-          hostCount = Math.max(hostCount, parseInt(value as string, 10) || 0);
+          const numVal = parseInt(value as string, 10) || 0;
+          if (numVal > hostCount) hostCount = numVal;
         }
         // Count numeric values in columns that might be voyage-related
         if ((keyLower.includes('voyage') || keyLower.includes('total')) && !isNaN(Number(value))) {
@@ -151,6 +159,10 @@ export const ReportsTab = () => {
           if (numVal > voyageCount) voyageCount = numVal;
         }
       });
+
+      if (hostCount > 0 || voyageCount > 0) {
+        console.log(`Row ${rowIdx}: ${name} - Hosts: ${hostCount}, Voyages: ${voyageCount}`);
+      }
 
       if (!crew[name]) {
         crew[name] = { name, hostCount: 0, voyageCount: 0 };
@@ -171,6 +183,10 @@ export const ReportsTab = () => {
       .filter(c => c.voyageCount > 0)
       .sort((a, b) => b.voyageCount - a.voyageCount)
       .slice(0, 5);
+
+    console.log('Top Hosts:', topHosts);
+    console.log('Top Voyagers:', topVoyagers);
+    console.log('=== END LEADERBOARD DEBUG ===');
 
     return { topHosts, topVoyagers };
   };
@@ -224,7 +240,7 @@ export const ReportsTab = () => {
       doc.setFont('helvetica', 'normal');
       
       // Stats boxes
-      const boxWidth = (pageWidth - margin * 2 - 3) / 4;
+      const boxWidth = (pageWidth - margin * 2 - 2) / 3;
       const boxHeight = 16;
       const boxY = yPosition;
 
@@ -232,7 +248,6 @@ export const ReportsTab = () => {
         { label: 'Total Members', value: String(snapshot.totalCrew) },
         { label: 'In Compliance', value: String(snapshot.complianceCount) },
         { label: 'Compliance Rate', value: snapshot.totalCrew > 0 ? `${Math.round((snapshot.complianceCount / snapshot.totalCrew) * 100)}%` : 'N/A' },
-        { label: 'Months Active', value: '1' },
       ];
 
       stats.forEach((stat, idx) => {
