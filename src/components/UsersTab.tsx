@@ -42,6 +42,31 @@ const getComplianceStatus = (complianceValue: string) => {
   return { label: normalized, color: 'default' as const, icon: '?', status: 'unknown' };
 };
 
+// Helper function to get status label and color
+const getStatusDisplay = (complianceValue: string) => {
+  if (!complianceValue) return { label: 'Unknown', color: '#6b7280', bgColor: 'rgba(107, 114, 128, 0.1)' };
+  const normalized = complianceValue.toLowerCase().trim();
+  
+  // Active status
+  if (normalized.includes('active') || normalized.includes('duty') || 
+      normalized === 'within regulations' || normalized === 'yes' || normalized === 'compliant') {
+    return { label: 'Active', color: '#22c55e', bgColor: 'rgba(34, 197, 94, 0.1)' };
+  }
+  
+  // LOA statuses - return as-is with uppercasing
+  if (normalized.includes('loa')) {
+    const uppercased = complianceValue.toUpperCase().trim();
+    return { label: uppercased, color: '#eab308', bgColor: 'rgba(234, 179, 8, 0.1)' };
+  }
+  
+  // Flagged/Non-compliant
+  if (normalized === 'flagged' || normalized === 'no' || normalized === 'non-compliant' || normalized === 'requires action') {
+    return { label: 'Flagged', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.1)' };
+  }
+  
+  return { label: normalized.charAt(0).toUpperCase() + normalized.slice(1), color: '#6b7280', bgColor: 'rgba(107, 114, 128, 0.1)' };
+};
+
 // Helper function to get rank color and styling
 const getRankColor = (rank: string) => {
   if (!rank) return { color: '#B3B3B3', bgColor: 'rgba(179, 179, 179, 0.1)' };
@@ -238,7 +263,7 @@ export const UsersTab = () => {
                             }
                           }}
                         >
-                          <TableCell colSpan={5} sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1rem', color: '#FFFFFF', backgroundColor: 'transparent' }}>
+                          <TableCell colSpan={6} sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1rem', color: '#FFFFFF', backgroundColor: 'transparent' }}>
                             {squad}
                           </TableCell>
                         </TableRow>
@@ -254,10 +279,11 @@ export const UsersTab = () => {
                           }}
                         >
                           <TableCell sx={{ width: '12%' }}>Rank</TableCell>
-                          <TableCell sx={{ width: '20%' }}>Name</TableCell>
-                          <TableCell sx={{ width: '15%', textAlign: 'center' }}>Compliance</TableCell>
-                          <TableCell sx={{ width: '18%' }}>Timezone</TableCell>
-                          <TableCell sx={{ width: '17%', textAlign: 'center' }}>Activity</TableCell>
+                          <TableCell sx={{ width: '18%' }}>Name</TableCell>
+                          <TableCell sx={{ width: '13%' }}>Status</TableCell>
+                          <TableCell sx={{ width: '13%', textAlign: 'center' }}>Compliance</TableCell>
+                          <TableCell sx={{ width: '16%' }}>Timezone</TableCell>
+                          <TableCell sx={{ width: '15%', textAlign: 'center' }}>Activity</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -307,6 +333,29 @@ export const UsersTab = () => {
                               {/* Name */}
                               <TableCell sx={{ fontWeight: 500, py: 1.5 }}>
                                 {sailor.name}
+                              </TableCell>
+
+                              {/* Status */}
+                              <TableCell sx={{ py: 1.5 }}>
+                                {(() => {
+                                  const statusDisplay = getStatusDisplay(sailor.compliance);
+                                  return (
+                                    <Box
+                                      sx={{
+                                        display: 'inline-block',
+                                        px: 2,
+                                        py: 0.5,
+                                        borderRadius: 1,
+                                        backgroundColor: statusDisplay.bgColor,
+                                        color: statusDisplay.color,
+                                        fontWeight: 600,
+                                        fontSize: '0.85rem',
+                                      }}
+                                    >
+                                      {statusDisplay.label}
+                                    </Box>
+                                  );
+                                })()}
                               </TableCell>
 
                               {/* Compliance */}
