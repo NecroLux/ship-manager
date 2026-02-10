@@ -23,6 +23,7 @@ import { ReportsTab } from './components/ReportsTab';
 import { LinkedSheetsTab } from './components/LinkedSheetsTab';
 import { SheetProvider } from './context/SheetDataContext';
 import { SnapshotProvider } from './context/SnapshotContext';
+import { VERSION_COMMIT } from './version';
 import './App.css';
 
 function AppContent() {
@@ -34,7 +35,8 @@ function AppContent() {
       <CssBaseline />
       <AppBar position="static" color="default" elevation={0} sx={{ py: 3 }}>
         <Toolbar sx={{ flexDirection: 'column', alignItems: 'center', py: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between', mb: 2 }}>
+            <Box /> {/* Spacer for layout */}
             <Typography 
               variant="h3" 
               sx={{ 
@@ -48,6 +50,18 @@ function AppContent() {
             >
               <AnchorIcon sx={{ fontSize: 'inherit' }} />
               USN Ship Manager
+            </Typography>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                fontFamily: 'monospace',
+                fontSize: '0.75rem',
+                opacity: 0.6,
+                textAlign: 'right',
+              }}
+              title="Commit hash for reference"
+            >
+              v: {VERSION_COMMIT.slice(0, 7)}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end' }}>
