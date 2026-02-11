@@ -449,143 +449,116 @@ export const ActionsTab = () => {
         </CardContent>
       </Card>
 
-      {/* Actions Table - Grouped by Priority */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {(() => {
-          const groups: Record<string, typeof filteredActions> = {};
-          const severityLabels: Record<string, { label: string; color: string; bgColor: string }> = {
-            high: { label: '🔴 High Priority', color: '#dc2626', bgColor: 'rgba(220, 38, 38, 0.08)' },
-            medium: { label: '🟡 Medium Priority', color: '#eab308', bgColor: 'rgba(234, 179, 8, 0.08)' },
-            low: { label: '🔵 Low Priority', color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.08)' },
-          };
-          const severityOrder = ['high', 'medium', 'low'];
-
-          filteredActions.forEach((action) => {
-            const sev = action.severity || 'low';
-            if (!groups[sev]) groups[sev] = [];
-            groups[sev].push(action);
-          });
-
-          if (filteredActions.length === 0) {
-            return (
-              <Paper sx={{ p: 4, textAlign: 'center' }}>
-                <Typography color="textSecondary">
-                  No action items for this category
-                </Typography>
-              </Paper>
-            );
-          }
-
-          return severityOrder.map((sev) => {
-            const items = groups[sev];
-            if (!items || items.length === 0) return null;
-            const meta = severityLabels[sev];
-
-            return (
-              <Paper key={sev} sx={{ overflow: 'hidden', border: `1px solid ${meta.color}22` }}>
-                <Box sx={{ px: 2, py: 1.5, backgroundColor: meta.bgColor, borderBottom: `2px solid ${meta.color}33` }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: meta.color }}>
-                    {meta.label} ({items.length})
-                  </Typography>
-                </Box>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                        <TableCell sx={{ fontWeight: 'bold', width: '5%', textAlign: 'center' }}></TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', width: '30%' }}>Action</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Sailor</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Responsible</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', width: '12%', textAlign: 'center' }}>Priority</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', width: '13%', textAlign: 'center' }}></TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {items.map((action) => (
-                        <TableRow key={action.id} hover>
-                          <TableCell align="center" sx={{ py: 1 }}>
-                            {getSeverityIcon(action.severity)}
-                          </TableCell>
-                          <TableCell sx={{ py: 1 }}>
-                            <Stack direction="row" alignItems="center" spacing={0.5}>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                {action.description}
-                              </Typography>
-                              {action.isRecurring && action.cadence && (
-                                <Chip
-                                  label={CADENCE_LABELS[action.cadence]}
-                                  size="small"
-                                  sx={{ fontSize: '0.65rem', height: 18, color: '#8b5cf6', borderColor: '#8b5cf633' }}
-                                  variant="outlined"
-                                />
-                              )}
-                            </Stack>
-                          </TableCell>
-                          <TableCell sx={{ py: 1 }}>
-                            <Typography variant="body2">{action.sailor}</Typography>
-                          </TableCell>
-                          <TableCell sx={{ py: 1 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 500, color: 'primary.main' }}>
-                              {action.responsible}
-                            </Typography>
-                          </TableCell>
-                          <TableCell sx={{ py: 1, textAlign: 'center' }}>
+      {/* Actions Table - Single table, sorted by priority */}
+      {filteredActions.length === 0 ? (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography color="textSecondary">No action items for this category</Typography>
+        </Paper>
+      ) : (
+        <Paper sx={{ overflow: 'hidden' }}>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                  <TableCell sx={{ fontWeight: 'bold', width: '5%', textAlign: 'center' }}></TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', width: '30%' }}>Action</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Sailor</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Responsible</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', width: '12%', textAlign: 'center' }}>Priority</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', width: '13%', textAlign: 'center' }}></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredActions.map((action) => {
+                  const severityMeta: Record<string, { color: string; bgColor: string }> = {
+                    high: { color: '#dc2626', bgColor: 'rgba(220, 38, 38, 0.08)' },
+                    medium: { color: '#f97316', bgColor: 'rgba(249, 115, 22, 0.08)' },
+                    low: { color: '#eab308', bgColor: 'rgba(234, 179, 8, 0.08)' },
+                  };
+                  const meta = severityMeta[action.severity] || severityMeta.low;
+                  return (
+                    <TableRow key={action.id} hover>
+                      <TableCell align="center" sx={{ py: 1 }}>
+                        {getSeverityIcon(action.severity)}
+                      </TableCell>
+                      <TableCell sx={{ py: 1 }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {action.description}
+                          </Typography>
+                          {action.isRecurring && action.cadence && (
                             <Chip
-                              label={action.severity.charAt(0).toUpperCase() + action.severity.slice(1)}
+                              label={CADENCE_LABELS[action.cadence]}
                               size="small"
-                              sx={{
-                                fontWeight: 600,
-                                fontSize: '0.7rem',
-                                color: meta.color,
-                                borderColor: meta.color,
-                                backgroundColor: meta.bgColor,
-                              }}
+                              sx={{ fontSize: '0.65rem', height: 18, color: '#8b5cf6', borderColor: '#8b5cf633' }}
                               variant="outlined"
                             />
-                          </TableCell>
-                          <TableCell sx={{ py: 1, textAlign: 'center' }}>
-                            <Stack direction="row" spacing={0.5} justifyContent="center">
-                              {action.isRecurring && (
-                                <Tooltip title="Mark as done — will reappear when next due">
-                                  <Checkbox
-                                    size="small"
-                                    checked={false}
-                                    onChange={() => {
-                                      const taskId = RECURRING_SL_TASKS.find(t => action.id.startsWith(t.id))?.id;
-                                      if (taskId) handleCompleteRecurring(taskId);
-                                    }}
-                                    sx={{ color: '#22c55e', '&.Mui-checked': { color: '#22c55e' }, p: 0.5 }}
-                                  />
-                                </Tooltip>
-                              )}
-                              {action.isManual && (
-                                <Tooltip title="Delete this action">
-                                  <IconButton size="small" onClick={() => handleDeleteManual(action.id)} sx={{ color: '#ef4444' }}>
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                              {!action.isRecurring && !action.isManual && (
-                                <Button
-                                  size="small"
-                                  variant="text"
-                                  onClick={() => { setSelectedAction(action); setDetailsOpen(true); }}
-                                >
-                                  View
-                                </Button>
-                              )}
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
-            );
-          });
-        })()}
-      </Box>
+                          )}
+                        </Stack>
+                      </TableCell>
+                      <TableCell sx={{ py: 1 }}>
+                        <Typography variant="body2">{action.sailor}</Typography>
+                      </TableCell>
+                      <TableCell sx={{ py: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'primary.main' }}>
+                          {action.responsible}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ py: 1, textAlign: 'center' }}>
+                        <Chip
+                          label={action.severity.charAt(0).toUpperCase() + action.severity.slice(1)}
+                          size="small"
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: '0.7rem',
+                            color: meta.color,
+                            borderColor: meta.color,
+                            backgroundColor: meta.bgColor,
+                          }}
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ py: 1, textAlign: 'center' }}>
+                        <Stack direction="row" spacing={0.5} justifyContent="center">
+                          {action.isRecurring && (
+                            <Tooltip title="Mark as done — will reappear when next due">
+                              <Checkbox
+                                size="small"
+                                checked={false}
+                                onChange={() => {
+                                  const taskId = RECURRING_SL_TASKS.find(t => action.id.startsWith(t.id))?.id;
+                                  if (taskId) handleCompleteRecurring(taskId);
+                                }}
+                                sx={{ color: '#22c55e', '&.Mui-checked': { color: '#22c55e' }, p: 0.5 }}
+                              />
+                            </Tooltip>
+                          )}
+                          {action.isManual && (
+                            <Tooltip title="Delete this action">
+                              <IconButton size="small" onClick={() => handleDeleteManual(action.id)} sx={{ color: '#ef4444' }}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {!action.isRecurring && !action.isManual && (
+                            <Button
+                              size="small"
+                              variant="text"
+                              onClick={() => { setSelectedAction(action); setDetailsOpen(true); }}
+                            >
+                              View
+                            </Button>
+                          )}
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
 
       {/* Details Dialog */}
       <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} maxWidth="sm" fullWidth>
