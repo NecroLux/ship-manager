@@ -35,6 +35,7 @@ interface SquadStats {
   compliantCount: number;
   attentionCount: number;
   actionCount: number;
+  attentionNames: string[];
   members: Array<{
     name: string;
     rank: string;
@@ -72,6 +73,7 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
         totalCrew: 0, compliantCrew: 0, attentionCrew: 0, actionCrew: 0,
         compliancePercentage: 0, squadStats: [] as SquadStats[],
         commandStaffMembers: [] as Array<{ name: string; rank: string }>,
+        attentionNames: [] as string[],
       };
     }
 
@@ -79,26 +81,27 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
     let compliantCrew = 0;
     let attentionCrew = 0;
     const actionCrew = 0;
+    const attentionNames: string[] = [];
     const squadMap: Record<string, SquadStats> = {};
     const commandStaffMembers: Array<{ name: string; rank: string }> = [];
 
     crew.forEach((member) => {
       const isCompliant = member.sailingCompliant || member.loaStatus;
-      if (isCompliant) { compliantCrew++; } else { attentionCrew++; }
+      if (isCompliant) { compliantCrew++; } else { attentionCrew++; attentionNames.push(member.name); }
 
       const squad = member.squad;
       if (!squadMap[squad]) {
-        squadMap[squad] = { name: squad, totalCount: 0, compliantCount: 0, attentionCount: 0, actionCount: 0, members: [] };
+        squadMap[squad] = { name: squad, totalCount: 0, compliantCount: 0, attentionCount: 0, actionCount: 0, attentionNames: [], members: [] };
       }
       squadMap[squad].totalCount++;
       squadMap[squad].members.push({ name: member.name, rank: member.rank, sailingCompliant: member.sailingCompliant, loaStatus: member.loaStatus });
-      if (isCompliant) { squadMap[squad].compliantCount++; } else { squadMap[squad].attentionCount++; }
+      if (isCompliant) { squadMap[squad].compliantCount++; } else { squadMap[squad].attentionCount++; squadMap[squad].attentionNames.push(member.name); }
       if (squad === 'Command Staff') { commandStaffMembers.push({ name: member.name, rank: member.rank }); }
     });
 
     const totalCrew = crew.length;
     return {
-      totalCrew, compliantCrew, attentionCrew, actionCrew,
+      totalCrew, compliantCrew, attentionCrew, actionCrew, attentionNames,
       compliancePercentage: totalCrew > 0 ? Math.round((compliantCrew / totalCrew) * 100) : 0,
       squadStats: Object.values(squadMap), commandStaffMembers,
     };
@@ -171,7 +174,7 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
 
         <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)', cursor: onNavigateToActions ? 'pointer' : 'default', '&:hover': onNavigateToActions ? { boxShadow: 4 } : {} }} onClick={onNavigateToActions}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><TaskAltIcon sx={{ color: '#3b82f6' }} /><Typography color="textSecondary" variant="body2">Actions</Typography></Box>
-          <Stack direction="row" spacing={3} justifyContent="center" alignItems="baseline">
+          <Stack direction="row" spacing={3} alignItems="baseline">
             <Tooltip title="High Priority"><Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#dc2626', lineHeight: 1 }}>{actionsCounts.high}</Typography></Tooltip>
             <Tooltip title="Medium Priority"><Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#f97316', lineHeight: 1 }}>{actionsCounts.medium}</Typography></Tooltip>
             <Tooltip title="Low Priority"><Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#eab308', lineHeight: 1 }}>{actionsCounts.low}</Typography></Tooltip>
@@ -189,10 +192,12 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}><Typography variant="body2">Compliant (Sailed / On LOA)</Typography><Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>{crewAnalysis.compliantCrew}</Typography></Box>
               <LinearProgress variant="determinate" value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.compliantCrew / crewAnalysis.totalCrew) * 100 : 0} sx={{ height: 8, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: 'success.main' } }} />
             </Box>
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}><Typography variant="body2">Attention Required (Not Sailed)</Typography><Typography variant="body2" sx={{ fontWeight: 'bold', color: 'warning.main' }}>{crewAnalysis.attentionCrew}</Typography></Box>
-              <LinearProgress variant="determinate" value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.attentionCrew / crewAnalysis.totalCrew) * 100 : 0} sx={{ height: 8, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: 'warning.main' } }} />
-            </Box>
+            <Tooltip title={crewAnalysis.attentionNames.length > 0 ? crewAnalysis.attentionNames.join(', ') : ''} arrow placement="bottom">
+              <Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}><Typography variant="body2">Attention Required (Not Sailed)</Typography><Typography variant="body2" sx={{ fontWeight: 'bold', color: 'warning.main' }}>{crewAnalysis.attentionCrew}</Typography></Box>
+                <LinearProgress variant="determinate" value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.attentionCrew / crewAnalysis.totalCrew) * 100 : 0} sx={{ height: 8, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: 'warning.main' } }} />
+              </Box>
+            </Tooltip>
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}><Typography variant="body2">Action Required</Typography><Typography variant="body2" sx={{ fontWeight: 'bold', color: 'error.main' }}>{crewAnalysis.actionCrew}</Typography></Box>
               <LinearProgress variant="determinate" value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.actionCrew / crewAnalysis.totalCrew) * 100 : 0} sx={{ height: 8, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: 'error.main' } }} />
@@ -230,29 +235,29 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
                       {/* CO */}
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title={coMember ? 'Commanding Officer' : 'CO: Role available'}>
-                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: coMember ? '#6366f1' : '#9CA3AF', cursor: 'pointer', boxShadow: coMember ? '0 0 8px rgba(99,102,241,0.35)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: coMember ? '#FF5555' : '#9CA3AF', cursor: 'pointer', boxShadow: coMember ? '0 0 8px rgba(255,85,85,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.7rem', lineHeight: 1 }}>CO</Typography>
                           </Box>
                         </Tooltip>
-                        <Typography variant="caption" sx={{ fontWeight: 500, color: coMember ? '#818cf8' : '#9CA3AF' }}>{coMember || '—'}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: coMember ? '#FF5555' : '#9CA3AF' }}>{coMember || '—'}</Typography>
                       </Box>
                       {/* FO */}
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title={foMember ? 'First Officer' : 'FO: Role available'}>
-                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: foMember ? '#8b5cf6' : '#9CA3AF', cursor: 'pointer', boxShadow: foMember ? '0 0 8px rgba(139,92,246,0.35)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: foMember ? '#FF66B2' : '#9CA3AF', cursor: 'pointer', boxShadow: foMember ? '0 0 8px rgba(255,102,178,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.7rem', lineHeight: 1 }}>FO</Typography>
                           </Box>
                         </Tooltip>
-                        <Typography variant="caption" sx={{ fontWeight: 500, color: foMember ? '#a78bfa' : '#9CA3AF' }}>{foMember || '—'}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: foMember ? '#FF66B2' : '#9CA3AF' }}>{foMember || '—'}</Typography>
                       </Box>
                       {/* CoS */}
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title={cosMember ? 'Chief of Ship' : 'CoS: Role available'}>
-                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: cosMember ? '#a855f7' : '#9CA3AF', cursor: 'pointer', boxShadow: cosMember ? '0 0 8px rgba(168,85,247,0.35)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: cosMember ? '#D946EF' : '#9CA3AF', cursor: 'pointer', boxShadow: cosMember ? '0 0 8px rgba(217,70,239,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: 1 }}>CoS</Typography>
                           </Box>
                         </Tooltip>
-                        <Typography variant="caption" sx={{ fontWeight: 500, color: cosMember ? '#c084fc' : '#9CA3AF' }}>{cosMember || '—'}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: cosMember ? '#D946EF' : '#9CA3AF' }}>{cosMember || '—'}</Typography>
                       </Box>
                     </Box>
                   </Box>
@@ -263,18 +268,21 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
                 const cP = squad.totalCount > 0 ? (squad.compliantCount / squad.totalCount) * 100 : 0;
                 const aP = squad.totalCount > 0 ? (squad.attentionCount / squad.totalCount) * 100 : 0;
                 const acP = squad.totalCount > 0 ? (squad.actionCount / squad.totalCount) * 100 : 0;
+                const attentionTooltip = squad.attentionNames.length > 0 ? squad.attentionNames.join(', ') : '';
                 return (
-                  <Box key={squad.name}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{squad.name}</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{squad.totalCount}</Typography>
+                  <Tooltip key={squad.name} title={attentionTooltip} arrow placement="bottom">
+                    <Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{squad.name}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{squad.totalCount}</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', height: 8, borderRadius: 1, overflow: 'hidden', backgroundColor: 'action.disabledBackground' }}>
+                        {cP > 0 && <Box sx={{ width: cP + '%', backgroundColor: '#22c55e' }} />}
+                        {aP > 0 && <Box sx={{ width: aP + '%', backgroundColor: '#eab308' }} />}
+                        {acP > 0 && <Box sx={{ width: acP + '%', backgroundColor: '#ef4444' }} />}
+                      </Box>
                     </Box>
-                    <Box sx={{ display: 'flex', height: 8, borderRadius: 1, overflow: 'hidden', backgroundColor: 'action.disabledBackground' }}>
-                      {cP > 0 && <Box sx={{ width: cP + '%', backgroundColor: '#22c55e' }} title={'Compliant: ' + squad.compliantCount} />}
-                      {aP > 0 && <Box sx={{ width: aP + '%', backgroundColor: '#eab308' }} title={'Attention: ' + squad.attentionCount} />}
-                      {acP > 0 && <Box sx={{ width: acP + '%', backgroundColor: '#ef4444' }} title={'Action: ' + squad.actionCount} />}
-                    </Box>
-                  </Box>
+                  </Tooltip>
                 );
               })}
             </>)}
@@ -293,7 +301,7 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
                 <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
               </TableRow></TableHead>
               <TableBody>{topVoyages.map((s, i) => (
-                <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{s.name}</TableCell>
+                <TableRow key={i}><TableCell>{i === 0 ? '👑' : i + 1}</TableCell><TableCell>{s.name}</TableCell>
                 <TableCell align="right"><Chip label={s.voyages} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} /></TableCell></TableRow>
               ))}</TableBody>
             </Table></TableContainer>
@@ -312,7 +320,7 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
                 <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
               </TableRow></TableHead>
               <TableBody>{topHosts.map((s, i) => (
-                <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{s.name}</TableCell>
+                <TableRow key={i}><TableCell>{i === 0 ? '👑' : i + 1}</TableCell><TableCell>{s.name}</TableCell>
                 <TableCell align="right"><Chip label={s.hosted} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} /></TableCell></TableRow>
               ))}</TableBody>
             </Table></TableContainer>
