@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSheetData } from '../context/SheetDataContext';
+import { parseAllCrewMembers, type ParsedCrewMember } from '../services/dataParser';
 
 // Helper function to get compliance status
 const getComplianceStatus = (complianceValue: string) => {
@@ -114,75 +115,26 @@ export const UsersTab = () => {
 
   // Debug logs removed for production
 
-  // Parse sailor data with proper column mapping
-  // First pass: identify squad headers and assign squads to crew members
-  const sailors: Array<{
-    rank: string;
-    name: string;
-    squad: string;
-    discordNickname: string;
-    compliance: string;
-    timezone: string;
-    stars: string;
-  }> = [];
+  // Parse crew members using centralized data parser
+  const crew = parseAllCrewMembers(data.gullinbursti.rows);
 
-  let currentSquad = 'Command Staff';
-  
-  for (let i = 0; i < data.gullinbursti.rows.length; i++) {
-    const row = data.gullinbursti.rows[i];
-    const rankVal = (row[data.gullinbursti.headers[0]] || '').trim();
-    const nameVal = (row[data.gullinbursti.headers[1]] || '').trim();
-    
-  // per-row debug log removed
-    
-    // Skip completely empty rows
-    if (rankVal === '' && nameVal === '') {
-  // skipping empty row
-      continue;
-    }
-    
-    // Skip column header rows (where the row contains "Rank" and "Name" as values)
-    if ((rankVal === 'Rank' || rankVal.toLowerCase() === 'rank') && 
-        (nameVal === 'Name' || nameVal.toLowerCase() === 'name')) {
-  // skipping column header row
-      continue;
-    }
-    
-    // Update squad if this is a header row (rank with value but name is empty)
-    if (rankVal && nameVal === '') {
-  // squad header detected: ${rankVal}
-      currentSquad = rankVal;
-      continue; // Don't include header rows
-    }
-    
-    // Include actual crew rows (have rank and name)
-    if (rankVal && nameVal) {
-  // crew member parsed -> added to list
-      const discordRaw = row[data.gullinbursti.headers[2]] || '';
-      const loaStatusRaw = row[data.gullinbursti.headers[8]] || '';
-      const timezoneRaw = row[data.gullinbursti.headers[7]] || '';
-      const chatActivityRaw = row[data.gullinbursti.headers[10]] || '';
-
-      sailors.push({
-        rank: rankVal,
-        name: nameVal,
-        squad: currentSquad,
-        discordNickname: discordRaw.trim(),
-        compliance: loaStatusRaw.trim() || 'Unknown',
-        timezone: timezoneRaw.trim() || '-',
-        stars: chatActivityRaw.trim() || '0',
-      });
-    }
-  }
-  
-  // parsed sailors available
+  // Transform parsed crew into display format
+  const sailors = crew.map((member: ParsedCrewMember) => ({
+    rank: member.rank,
+    name: member.name,
+    squad: member.squad,
+    discordNickname: member.discordUsername,
+    compliance: member.loaStatus ? 'LOA' : member.sailingCompliant && member.hostingCompliant ? 'Compliant' : 'Requires Attention',
+    timezone: member.timezone,
+    stars: member.chatActivity.toString(),
+    loaReturnDate: member.loaReturnDate,
+    loaStatus: member.loaStatus,
+  }));
 
   const complianceStats = {
     total: sailors.length,
     compliant: sailors.filter(s => 
-      s.compliance.toLowerCase().includes('active') ||
-      s.compliance.toLowerCase().includes('duty') ||
-      s.compliance === 'Within regulations'
+      !s.loaStatus && s.compliance === 'Compliant'
     ).length,
   };
 
