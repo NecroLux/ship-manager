@@ -109,27 +109,39 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
   const topVoyagersList = leaderboardData.length > 0 ? getTopVoyagersFromParser(leaderboardData, 10) : [];
 
   const getActionsCounts = () => {
-    if (!data.gullinbursti || data.gullinbursti.rows.length === 0) return { total: 0, high: 0, medium: 0, low: 0 };
-    const crew = parseAllCrewMembers(data.gullinbursti.rows);
-    const enrichedCrew = crew.map((m) => enrichCrewWithLeaderboardData(m, leaderboardData));
-    const now = new Date();
     let high = 0, medium = 0, low = 0;
 
-    enrichedCrew.forEach((member) => {
-      if (member.loaStatus) return;
-      if (!member.sailingCompliant) {
-        let days = 0;
-        if (member.lastVoyageDate) { const lv = new Date(member.lastVoyageDate); if (!isNaN(lv.getTime())) days = Math.floor((now.getTime() - lv.getTime()) / (1000 * 60 * 60 * 24)); }
-        else days = member.daysInactive;
-        if (days >= 30) high++; else medium++;
-      }
-      if (member.canHostRank && !member.hostingCompliant) {
-        let days = 0;
-        if (member.lastHostDate) { const lh = new Date(member.lastHostDate); if (!isNaN(lh.getTime())) days = Math.floor((now.getTime() - lh.getTime()) / (1000 * 60 * 60 * 24)); }
-        if (days >= 14) high++; else medium++;
-      }
-      if (member.chatActivity === 0) low++;
-    });
+    if (data.gullinbursti && data.gullinbursti.rows.length > 0) {
+      const crew = parseAllCrewMembers(data.gullinbursti.rows);
+      const enrichedCrew = crew.map((m) => enrichCrewWithLeaderboardData(m, leaderboardData));
+      const now = new Date();
+
+      enrichedCrew.forEach((member) => {
+        if (member.loaStatus) return;
+        if (!member.sailingCompliant) {
+          let days = 0;
+          if (member.lastVoyageDate) { const lv = new Date(member.lastVoyageDate); if (!isNaN(lv.getTime())) days = Math.floor((now.getTime() - lv.getTime()) / (1000 * 60 * 60 * 24)); }
+          else days = member.daysInactive;
+          if (days >= 30) high++; else medium++;
+        }
+        if (member.canHostRank && !member.hostingCompliant) {
+          let days = 0;
+          if (member.lastHostDate) { const lh = new Date(member.lastHostDate); if (!isNaN(lh.getTime())) days = Math.floor((now.getTime() - lh.getTime()) / (1000 * 60 * 60 * 24)); }
+          if (days >= 14) high++; else medium++;
+        }
+        if (member.chatActivity === 0) low++;
+      });
+    }
+
+    // Include manual actions from localStorage (exclude recurring)
+    try {
+      const manual: Array<{ severity: string; cadence?: string }> = JSON.parse(localStorage.getItem('manual-actions') || '[]');
+      manual.forEach((ma) => {
+        if (ma.severity === 'high') high++;
+        else if (ma.severity === 'medium') medium++;
+        else low++;
+      });
+    } catch { /* ignore */ }
 
     return { total: high + medium + low, high, medium, low };
   };
@@ -157,12 +169,12 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
           <LinearProgress variant="determinate" value={crewAnalysis.compliancePercentage} sx={{ height: 6, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: complianceColor } }} />
         </Stack></CardContent></Card>
 
-        <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)', cursor: onNavigateToActions ? 'pointer' : 'default', '&:hover': onNavigateToActions ? { boxShadow: 4 } : {} }} onClick={onNavigateToActions}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1.5} alignItems="center">
+        <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)', cursor: onNavigateToActions ? 'pointer' : 'default', '&:hover': onNavigateToActions ? { boxShadow: 4 } : {} }} onClick={onNavigateToActions}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><TaskAltIcon sx={{ color: '#3b82f6' }} /><Typography color="textSecondary" variant="body2">Actions</Typography></Box>
-          <Stack direction="row" spacing={2} justifyContent="center">
-            <Tooltip title="High Priority"><Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '1rem', lineHeight: 1 }}>{actionsCounts.high}</Typography></Box></Tooltip>
-            <Tooltip title="Medium Priority"><Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '1rem', lineHeight: 1 }}>{actionsCounts.medium}</Typography></Box></Tooltip>
-            <Tooltip title="Low Priority"><Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '1rem', lineHeight: 1 }}>{actionsCounts.low}</Typography></Box></Tooltip>
+          <Stack direction="row" spacing={3} justifyContent="center" alignItems="baseline">
+            <Tooltip title="High Priority"><Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#dc2626', lineHeight: 1 }}>{actionsCounts.high}</Typography></Tooltip>
+            <Tooltip title="Medium Priority"><Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#f97316', lineHeight: 1 }}>{actionsCounts.medium}</Typography></Tooltip>
+            <Tooltip title="Low Priority"><Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#eab308', lineHeight: 1 }}>{actionsCounts.low}</Typography></Tooltip>
           </Stack>
         </Stack></CardContent></Card>
       </Stack>
