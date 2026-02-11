@@ -23,7 +23,6 @@ import {
 } from '@mui/material';
 import ErrorIcon from '@mui/icons-material/Error';
 import WarningIcon from '@mui/icons-material/Warning';
-import InfoIcon from '@mui/icons-material/Info';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSheetData } from '../context/SheetDataContext';
 import { useState, useMemo } from 'react';
@@ -68,7 +67,7 @@ const getResponsibleStaff = (actionType: string, squad: string): string => {
 
 export const ActionsTab = () => {
   const { data, loading, refreshData } = useSheetData();
-  const [activeTab, setActiveTab] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'command' | 'firstofficer' | 'squadleader'>('all');
   const [selectedAction, setSelectedAction] = useState<ActionItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -277,27 +276,27 @@ export const ActionsTab = () => {
     return actions;
   }, [data.gullinbursti]);
 
-  // Filter actions by severity
+  // Filter actions by responsibility
   const filteredActions = useMemo(() => {
     switch (activeTab) {
-      case 'high':
-        return detectedActions.filter(a => a.severity === 'high');
-      case 'medium':
-        return detectedActions.filter(a => a.severity === 'medium');
-      case 'low':
-        return detectedActions.filter(a => a.severity === 'low');
+      case 'command':
+        return detectedActions.filter(a => a.responsible.includes('Chief of Ship') || a.responsible.includes('Command'));
+      case 'firstofficer':
+        return detectedActions.filter(a => a.responsible.includes('First Officer'));
+      case 'squadleader':
+        return detectedActions.filter(a => a.responsible.includes('Squad Leader'));
       default:
         return detectedActions;
     }
   }, [detectedActions, activeTab]);
 
-  // Count by severity
+  // Count by responsibility
   const counts = useMemo(() => {
     return {
       all: detectedActions.length,
-      high: detectedActions.filter(a => a.severity === 'high').length,
-      medium: detectedActions.filter(a => a.severity === 'medium').length,
-      low: detectedActions.filter(a => a.severity === 'low').length,
+      command: detectedActions.filter(a => a.responsible.includes('Chief of Ship') || a.responsible.includes('Command')).length,
+      firstofficer: detectedActions.filter(a => a.responsible.includes('First Officer')).length,
+      squadleader: detectedActions.filter(a => a.responsible.includes('Squad Leader')).length,
     };
   }, [detectedActions]);
 
@@ -316,7 +315,7 @@ export const ActionsTab = () => {
       case 'medium':
         return <WarningIcon sx={{ color: '#f57c00' }} />;
       case 'low':
-        return <InfoIcon sx={{ color: '#1976d2' }} />;
+        return <WarningIcon sx={{ color: '#1976d2' }} />;
       default:
         return null;
     }
@@ -350,12 +349,12 @@ export const ActionsTab = () => {
           <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
             <Tabs 
               value={activeTab} 
-              onChange={(_e, newValue) => setActiveTab(newValue)}
+              onChange={(_e, newValue) => setActiveTab(newValue as any)}
             >
               <Tab label={`All Actions (${counts.all})`} value="all" />
-              <Tab label={`High Priority (${counts.high})`} value="high" />
-              <Tab label={`Medium Priority (${counts.medium})`} value="medium" />
-              <Tab label={`Low Priority (${counts.low})`} value="low" />
+              <Tab label={`Chief of Ship (${counts.command})`} value="command" />
+              <Tab label={`First Officer (${counts.firstofficer})`} value="firstofficer" />
+              <Tab label={`Squad Leaders (${counts.squadleader})`} value="squadleader" />
             </Tabs>
           </Box>
 
@@ -363,26 +362,26 @@ export const ActionsTab = () => {
           <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
             <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
               <Typography variant="caption" color="textSecondary">
-                High Severity
+                Chief of Ship / Command
               </Typography>
               <Typography variant="h6" sx={{ color: '#d32f2f' }}>
-                {counts.high}
+                {counts.command}
               </Typography>
             </Paper>
             <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
               <Typography variant="caption" color="textSecondary">
-                Medium Severity
+                First Officer
               </Typography>
               <Typography variant="h6" sx={{ color: '#f57c00' }}>
-                {counts.medium}
+                {counts.firstofficer}
               </Typography>
             </Paper>
             <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
               <Typography variant="caption" color="textSecondary">
-                Low Severity
+                Squad Leaders
               </Typography>
               <Typography variant="h6" sx={{ color: '#1976d2' }}>
-                {counts.low}
+                {counts.squadleader}
               </Typography>
             </Paper>
           </Stack>
@@ -459,40 +458,40 @@ export const ActionsTab = () => {
       <Card sx={{ mt: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Action Categories
+            Action Types
           </Typography>
           <Stack spacing={2}>
             <Box>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                 <ErrorIcon sx={{ color: '#d32f2f', fontSize: 20 }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  High Priority
+                  Compliance Issue
                 </Typography>
               </Stack>
               <Typography variant="body2" color="textSecondary" sx={{ ml: 4 }}>
-                No chat activity or compliance issues (LOA/Inactive) requiring immediate attention
+                Member is inactive or flagged - requires immediate command attention
               </Typography>
             </Box>
             <Box>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                <ErrorIcon sx={{ color: '#d32f2f', fontSize: 20 }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  Sailing / Hosting Issue
+                </Typography>
+              </Stack>
+              <Typography variant="body2" color="textSecondary" sx={{ ml: 4 }}>
+                Member has flagged sailing or hosting status - requires command review
+              </Typography>
+            </Box>
+            <Box>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                 <WarningIcon sx={{ color: '#f57c00', fontSize: 20 }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  Medium Priority
+                  No Chat Activity
                 </Typography>
               </Stack>
               <Typography variant="body2" color="textSecondary" sx={{ ml: 4 }}>
-                Low chat activity or missing recommended ribbons
-              </Typography>
-            </Box>
-            <Box>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                <InfoIcon sx={{ color: '#1976d2', fontSize: 20 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  Low Priority
-                </Typography>
-              </Stack>
-              <Typography variant="body2" color="textSecondary" sx={{ ml: 4 }}>
-                Informational items or crew development opportunities
+                Member has zero stars/activity - squad leader should encourage participation
               </Typography>
             </Box>
           </Stack>
