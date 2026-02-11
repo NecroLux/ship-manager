@@ -11,7 +11,7 @@ _Last updated: 2026-02-11_
 ## Medium Priority (Features & Quality)
 
 - [ ] **PDF/DOCX Export** — Squad-split crew roster, include Overview snapshot
-- [ ] **Awards Tab** — Medal scrubber with eligibility + endorsement tracking
+- [x] **Awards Tab** — Medal scrubber with eligibility + endorsement tracking (auto-detect voyage/host/conduct/service stripes)
 - [ ] **Promotions Tab** — Promotion readiness tracker based on metrics
 - [ ] **Top Hosts/Voyagers accuracy** — Fix data source on Overview
 
