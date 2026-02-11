@@ -25,6 +25,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import WarningIcon from '@mui/icons-material/Warning';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSheetData } from '../context/SheetDataContext';
+import { parseAllCrewMembers, parseStaffComments, getResponsibleStaff as getResponsibleStaffFromParser } from '../services/dataParser';
 import { useState, useMemo } from 'react';
 
 interface ActionItem {
@@ -40,29 +41,7 @@ interface ActionItem {
 
 // Determine who should handle each action based on type and criteria
 const getResponsibleStaff = (actionType: string, squad: string): string => {
-  // HIGH PRIORITY actions go to Command/COS
-  if (
-    actionType === 'compliance-issue' ||
-    actionType === 'sailing-issue' ||
-    actionType === 'hosting-issue'
-  ) {
-    return 'Chief of Ship / Command';
-  }
-
-  // AWARDS/SUBCLASS go to First Officer
-  if (actionType === 'award-eligible' || actionType === 'subclass-ready') {
-    return 'First Officer';
-  }
-
-  // Chat activity goes to Squad Leaders
-  if (
-    actionType === 'no-chat-activity' ||
-    actionType === 'low-chat-activity'
-  ) {
-    return `${squad} Squad Leader`;
-  }
-
-  return 'Command';
+  return getResponsibleStaffFromParser(actionType, squad);
 };
 
 export const ActionsTab = () => {
@@ -279,6 +258,25 @@ export const ActionsTab = () => {
     });
 
   // Total actions detected: actions.length
+    
+  // ADD: Parse staff comments for additional actions
+  const crew = parseAllCrewMembers(data.gullinbursti.rows);
+  const commentActions = parseStaffComments(crew, actions.length);
+  
+  // Convert staff comment actions to ActionItem format
+  commentActions.forEach((action) => {
+    actions.push({
+      id: action.id,
+      type: action.type,
+      severity: action.severity as 'high' | 'medium' | 'low' | 'recurring',
+      sailor: action.sailor,
+      squad: action.squad,
+      responsible: action.responsible,
+      description: action.description,
+      details: action.details + (action.deadline ? `\n\nDeadline: ${action.deadline}` : ''),
+    });
+  });
+
     // Sort by priority (high > medium > low > recurring)
     actions.sort((a, b) => {
       const severityOrder = { high: 0, medium: 1, low: 2, recurring: 3 };

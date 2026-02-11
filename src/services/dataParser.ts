@@ -84,6 +84,19 @@ export interface ParsedAwardStatus {
   awardsByColumn: Record<string, string>; // Column header -> award status
 }
 
+export interface GeneratedAction {
+  id: string;
+  type: string;
+  severity: 'high' | 'medium' | 'low';
+  sailor: string;
+  squad: string;
+  responsible: string;
+  description: string;
+  details: string;
+  source: 'comment' | 'compliance' | 'activity'; // Where the action came from
+  deadline?: string; // Optional deadline extracted from comment
+}
+
 // ==================== PARSER FUNCTIONS ====================
 
 /**
@@ -266,6 +279,148 @@ export const getTopVoyagers = (
     .slice(0, limit);
 };
 
+/**
+ * Parse staff comments to generate actions
+ * Looks for keywords like: deckhand, sail, host, engage, promote, suspend, etc.
+ */
+export const parseStaffComments = (
+  crew: ParsedCrewMember[],
+  actionIdStart: number = 0
+): GeneratedAction[] => {
+  const actions: GeneratedAction[] = [];
+  let actionId = actionIdStart;
+
+  // Keywords that trigger action generation
+  const keywordMap: Record<string, { type: string; severity: 'high' | 'medium' | 'low'; responsible: (squad: string) => string }> = {
+    deckhand: {
+      type: 'deckhand-action',
+      severity: 'high',
+      responsible: () => 'Chief of Ship / Command',
+    },
+    demote: {
+      type: 'demotion-pending',
+      severity: 'high',
+      responsible: () => 'Chief of Ship / Command',
+    },
+    suspend: {
+      type: 'suspension-pending',
+      severity: 'high',
+      responsible: () => 'Chief of Ship / Command',
+    },
+    promote: {
+      type: 'promotion-eligible',
+      severity: 'medium',
+      responsible: () => 'First Officer',
+    },
+    sail: {
+      type: 'encourage-sailing',
+      severity: 'medium',
+      responsible: (squad) => `${squad} Squad Leader`,
+    },
+    host: {
+      type: 'encourage-hosting',
+      severity: 'medium',
+      responsible: (squad) => `${squad} Squad Leader`,
+    },
+    engage: {
+      type: 'engagement-needed',
+      severity: 'low',
+      responsible: (squad) => `${squad} Squad Leader`,
+    },
+    chat: {
+      type: 'chat-activity',
+      severity: 'low',
+      responsible: (squad) => `${squad} Squad Leader`,
+    },
+  };
+
+  crew.forEach((member) => {
+    // Parse COS notes
+    if (member.cosNotes) {
+      const cosLower = member.cosNotes.toLowerCase();
+      Object.entries(keywordMap).forEach(([keyword, config]) => {
+        if (cosLower.includes(keyword)) {
+          // Extract potential deadline (e.g., "by 15th February" or "15/02")
+          const dateMatch = member.cosNotes?.match(/(\d{1,2}[\/\-]\d{1,2}|by\s+\d{1,2}(?:st|nd|rd|th)?)/i);
+          const deadline = dateMatch ? dateMatch[0] : undefined;
+
+          actions.push({
+            id: String(actionId++),
+            type: config.type,
+            severity: config.severity,
+            sailor: member.name,
+            squad: member.squad,
+            responsible: config.responsible(member.squad),
+            description: `${config.type.replace(/-/g, ' ').charAt(0).toUpperCase() + config.type.slice(1).replace(/-/g, ' ')}`,
+            details: member.cosNotes || 'Action required by Chief of Ship',
+            source: 'comment',
+            deadline,
+          });
+        }
+      });
+    }
+
+    // Parse Squad Leader comments
+    if (member.squadLeaderComments) {
+      const slLower = member.squadLeaderComments.toLowerCase();
+      Object.entries(keywordMap).forEach(([keyword, config]) => {
+        if (slLower.includes(keyword)) {
+          const dateMatch = member.squadLeaderComments?.match(/(\d{1,2}[\/\-]\d{1,2}|by\s+\d{1,2}(?:st|nd|rd|th)?)/i);
+          const deadline = dateMatch ? dateMatch[0] : undefined;
+
+          actions.push({
+            id: String(actionId++),
+            type: config.type,
+            severity: config.severity,
+            sailor: member.name,
+            squad: member.squad,
+            responsible: config.responsible(member.squad),
+            description: `${config.type.replace(/-/g, ' ').charAt(0).toUpperCase() + config.type.slice(1).replace(/-/g, ' ')}`,
+            details: member.squadLeaderComments || 'Action required by Squad Leader',
+            source: 'comment',
+            deadline,
+          });
+        }
+      });
+    }
+  });
+
+  return actions;
+};
+
+/**
+ * Get responsible staff for an action type
+ */
+export const getResponsibleStaff = (actionType: string, squad: string): string => {
+  if (
+    actionType === 'compliance-issue' ||
+    actionType === 'sailing-issue' ||
+    actionType === 'hosting-issue' ||
+    actionType === 'deckhand-action' ||
+    actionType === 'demotion-pending' ||
+    actionType === 'suspension-pending'
+  ) {
+    return 'Chief of Ship / Command';
+  }
+
+  if (actionType === 'award-eligible' || actionType === 'subclass-ready' || actionType === 'promotion-eligible') {
+    return 'First Officer';
+  }
+
+  if (
+    actionType === 'no-chat-activity' ||
+    actionType === 'low-chat-activity' ||
+    actionType === 'encourage-sailing' ||
+    actionType === 'encourage-hosting' ||
+    actionType === 'engagement-needed' ||
+    actionType === 'chat-activity'
+  ) {
+    return `${squad} Squad Leader`;
+  }
+
+  return 'Command';
+};
+
 export default {
   parseCrewMember,
   parseAllCrewMembers,
@@ -276,4 +431,6 @@ export default {
   enrichCrewWithLeaderboardData,
   getTopHosts,
   getTopVoyagers,
+  parseStaffComments,
+  getResponsibleStaff,
 };
