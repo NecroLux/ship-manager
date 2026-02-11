@@ -56,24 +56,18 @@ interface EligibleAward {
 
 type FilterTab = 'all' | 'co' | 'xo' | 'cos' | 'sl' | 'boa' | 'ref';
 
-// ==================== LOCAL STORAGE ====================
+// ==================== SHARED STATE ====================
+
+import { getStateSet, toggleInSet } from '../services/sharedState';
 
 const STORAGE_KEY = 'awarded-medals';
 
 const getAwardedSet = (): Set<string> => {
-  try {
-    const arr: string[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    return new Set(arr);
-  } catch {
-    return new Set();
-  }
+  return getStateSet(STORAGE_KEY);
 };
 
-const toggleAwarded = (key: string): Set<string> => {
-  const set = getAwardedSet();
-  if (set.has(key)) set.delete(key); else set.add(key);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
-  return set;
+const toggleAwarded = async (key: string): Promise<Set<string>> => {
+  return toggleInSet(STORAGE_KEY, key);
 };
 
 // ==================== HELPERS ====================
@@ -238,9 +232,9 @@ export const AwardsTab = () => {
     return results;
   }, [data.gullinbursti, data.voyageAwards, commandStaff, awardedTick]);
 
-  const handleToggleAwarded = useCallback((awardId: string, sailorName: string) => {
+  const handleToggleAwarded = useCallback(async (awardId: string, sailorName: string) => {
     const key = `${awardId}::${sailorName}`;
-    toggleAwarded(key);
+    await toggleAwarded(key);
     setAwardedTick((t) => t + 1);
   }, []);
 

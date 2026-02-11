@@ -72,7 +72,10 @@ const getSquadLeaderName = (squad: string): string => {
   return squad;
 };
 
-// ==================== MANUAL ACTIONS (localStorage) ====================
+// ==================== MANUAL ACTIONS (shared state) ====================
+
+import { getState, setState as setSharedState } from '../services/sharedState';
+
 interface ManualAction {
   id: string;
   description: string;
@@ -83,14 +86,14 @@ interface ManualAction {
 }
 
 const getManualActions = (): ManualAction[] => {
-  try { return JSON.parse(localStorage.getItem('manual-actions') || '[]'); } catch { return []; }
+  return getState<ManualAction[]>('manual-actions', []);
 };
-const saveManualActions = (actions: ManualAction[]) => {
-  localStorage.setItem('manual-actions', JSON.stringify(actions));
+const saveManualActions = async (actions: ManualAction[]) => {
+  await setSharedState('manual-actions', actions);
 };
-const deleteManualAction = (id: string) => {
+const deleteManualAction = async (id: string) => {
   const actions = getManualActions().filter(a => a.id !== id);
-  saveManualActions(actions);
+  await saveManualActions(actions);
 };
 
 // ==================== RECURRING SQUAD LEADER TASKS ====================
@@ -123,17 +126,15 @@ const CADENCE_LABELS: Record<string, string> = {
   fortnightly: 'Fortnightly',
 };
 
-// Load/save completed timestamps from localStorage
+// Load/save completed timestamps from shared state
 const getCompletedTasks = (): Record<string, number> => {
-  try {
-    return JSON.parse(localStorage.getItem('sl-recurring-tasks') || '{}');
-  } catch { return {}; }
+  return getState<Record<string, number>>('sl-recurring-tasks', {});
 };
 
-const saveCompletedTask = (taskId: string) => {
+const saveCompletedTask = async (taskId: string) => {
   const completed = getCompletedTasks();
   completed[taskId] = Date.now();
-  localStorage.setItem('sl-recurring-tasks', JSON.stringify(completed));
+  await setSharedState('sl-recurring-tasks', completed);
 };
 
 // Check if a recurring task is currently due for a specific squad
@@ -172,18 +173,18 @@ export const ActionsTab = () => {
   // New action form state
   const [newAction, setNewAction] = useState({ description: '', severity: 'medium' as 'high' | 'medium' | 'low', sailor: '', responsible: 'Necro', cadence: '' as '' | 'daily' | 'weekly' | 'fortnightly' });
 
-  const handleAddAction = useCallback(() => {
+  const handleAddAction = useCallback(async () => {
     if (!newAction.description.trim()) return;
     const actions = getManualActions();
     actions.push({ ...newAction, id: `manual-${Date.now()}` });
-    saveManualActions(actions);
+    await saveManualActions(actions);
     setNewAction({ description: '', severity: 'medium', sailor: '', responsible: 'Necro', cadence: '' });
     setAddDialogOpen(false);
     setManualTick((t) => t + 1);
   }, [newAction]);
 
-  const handleDeleteManual = useCallback((id: string) => {
-    deleteManualAction(id);
+  const handleDeleteManual = useCallback(async (id: string) => {
+    await deleteManualAction(id);
     setManualTick((t) => t + 1);
   }, []);
 
@@ -522,8 +523,8 @@ export const ActionsTab = () => {
                               <Checkbox
                                 size="small"
                                 checked={false}
-                                onChange={() => {
-                                  saveCompletedTask(action.id);
+                                onChange={async () => {
+                                  await saveCompletedTask(action.id);
                                   setRecurringTick((t) => t + 1);
                                 }}
                                 sx={{ color: '#22c55e', '&.Mui-checked': { color: '#22c55e' }, p: 0.5 }}

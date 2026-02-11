@@ -28,6 +28,9 @@ tsconfig.node.tsbuildinfo
 credentials.json
 service-account.json
 
+# Server persisted state
+data/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

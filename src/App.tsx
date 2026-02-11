@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ThemeProvider,
   CssBaseline,
@@ -25,11 +25,15 @@ import { ReportsTab } from './components/ReportsTab';
 import { LinkedSheetsTab } from './components/LinkedSheetsTab';
 import { SheetProvider } from './context/SheetDataContext';
 import { VERSION_SHORT } from './version';
+import { loadAllState } from './services/sharedState';
 import './App.css';
 
 function AppContent() {
   const [darkMode, setDarkMode] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
+
+  // Load shared state from server on mount (before any tab renders)
+  useEffect(() => { loadAllState(); }, []);
 
   return (
     <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>

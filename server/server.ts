@@ -22,6 +22,72 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// ==================== SHARED STATE (file-persisted) ====================
+// All localStorage-equivalent data is stored here so every user sees the same state.
+
+const STATE_FILE = path.resolve(projectRoot, 'data', 'shared-state.json');
+
+// Ensure data directory exists
+const dataDir = path.dirname(STATE_FILE);
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+// In-memory cache of the state
+let sharedState: Record<string, any> = {};
+
+// Load from disk on startup
+const loadState = () => {
+  try {
+    if (fs.existsSync(STATE_FILE)) {
+      sharedState = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
+      console.log('✅ Shared state loaded from disk');
+    } else {
+      sharedState = {};
+      console.log('📝 No shared state file found — starting fresh');
+    }
+  } catch (err) {
+    console.error('⚠️ Error loading shared state:', err);
+    sharedState = {};
+  }
+};
+
+// Save to disk (debounced)
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+const persistState = () => {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      fs.writeFileSync(STATE_FILE, JSON.stringify(sharedState, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('⚠️ Error saving shared state:', err);
+    }
+  }, 500); // Debounce 500ms to batch rapid writes
+};
+
+// Load state at startup
+loadState();
+
+// GET /api/state/:key — read a state bucket
+app.get('/api/state/:key', (req: Request, res: Response) => {
+  const key = req.params.key as string;
+  res.json({ key, value: sharedState[key] ?? null });
+});
+
+// PUT /api/state/:key — write a state bucket
+app.put('/api/state/:key', (req: Request, res: Response) => {
+  const key = req.params.key as string;
+  const { value } = req.body;
+  sharedState[key] = value;
+  persistState();
+  res.json({ key, ok: true });
+});
+
+// GET /api/state — read ALL state (for initial load)
+app.get('/api/state', (_req: Request, res: Response) => {
+  res.json(sharedState);
+});
+
 // Health check endpoint for Render
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'Backend is running' });
@@ -221,4 +287,7 @@ app.listen(port, () => {
   console.log('  POST /api/sheets/read - Read a single sheet');
   console.log('  POST /api/sheets/batch-read - Read multiple sheets');
   console.log('  POST /api/sheets/metadata - Get spreadsheet metadata');
+  console.log('  GET  /api/state - Read all shared state');
+  console.log('  GET  /api/state/:key - Read a state bucket');
+  console.log('  PUT  /api/state/:key - Write a state bucket');
 });

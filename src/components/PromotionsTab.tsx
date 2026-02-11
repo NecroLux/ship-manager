@@ -62,33 +62,27 @@ interface PromotionCandidate {
 
 type FilterTab = 'all' | 'co' | 'xo' | 'cos' | 'sl' | 'boa';
 
-// ==================== LOCAL STORAGE ====================
+// ==================== SHARED STATE ====================
+
+import { getStateSet, toggleInSet, getStateRecord, toggleInRecord } from '../services/sharedState';
 
 const STORAGE_KEY = 'promoted-sailors';
 const MANUAL_CHECK_KEY = 'promotion-manual-checks';
 
 const getPromotedSet = (): Set<string> => {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
-  } catch { return new Set(); }
+  return getStateSet(STORAGE_KEY);
 };
 
-const togglePromoted = (key: string): void => {
-  const set = getPromotedSet();
-  if (set.has(key)) set.delete(key); else set.add(key);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
+const togglePromoted = async (key: string): Promise<void> => {
+  await toggleInSet(STORAGE_KEY, key);
 };
 
 const getManualChecks = (): Record<string, boolean> => {
-  try {
-    return JSON.parse(localStorage.getItem(MANUAL_CHECK_KEY) || '{}');
-  } catch { return {}; }
+  return getStateRecord<boolean>(MANUAL_CHECK_KEY);
 };
 
-const toggleManualCheck = (key: string): void => {
-  const checks = getManualChecks();
-  checks[key] = !checks[key];
-  localStorage.setItem(MANUAL_CHECK_KEY, JSON.stringify(checks));
+const toggleManualCheck = async (key: string): Promise<void> => {
+  await toggleInRecord(MANUAL_CHECK_KEY, key);
 };
 
 // ==================== HELPERS ====================
@@ -237,15 +231,15 @@ export const PromotionsTab = () => {
     return results;
   }, [data.gullinbursti, data.voyageAwards, commandStaff, tick]);
 
-  const handleTogglePromoted = useCallback((candidate: PromotionCandidate) => {
+  const handleTogglePromoted = useCallback(async (candidate: PromotionCandidate) => {
     const key = `${candidate.promotionPath.fromRank}-${candidate.promotionPath.toRank}::${candidate.sailorName}`;
-    togglePromoted(key);
+    await togglePromoted(key);
     setTick((t) => t + 1);
   }, []);
 
-  const handleToggleManualCheck = useCallback((sailorName: string, prereqId: string) => {
+  const handleToggleManualCheck = useCallback(async (sailorName: string, prereqId: string) => {
     const key = `${sailorName}::${prereqId}`;
-    toggleManualCheck(key);
+    await toggleManualCheck(key);
     setTick((t) => t + 1);
   }, []);
 
