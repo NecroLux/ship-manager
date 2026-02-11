@@ -252,7 +252,7 @@ export const OverviewTab = () => {
     const crewNames = new Set<string>();
     const crewRanks: Record<string, string> = {};
 
-    // Build crew name and rank map
+    // Build crew name and rank map from Gullinbursti
     data.gullinbursti.rows.forEach((row) => {
       const rank = (row[data.gullinbursti.headers[0]] || '').trim();
       const name = (row[data.gullinbursti.headers[1]] || '').trim();
@@ -263,11 +263,7 @@ export const OverviewTab = () => {
       }
 
       if (!rank && !name) return;
-
-      if (rank && !name) {
-        return;
-      }
-
+      if (rank && !name) return; // Skip squad headers
       if (!rank || !name) return;
 
       crewNames.add(name);
@@ -276,35 +272,49 @@ export const OverviewTab = () => {
 
     const voyagerMap: Record<string, { hosted: number; voyages: number }> = {};
 
+    // Parse voyage awards rows
     voyageRows.forEach((row) => {
       let matchedName = '';
       let hostCount = 0;
       let voyageCount = 0;
 
-      // Find the name in this row
-      Object.entries(row).forEach(([key, value]) => {
+      // First, find which crew member this row belongs to by checking against crewNames
+      Object.entries(row).forEach(([_, value]) => {
         const valueStr = (value || '').trim();
         
+        // Check if this value matches a known crew name
         if (!matchedName && crewNames.has(valueStr)) {
           matchedName = valueStr;
         }
-
-        const keyLower = key.toLowerCase();
-        if (keyLower.includes('host') && !isNaN(Number(value))) {
-          hostCount = Math.max(hostCount, parseInt(value as string, 10) || 0);
-        }
-        
-        if (keyLower.includes('voyage') && !isNaN(Number(value))) {
-          voyageCount = Math.max(voyageCount, parseInt(value as string, 10) || 0);
-        }
       });
 
-      if (matchedName && (hostCount > 0 || voyageCount > 0)) {
-        if (!voyagerMap[matchedName]) {
-          voyagerMap[matchedName] = { hosted: 0, voyages: 0 };
+      // If we found a crew name, now extract host and voyage counts
+      if (matchedName) {
+        Object.entries(row).forEach(([key, value]) => {
+          const keyLower = key.toLowerCase();
+          const valueNum = parseInt(value as string, 10);
+          
+          // Match "host" columns - case insensitive
+          if (keyLower.includes('host') && !isNaN(valueNum) && valueNum > 0) {
+            hostCount = Math.max(hostCount, valueNum);
+          }
+          
+          // Match "voyage" columns - case insensitive
+          if (keyLower.includes('voyage') && !isNaN(valueNum) && valueNum > 0) {
+            voyageCount = Math.max(voyageCount, valueNum);
+          }
+        });
+
+        // Only add if they have at least some activity
+        if (hostCount > 0 || voyageCount > 0) {
+          if (!voyagerMap[matchedName]) {
+            voyagerMap[matchedName] = { hosted: hostCount, voyages: voyageCount };
+          } else {
+            // Update with max values
+            voyagerMap[matchedName].hosted = Math.max(voyagerMap[matchedName].hosted, hostCount);
+            voyagerMap[matchedName].voyages = Math.max(voyagerMap[matchedName].voyages, voyageCount);
+          }
         }
-        voyagerMap[matchedName].hosted = Math.max(voyagerMap[matchedName].hosted, hostCount);
-        voyagerMap[matchedName].voyages = Math.max(voyagerMap[matchedName].voyages, voyageCount);
       }
     });
 
@@ -315,6 +325,7 @@ export const OverviewTab = () => {
         hosted: stats.hosted,
         voyages: stats.voyages,
       }))
+      .filter(v => v.hosted > 0 || v.voyages > 0)
       .sort((a, b) => (b.hosted + b.voyages) - (a.hosted + a.voyages))
       .slice(0, 5);
   };
