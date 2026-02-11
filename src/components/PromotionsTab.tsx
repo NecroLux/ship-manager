@@ -60,7 +60,7 @@ interface PromotionCandidate {
   promoted: boolean;
 }
 
-type FilterTab = 'all' | 'co' | 'xo' | 'cos' | 'sl' | 'boa';
+type FilterTab = 'all' | 'co' | 'fo' | 'cos' | 'sl' | 'boa';
 
 // ==================== SHARED STATE ====================
 
@@ -91,13 +91,13 @@ const getResponsiblePerson = (
   responsibleRank: string,
   squad: string,
   sailorName: string,
-  commandStaff: { co: string | null; xo: string | null; cos: string | null; slsBySquad: Record<string, string> }
+  commandStaff: { co: string | null; fo: string | null; cos: string | null; slsBySquad: Record<string, string> }
 ): string => {
-  // Chain of command for escalation: SL → CoS → XO → CO → BOA
+  // Chain of command for escalation: SL → CoS → FO → CO → BOA
   const chain = [
     commandStaff.slsBySquad[squad] || null,
     commandStaff.cos,
-    commandStaff.xo,
+    commandStaff.fo,
     commandStaff.co,
   ].filter(Boolean) as string[];
 
@@ -117,7 +117,7 @@ const getResponsiblePerson = (
       return sl ? escalate(sl) : (commandStaff.cos ? escalate(commandStaff.cos) : 'Squad Leader');
     }
     case 'CoS': {
-      const person = commandStaff.cos || commandStaff.xo || commandStaff.co;
+      const person = commandStaff.cos || commandStaff.fo || commandStaff.co;
       return person ? escalate(person) : 'Chief of Ship';
     }
     case 'CO': return commandStaff.co ? escalate(commandStaff.co) : 'Ship CO';
@@ -144,8 +144,8 @@ export const PromotionsTab = () => {
 
   // Parse command staff
   const commandStaff = useMemo(() => {
-    const result: { co: string | null; xo: string | null; cos: string | null; slsBySquad: Record<string, string> } = {
-      co: null, xo: null, cos: null, slsBySquad: {},
+    const result: { co: string | null; fo: string | null; cos: string | null; slsBySquad: Record<string, string> } = {
+      co: null, fo: null, cos: null, slsBySquad: {},
     };
     if (!data.gullinbursti || data.gullinbursti.rows.length === 0) return result;
     const crew = parseAllCrewMembers(data.gullinbursti.rows);
@@ -153,7 +153,7 @@ export const PromotionsTab = () => {
       const rL = m.rank.toLowerCase();
       const nL = m.name.toLowerCase();
       if (!result.co && rL.includes('commander') && !rL.includes('midship') && !nL.includes('lady') && !nL.includes('spice')) result.co = m.name;
-      if (!result.xo && (nL.includes('ladyhoit') || rL.includes('midship'))) result.xo = m.name;
+      if (!result.fo && (nL.includes('ladyhoit') || rL.includes('midship'))) result.fo = m.name;
       if (!result.cos && (nL.includes('spice') || rL.includes('scpo') || rL.includes('senior chief'))) result.cos = m.name;
     });
     // SLs — map per squad
@@ -272,7 +272,7 @@ export const PromotionsTab = () => {
       const r = responsible.toLowerCase();
       switch (activeTab) {
         case 'co': return r.includes('hoit') && !r.includes('lady');
-        case 'xo': return r.includes('ladyhoit') || r.includes('lady');
+        case 'fo': return r.includes('ladyhoit') || r.includes('lady');
         case 'cos': return r.includes('spice');
         case 'sl': return r.includes('necro') || r.includes('shade');
         case 'boa': return r.includes('admiralty') || r.includes('fleet');
@@ -289,7 +289,7 @@ export const PromotionsTab = () => {
     return {
       total: pending.length,
       co: byPerson((r) => r.includes('hoit') && !r.includes('lady')),
-      xo: byPerson((r) => r.includes('ladyhoit') || r.includes('lady')),
+      fo: byPerson((r) => r.includes('ladyhoit') || r.includes('lady')),
       cos: byPerson((r) => r.includes('spice')),
       sl: byPerson((r) => r.includes('necro') || r.includes('shade')),
       boa: byPerson((r) => r.includes('admiralty') || r.includes('fleet')),
@@ -362,20 +362,20 @@ export const PromotionsTab = () => {
               </Box>
               <Stack direction="row" spacing={3} alignItems="baseline">
                 <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF5555', lineHeight: 1 }}>{counts.co}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CO</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF66B2', lineHeight: 1 }}>{counts.xo}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>XO</Typography>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#60A5FA', lineHeight: 1 }}>{counts.sl}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL</Typography>
                 </Stack>
                 <Stack alignItems="center" spacing={0.5}>
                   <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#D946EF', lineHeight: 1 }}>{counts.cos}</Typography>
                   <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CoS</Typography>
                 </Stack>
                 <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#60A5FA', lineHeight: 1 }}>{counts.sl}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL</Typography>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF66B2', lineHeight: 1 }}>{counts.fo}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>FO</Typography>
+                </Stack>
+                <Stack alignItems="center" spacing={0.5}>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF5555', lineHeight: 1 }}>{counts.co}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CO</Typography>
                 </Stack>
                 <Stack alignItems="center" spacing={0.5}>
                   <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#eab308', lineHeight: 1 }}>{counts.boa}</Typography>
@@ -399,7 +399,7 @@ export const PromotionsTab = () => {
           <Tab label={`All (${counts.total})`} value="all" />
           <Tab label={`SL (${counts.sl})`} value="sl" />
           <Tab label={`CoS (${counts.cos})`} value="cos" />
-          <Tab label={`FO (${counts.xo})`} value="xo" />
+          <Tab label={`FO (${counts.fo})`} value="fo" />
           <Tab label={`CO (${counts.co})`} value="co" />
           <Tab label={`BOA (${counts.boa})`} value="boa" />
         </Tabs>

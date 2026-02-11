@@ -53,7 +53,7 @@ interface EligibleAward {
   awarded: boolean;
 }
 
-type FilterTab = 'all' | 'co' | 'xo' | 'cos' | 'sl' | 'boa' | 'ref';
+type FilterTab = 'all' | 'co' | 'fo' | 'cos' | 'sl' | 'boa' | 'ref';
 
 // ==================== SHARED STATE ====================
 
@@ -75,13 +75,13 @@ const getResponsiblePerson = (
   responsibleRank: string,
   squad: string,
   sailorName: string,
-  commandStaff: { co: string | null; xo: string | null; cos: string | null; sls: Record<string, string> }
+  commandStaff: { co: string | null; fo: string | null; cos: string | null; sls: Record<string, string> }
 ): string => {
-  // Chain of command for escalation: SL → CoS → XO → CO → BOA
+  // Chain of command for escalation: SL → CoS → FO → CO → BOA
   const chain = [
     commandStaff.sls[squad] || null,
     commandStaff.cos,
-    commandStaff.xo,
+    commandStaff.fo,
     commandStaff.co,
   ].filter(Boolean) as string[];
 
@@ -99,7 +99,7 @@ const getResponsiblePerson = (
     const sl = commandStaff.sls[squad];
     if (sl) return escalate(sl);
     if (commandStaff.cos) return escalate(commandStaff.cos);
-    if (commandStaff.xo) return escalate(commandStaff.xo);
+    if (commandStaff.fo) return escalate(commandStaff.fo);
     return commandStaff.co ? escalate(commandStaff.co) : 'Ship Command';
   }
   if (responsibleRank === 'CO') return commandStaff.co ? escalate(commandStaff.co) : 'Ship CO';
@@ -109,16 +109,16 @@ const getResponsiblePerson = (
   }
   if (responsibleRank === 'O-4') return commandStaff.co ? escalate(commandStaff.co) : 'Ship CO';
   if (responsibleRank === 'O-1') {
-    const person = commandStaff.xo || commandStaff.co;
+    const person = commandStaff.fo || commandStaff.co;
     return person ? escalate(person) : 'Junior Officer+';
   }
   if (responsibleRank === 'E-7') {
-    const person = commandStaff.cos || commandStaff.xo || commandStaff.co;
+    const person = commandStaff.cos || commandStaff.fo || commandStaff.co;
     return person ? escalate(person) : 'SNCO+';
   }
   if (responsibleRank === 'E-6') {
     const sl = commandStaff.sls[squad];
-    const person = sl || commandStaff.cos || commandStaff.xo;
+    const person = sl || commandStaff.cos || commandStaff.fo;
     return person ? escalate(person) : 'NCO+';
   }
 
@@ -145,8 +145,8 @@ export const AwardsTab = () => {
 
   // Parse command staff for responsible-person mapping
   const commandStaff = useMemo(() => {
-    const result: { co: string | null; xo: string | null; cos: string | null; sls: Record<string, string> } = {
-      co: null, xo: null, cos: null, sls: {},
+    const result: { co: string | null; fo: string | null; cos: string | null; sls: Record<string, string> } = {
+      co: null, fo: null, cos: null, sls: {},
     };
     if (!data.gullinbursti || data.gullinbursti.rows.length === 0) return result;
     const crew = parseAllCrewMembers(data.gullinbursti.rows);
@@ -154,7 +154,7 @@ export const AwardsTab = () => {
       const rL = m.rank.toLowerCase();
       const nL = m.name.toLowerCase();
       if (!result.co && (rL.includes('commander') && !rL.includes('midship') && !nL.includes('lady') && !nL.includes('spice'))) result.co = m.name;
-      if (!result.xo && (nL.includes('ladyhoit') || rL.includes('midship'))) result.xo = m.name;
+      if (!result.fo && (nL.includes('ladyhoit') || rL.includes('midship'))) result.fo = m.name;
       if (!result.cos && (nL.includes('spice') || rL.includes('scpo') || rL.includes('senior chief'))) result.cos = m.name;
       // Squad leaders: E-6 or E-7 who are listed as squad leaders (simplistic: first NCO+ per squad)
     });
@@ -286,7 +286,7 @@ export const AwardsTab = () => {
       const r = responsible.toLowerCase();
       switch (activeTab) {
         case 'co': return r.includes('hoit') && !r.includes('lady');
-        case 'xo': return r.includes('ladyhoit') || r.includes('lady');
+        case 'fo': return r.includes('ladyhoit') || r.includes('lady');
         case 'cos': return r.includes('spice');
         case 'sl': return r.includes('necro') || r.includes('shade');
         case 'boa': return r.includes('admiralty') || r.includes('fleet');
@@ -303,7 +303,7 @@ export const AwardsTab = () => {
     return {
       total: pending.length,
       co: byPerson((r) => r.includes('hoit') && !r.includes('lady')),
-      xo: byPerson((r) => r.includes('ladyhoit') || r.includes('lady')),
+      fo: byPerson((r) => r.includes('ladyhoit') || r.includes('lady')),
       cos: byPerson((r) => r.includes('spice')),
       sl: byPerson((r) => r.includes('necro') || r.includes('shade')),
       boa: byPerson((r) => r.includes('admiralty') || r.includes('fleet')),
@@ -352,20 +352,20 @@ export const AwardsTab = () => {
               </Box>
               <Stack direction="row" spacing={3} alignItems="baseline">
                 <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF5555', lineHeight: 1 }}>{counts.co}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CO</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF66B2', lineHeight: 1 }}>{counts.xo}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>XO</Typography>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#60A5FA', lineHeight: 1 }}>{counts.sl}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL</Typography>
                 </Stack>
                 <Stack alignItems="center" spacing={0.5}>
                   <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#D946EF', lineHeight: 1 }}>{counts.cos}</Typography>
                   <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CoS</Typography>
                 </Stack>
                 <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#60A5FA', lineHeight: 1 }}>{counts.sl}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL</Typography>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF66B2', lineHeight: 1 }}>{counts.fo}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>FO</Typography>
+                </Stack>
+                <Stack alignItems="center" spacing={0.5}>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF5555', lineHeight: 1 }}>{counts.co}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CO</Typography>
                 </Stack>
                 <Stack alignItems="center" spacing={0.5}>
                   <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#eab308', lineHeight: 1 }}>{counts.boa}</Typography>
@@ -389,7 +389,7 @@ export const AwardsTab = () => {
           <Tab label={`All (${counts.total})`} value="all" />
           <Tab label={`SL (${counts.sl})`} value="sl" />
           <Tab label={`CoS (${counts.cos})`} value="cos" />
-          <Tab label={`FO (${counts.xo})`} value="xo" />
+          <Tab label={`FO (${counts.fo})`} value="fo" />
           <Tab label={`CO (${counts.co})`} value="co" />
           <Tab label={`BOA (${counts.boa})`} value="boa" />
           <Tab label="All Awards Ref" value="ref" />
