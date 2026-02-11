@@ -28,6 +28,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useState, useEffect } from 'react';
 import { useSheetData } from '../context/SheetDataContext';
 import { useSnapshots, CrewSnapshot, MonthlySnapshot } from '../context/SnapshotContext';
+import { parseAllCrewMembers } from '../services/dataParser';
 import jsPDF from 'jspdf';
 
 export const ReportsTab = () => {
@@ -54,48 +55,17 @@ export const ReportsTab = () => {
     setCurrentMonthSnapshot(monthSnapshot || null);
   }, [snapshots]);
 
-  // Convert crew data to snapshot format
+  // Convert crew data to snapshot format using centralized parser
   const getCurrentCrewAsSnapshot = (): CrewSnapshot[] => {
-    const sailors: CrewSnapshot[] = [];
-    let currentSquad = 'Command Staff';
-
-    const gullinData = data.gullinbursti;
-    for (let i = 0; i < gullinData.rows.length; i++) {
-      const row = gullinData.rows[i];
-      const rankVal = (row[gullinData.headers[0]] || '').trim();
-      const nameVal = (row[gullinData.headers[1]] || '').trim();
-
-      // Skip empty rows
-      if (rankVal === '' && nameVal === '') continue;
-
-      // Skip header rows
-      if (
-        (rankVal === 'Rank' || rankVal.toLowerCase() === 'rank') &&
-        (nameVal === 'Name' || nameVal.toLowerCase() === 'name')
-      ) {
-        continue;
-      }
-
-      // Update squad if this is a header row
-      if (rankVal && nameVal === '') {
-        currentSquad = rankVal;
-        continue;
-      }
-
-      // Add crew member
-      if (rankVal && nameVal) {
-        sailors.push({
-          rank: rankVal,
-          name: nameVal,
-          squad: currentSquad,
-          compliance: (row[gullinData.headers[8]] || '').trim() || 'Unknown',
-          timezone: (row[gullinData.headers[7]] || '').trim() || '-',
-          stars: (row[gullinData.headers[10]] || '').trim() || '0',
-        });
-      }
-    }
-
-    return sailors;
+    const crew = parseAllCrewMembers(data.gullinbursti?.rows || []);
+    return crew.map((member) => ({
+      rank: member.rank,
+      name: member.name,
+      squad: member.squad,
+      compliance: member.loaStatus ? 'LOA' : member.sailingCompliant && member.hostingCompliant ? 'Compliant' : 'Requires Attention',
+      timezone: member.timezone,
+      stars: member.chatActivity.toString(),
+    }));
   };
 
   // Handle creating a new snapshot
