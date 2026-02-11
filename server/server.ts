@@ -22,6 +22,11 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint for Render
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', message: 'Backend is running' });
+});
+
 // Google Sheets API setup with service account
 const getAuthClient = async () => {
   // First, try to get credentials from environment variable (for cloud deployment)
@@ -305,6 +310,7 @@ app.delete('/api/snapshots/:date', (req: Request, res: Response) => {
 
 app.listen(port, () => {
   console.log(`🚀 Backend server running at http://localhost:${port}`);
+  console.log('✅ All endpoints ready and operational');
   console.log('Available endpoints:');
   console.log('  POST /api/sheets/read - Read a single sheet');
   console.log('  POST /api/sheets/batch-read - Read multiple sheets');
