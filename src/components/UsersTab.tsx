@@ -20,49 +20,37 @@ import { useSheetData } from '../context/SheetDataContext';
 import { parseAllCrewMembers, parseAllLeaderboardEntries, enrichCrewWithLeaderboardData, type ParsedCrewMember } from '../services/dataParser';
 
 // Helper function to get compliance status
-// Compliance = have they sailed / hosted within required timeframes?
-// LOA is completely unrelated to compliance
-//
-// Thresholds (based on Time/Voyage Awards data):
-//   Voyage:  Compliant < 25 days | Attention 28+ days | Action 30+ days
-//   Hosting (JPO+): Compliant < 10 days | Attention 12+ days | Action 14+ days
-//
-// If no Time/Voyage Awards data exists for a member, fall back to Gullinbursti's
-// sailingCompliant field as the source of truth.
+// PRIORITY ORDER (Gullinbursti is source of truth):
+//   1. LOA → always compliant (exempt)
+//   2. Gullinbursti sailingCompliant = TRUE → compliant (FO maintains this field)
+//   3. Gullinbursti sailingCompliant = FALSE → use leaderboard thresholds for severity:
+//      - Voyage:  Action >=30d | Attention >=28d | else Attention (default)
+//      - Hosting (JPO+): Action >=14d | Attention >=12d
 const getComplianceStatus = (member: any) => {
   // If on LOA, they are exempt from sailing/hosting requirements
   if (member.loaStatus) {
     return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
   }
 
-  // If we have NO leaderboard data for this member (no voyages, no hosts, no dates),
-  // fall back to Gullinbursti's sailingCompliant as the source of truth
-  const hasLeaderboardData = member.lastVoyageDate || member.daysInactive > 0 || member.voyageCount > 0 || member.hostCount > 0;
-  
-  if (!hasLeaderboardData) {
-    if (member.sailingCompliant) {
-      return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
-    }
-    // No data and not compliant per Gullinbursti — attention, not action
-    return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
+  // Gullinbursti's sailingCompliant is the source of truth (maintained by FO)
+  // If it says compliant, they ARE compliant — regardless of leaderboard data
+  if (member.sailingCompliant) {
+    return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
   }
 
+  // === Not compliant per Gullinbursti — determine Attention vs Action ===
   const now = new Date();
   let requiresAction = false;
-  let requiresAttention = false;
 
-  // Check voyage threshold using lastVoyageDate or daysInactive
+  // Check voyage threshold
   if (member.lastVoyageDate) {
     const lastVoyage = new Date(member.lastVoyageDate);
     if (!isNaN(lastVoyage.getTime())) {
       const daysSinceVoyage = Math.floor((now.getTime() - lastVoyage.getTime()) / (1000 * 60 * 60 * 24));
       if (daysSinceVoyage >= 30) requiresAction = true;
-      else if (daysSinceVoyage >= 28) requiresAttention = true;
     }
   } else if (member.daysInactive >= 30) {
     requiresAction = true;
-  } else if (member.daysInactive >= 28) {
-    requiresAttention = true;
   }
 
   // Check hosting threshold (only for JPO+ who are eligible to host)
@@ -71,7 +59,6 @@ const getComplianceStatus = (member: any) => {
     if (!isNaN(lastHost.getTime())) {
       const daysSinceHost = Math.floor((now.getTime() - lastHost.getTime()) / (1000 * 60 * 60 * 24));
       if (daysSinceHost >= 14) requiresAction = true;
-      else if (daysSinceHost >= 12) requiresAttention = true;
     }
   }
 
@@ -79,12 +66,8 @@ const getComplianceStatus = (member: any) => {
     return { label: 'Requires Action', color: 'error' as const, icon: '!', status: 'action-required' };
   }
 
-  if (requiresAttention) {
-    return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
-  }
-
-  // Has leaderboard data and within all thresholds
-  return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
+  // Default for non-compliant: Requires Attention
+  return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
 };
 
 // Helper function to get status label and color

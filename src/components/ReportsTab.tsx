@@ -176,12 +176,14 @@ export const ReportsTab = () => {
       }
 
       // ===== CREW ROSTER — SPLIT BY SQUAD =====
-      // Each squad gets its own page with full columns matching the Crew tab
 
-      const drawSquadRoster = (title: string, members: typeof enrichedCrew) => {
-        // Always start a new page for each squad
-        doc.addPage();
-        yPosition = margin;
+      const drawSquadRoster = (title: string, members: typeof enrichedCrew, startNewPage: boolean = false) => {
+        if (startNewPage) {
+          doc.addPage();
+          yPosition = margin;
+        } else {
+          addPageIfNeeded(30);
+        }
 
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
@@ -271,17 +273,18 @@ export const ReportsTab = () => {
         });
       };
 
-      // Draw each squad on its own page
-      drawSquadRoster('COMMAND STAFF', commandStaff);
+      // ===== PAGE 1 (continued): COMMAND STAFF at bottom of page 1 =====
+      drawSquadRoster('COMMAND STAFF', commandStaff, false);
 
+      // ===== PAGE 2: BOTH SQUAD ROSTERS =====
       const squad1Label = squad1.length > 0 ? squad1[0].squad.toUpperCase() : 'SQUAD 1';
-      drawSquadRoster(squad1Label, squad1);
+      drawSquadRoster(squad1Label, squad1, true);
 
       const squad2Label = squad2.length > 0 ? squad2[0].squad.toUpperCase() : 'SQUAD 2';
-      drawSquadRoster(squad2Label, squad2);
+      drawSquadRoster(squad2Label, squad2, false);
 
       if (unassigned.length > 0) {
-        drawSquadRoster('UNASSIGNED', unassigned);
+        drawSquadRoster('UNASSIGNED', unassigned, false);
       }
 
       // ===== CO NOTES (final page) =====
