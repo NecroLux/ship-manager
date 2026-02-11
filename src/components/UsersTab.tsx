@@ -20,43 +20,39 @@ import { useSheetData } from '../context/SheetDataContext';
 import { parseAllCrewMembers, type ParsedCrewMember } from '../services/dataParser';
 
 // Helper function to get compliance status
-const getComplianceStatus = (complianceValue: string) => {
-  if (!complianceValue) return { label: 'Unknown', color: 'default' as const, icon: '?', status: 'unknown' };
-  const normalized = complianceValue.toLowerCase().trim();
-  
-  // Active Duty status = Compliant
-  if (normalized.includes('active') || normalized.includes('duty') || 
-      normalized === 'within regulations' || normalized === 'yes' || normalized === 'compliant') {
+// Compliance = have they sailed in the last month?
+// LOA is completely unrelated to compliance
+const getComplianceStatus = (member: any) => {
+  // If they have sailed (sailingCompliant), they are compliant regardless of LOA
+  if (member.sailingCompliant) {
     return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
   }
   
-  // LOA statuses (e.g., "LOA-1", "LOA-2") = Requires Attention
-  if (normalized.includes('loa') || normalized.includes('requires attention') || normalized.includes('warning')) {
-    return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
+  // If on LOA, they don't need a compliance check - LOA overrides compliance display
+  // LOA people are exempt from sailing requirements
+  if (member.loaStatus) {
+    return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
   }
   
-  // Flagged/Action required
-  if (normalized === 'flagged' || normalized === 'no' || normalized === 'non-compliant' || normalized === 'requires action') {
-    return { label: 'Requires Action', color: 'error' as const, icon: '✕', status: 'action-required' };
-  }
-  
-  return { label: normalized, color: 'default' as const, icon: '?', status: 'unknown' };
+  // Not sailed and not on LOA = attention required
+  // TODO: If it's been more than a few days since contacted, escalate to "Action Required"
+  return { label: 'Attention Required', color: 'warning' as const, icon: '!', status: 'attention-required' };
 };
 
 // Helper function to get status label and color
-const getStatusDisplay = (complianceValue: string) => {
-  if (!complianceValue) return { label: 'Unknown', color: '#6b7280', bgColor: 'rgba(107, 114, 128, 0.1)' };
-  const normalized = complianceValue.toLowerCase().trim();
+// Status = their LOA/active status (separate from compliance)
+const getStatusDisplay = (member: any) => {
+  const loaRaw = (member.complianceStatus || '').trim();
+  const normalized = loaRaw.toLowerCase();
   
   // Active status
-  if (normalized.includes('active') || normalized.includes('duty') || 
-      normalized === 'within regulations' || normalized === 'yes' || normalized === 'compliant') {
+  if (normalized.includes('active') || normalized.includes('duty') || normalized === '' || normalized === 'unknown') {
     return { label: 'Active', color: '#22c55e', bgColor: 'rgba(34, 197, 94, 0.1)' };
   }
   
   // LOA statuses - return as-is with uppercasing
   if (normalized.includes('loa')) {
-    const uppercased = complianceValue.toUpperCase().trim();
+    const uppercased = loaRaw.toUpperCase().trim();
     return { label: uppercased, color: '#eab308', bgColor: 'rgba(234, 179, 8, 0.1)' };
   }
   
@@ -154,28 +150,24 @@ export const UsersTab = () => {
 
   // Transform parsed crew into display format
   const sailors = crew.map((member: ParsedCrewMember) => {
-    // Compliance comes directly from the complianceStatus field (LOA_STATUS column)
-    // This already contains the status like "Active Duty", "LOA-1", "Flagged", etc.
-    const complianceDisplay = member.complianceStatus || 'Unknown';
-
     return {
       rank: member.rank,
       name: member.name,
       squad: member.squad,
       discordNickname: member.discordUsername,
-      compliance: complianceDisplay,
+      complianceStatus: member.complianceStatus || 'Unknown', // LOA status column (Active Duty, LOA-1, etc.)
+      sailingCompliant: member.sailingCompliant, // Have they sailed this month?
+      loaStatus: member.loaStatus, // Are they on LOA?
       timezone: member.timezone,
       stars: member.chatActivity.toString(),
+      chatActivity: member.chatActivity,
       loaReturnDate: member.loaReturnDate,
-      loaStatus: member.loaStatus,
     };
   });
 
   const complianceStats = {
     total: sailors.length,
-    compliant: sailors.filter(s => 
-      !s.loaStatus && s.compliance === 'Compliant'
-    ).length,
+    compliant: sailors.filter(s => s.sailingCompliant || s.loaStatus).length,
   };
 
   return (
@@ -314,7 +306,7 @@ export const UsersTab = () => {
                       </TableHead>
                       <TableBody>
                         {members.map((sailor, idx) => {
-                          const complianceStatus = getComplianceStatus(sailor.compliance);
+                          const complianceStatus = getComplianceStatus(sailor);
                           const rankColor = getRankColor(sailor.rank);
                           
                           // Parse star count from chat activity field
@@ -364,7 +356,7 @@ export const UsersTab = () => {
                               {/* Status */}
                               <TableCell sx={{ py: 1.5 }}>
                                 {(() => {
-                                  const statusDisplay = getStatusDisplay(sailor.compliance);
+                                  const statusDisplay = getStatusDisplay(sailor);
                                   return (
                                     <Box
                                       sx={{

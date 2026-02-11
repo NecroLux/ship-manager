@@ -8,7 +8,6 @@ import {
   GULLINBURSTI_COLUMNS,
   VOYAGE_AWARDS_COLUMNS,
   ROLE_COIN_COLUMNS,
-  isOnLOA,
   canHost,
   mustSail,
 } from '../config/SheetColumns';
@@ -104,77 +103,116 @@ export interface GeneratedAction {
  * Parse a single crew member from Gullinbursti sheet
  */
 export const parseCrewMember = (row: Record<string, string>): ParsedCrewMember => {
-  // Helper to get value by numeric index OR header name
+  // Helper to get value - try numeric index first, then fuzzy header match
   const getRowValue = (numIndex: number, ...headerNames: string[]): string => {
-    // Try numeric index first
+    // Try numeric index first (won't work with header-keyed objects, but kept for compat)
     if (row[numIndex] !== undefined) {
       return row[numIndex] || '';
     }
-    // Try header names
+    // Try exact header names
     for (const headerName of headerNames) {
       if (row[headerName] !== undefined) {
         return row[headerName] || '';
       }
     }
+    // Try fuzzy match - find any key that contains any of the search terms
+    const rowKeys = Object.keys(row);
+    for (const headerName of headerNames) {
+      const searchLower = headerName.toLowerCase().replace(/[_\s]/g, '');
+      for (const key of rowKeys) {
+        const keyLower = key.toLowerCase().replace(/[_\s]/g, '');
+        if (keyLower === searchLower || keyLower.includes(searchLower) || searchLower.includes(keyLower)) {
+          return row[key] || '';
+        }
+      }
+    }
     return '';
   };
 
-  const rank = getRowValue(GULLINBURSTI_COLUMNS.RANK, 'Rank', 'RANK', 'rank').trim();
-  const name = getRowValue(GULLINBURSTI_COLUMNS.NAME, 'Name', 'NAME', 'name').trim();
+  // Also provide a way to get value by column index from the headers
+  // This maps numeric indices to actual header-keyed values
+  const getByIndex = (index: number): string => {
+    const keys = Object.keys(row);
+    if (index < keys.length) {
+      return row[keys[index]] || '';
+    }
+    return '';
+  };
+
+  const rank = (getRowValue(GULLINBURSTI_COLUMNS.RANK, 'Rank', 'RANK', 'rank') || getByIndex(0)).trim();
+  const name = (getRowValue(GULLINBURSTI_COLUMNS.NAME, 'Name', 'NAME', 'name') || getByIndex(1)).trim();
 
   // Extract compliance booleans
-  const sailingCompliant = getRowValue(GULLINBURSTI_COLUMNS.SAILING_COMPLIANCE, 'Sailing Compliance', 'SAILING_COMPLIANCE').toLowerCase().includes('yes');
-  const hostingCompliant = getRowValue(GULLINBURSTI_COLUMNS.HOSTING_COMPLIANCE, 'Hosting Compliance', 'HOSTING_COMPLIANCE').toLowerCase().includes('yes');
+  const sailingRaw = (getRowValue(GULLINBURSTI_COLUMNS.SAILING_COMPLIANCE, 'Sailing Compliance', 'SAILING_COMPLIANCE', 'Sailing') || getByIndex(11)).trim();
+  const sailingCompliant = sailingRaw.toLowerCase().includes('yes') || sailingRaw.toLowerCase().includes('within') || sailingRaw === '✓' || sailingRaw === '✔';
+  
+  const hostingRaw = (getRowValue(GULLINBURSTI_COLUMNS.HOSTING_COMPLIANCE, 'Hosting Compliance', 'HOSTING_COMPLIANCE', 'Hosting') || getByIndex(12)).trim();
+  const hostingCompliant = hostingRaw.toLowerCase().includes('yes') || hostingRaw.toLowerCase().includes('within') || hostingRaw === '✓' || hostingRaw === '✔' || hostingRaw.toLowerCase() === 'n/a';
 
   // Parse chat activity (could be stars ★, number, or text)
   let chatActivity = 0;
-  const activityRaw = getRowValue(GULLINBURSTI_COLUMNS.CHAT_ACTIVITY, 'Chat Activity', 'CHAT_ACTIVITY').trim();
-  const starCount = (activityRaw.match(/[★*]/g) || []).length;
-  if (starCount > 0) {
-    chatActivity = starCount;
-  } else {
-    const numMatch = activityRaw.match(/\d+/);
-    if (numMatch) {
-      chatActivity = Math.min(parseInt(numMatch[0], 10), 5);
+  const activityRaw = (getRowValue(GULLINBURSTI_COLUMNS.CHAT_ACTIVITY, 'Chat Activity', 'CHAT_ACTIVITY', 'Chat', 'Activity', 'Stars') || getByIndex(10)).trim();
+  if (activityRaw) {
+    // Count star characters (★ or *)
+    const starCount = (activityRaw.match(/[★⭐*]/g) || []).length;
+    if (starCount > 0) {
+      chatActivity = starCount;
+    } else {
+      // Try to parse as a number
+      const numMatch = activityRaw.match(/\d+/);
+      if (numMatch) {
+        chatActivity = Math.min(parseInt(numMatch[0], 10), 5);
+      }
     }
   }
 
   // Extract birthday (MM/DD only, no year)
-  const birthday = getRowValue(GULLINBURSTI_COLUMNS.BIRTHDAY, 'Birthday', 'BIRTHDAY').trim();
+  const birthday = (getRowValue(GULLINBURSTI_COLUMNS.BIRTHDAY, 'Birthday', 'BIRTHDAY') || getByIndex(14)).trim();
 
-  // Get compliance status from LOA_STATUS column (column 8)
-  const complianceStatus = getRowValue(GULLINBURSTI_COLUMNS.LOA_STATUS, 'LOA Status', 'LOA_STATUS').trim() || 'Unknown';
-
-  // Squad extraction: try header search, fallback to column 3
-  let squad = getRowValue(GULLINBURSTI_COLUMNS.SQUAD_LEADER_COMMENTS, 'Squad Leader Comments', 'SQUAD_LEADER_COMMENTS').trim().split('\n')[0] || 'Unassigned';
-  // Note: In actual implementation, we'd scan through headers to find squad column
+  // Get LOA status from LOA_STATUS column (column 8) - this is their leave status, NOT compliance
+  const loaStatusRaw = (getRowValue(GULLINBURSTI_COLUMNS.LOA_STATUS, 'LOA Status', 'LOA_STATUS', 'LOA') || getByIndex(8)).trim();
+  const complianceStatus = loaStatusRaw || 'Active Duty';
 
   return {
     rank,
     name,
-    discordUsername: getRowValue(GULLINBURSTI_COLUMNS.DISCORD_USERNAME, 'Discord Username', 'DISCORD_USERNAME').trim(),
-    discordId: getRowValue(GULLINBURSTI_COLUMNS.DISCORD_ID, 'Discord ID', 'DISCORD_ID').trim(),
-    squad,
-    timezone: getRowValue(GULLINBURSTI_COLUMNS.TIMEZONE, 'Timezone', 'TIMEZONE').trim() || 'Unknown',
-    inGuild: getRowValue(GULLINBURSTI_COLUMNS.IN_GUILD_INDICATOR, 'In Guild', 'IN_GUILD_INDICATOR').toLowerCase().includes('yes'),
-    xboxGamertag: getRowValue(GULLINBURSTI_COLUMNS.GAMERTAG_XBOX, 'Xbox Gamertag', 'GAMERTAG_XBOX').trim() || undefined,
-    loaStatus: isOnLOA(row),
-    loaReturnDate: getRowValue(GULLINBURSTI_COLUMNS.LOA_RETURN_DATE, 'LOA Return Date', 'LOA_RETURN_DATE').trim() || undefined,
+    discordUsername: (getRowValue(GULLINBURSTI_COLUMNS.DISCORD_USERNAME, 'Discord Username', 'DISCORD_USERNAME', 'Discord') || getByIndex(2)).trim(),
+    discordId: (getRowValue(GULLINBURSTI_COLUMNS.DISCORD_ID, 'Discord ID', 'DISCORD_ID') || getByIndex(16)).trim(),
+    squad: 'Unassigned', // Will be overridden by parseAllCrewMembers
+    timezone: (getRowValue(GULLINBURSTI_COLUMNS.TIMEZONE, 'Timezone', 'TIMEZONE', 'TZ') || getByIndex(7)).trim() || 'Unknown',
+    inGuild: (getRowValue(GULLINBURSTI_COLUMNS.IN_GUILD_INDICATOR, 'In Guild', 'IN_GUILD_INDICATOR') || getByIndex(3)).toLowerCase().includes('yes'),
+    xboxGamertag: (getRowValue(GULLINBURSTI_COLUMNS.GAMERTAG_XBOX, 'Xbox Gamertag', 'GAMERTAG_XBOX') || getByIndex(5)).trim() || undefined,
+    loaStatus: loaStatusRaw.toLowerCase().includes('loa'),
+    loaReturnDate: (getRowValue(GULLINBURSTI_COLUMNS.LOA_RETURN_DATE, 'LOA Return Date', 'LOA_RETURN_DATE') || getByIndex(9)).trim() || undefined,
     complianceStatus,
     chatActivity,
     sailingCompliant,
     hostingCompliant,
     canHostRank: canHost(rank),
     mustSailRank: mustSail(rank),
-    squadLeaderComments: getRowValue(GULLINBURSTI_COLUMNS.SQUAD_LEADER_COMMENTS, 'Squad Leader Comments', 'SQUAD_LEADER_COMMENTS').trim() || undefined,
-    cosNotes: getRowValue(GULLINBURSTI_COLUMNS.COS_NOTES, 'COS Notes', 'COS_NOTES').trim() || undefined,
+    squadLeaderComments: (getRowValue(GULLINBURSTI_COLUMNS.SQUAD_LEADER_COMMENTS, 'Squad Leader Comments', 'SQUAD_LEADER_COMMENTS', 'SL Comments') || getByIndex(13)).trim() || undefined,
+    cosNotes: (getRowValue(GULLINBURSTI_COLUMNS.COS_NOTES, 'COS Notes', 'COS_NOTES') || getByIndex(22)).trim() || undefined,
     birthday: birthday || undefined,
-    spd: getRowValue(GULLINBURSTI_COLUMNS.SPD_INDICATOR, 'SPD Indicator', 'SPD_INDICATOR').toLowerCase().includes('yes') ? 'Yes' : undefined,
-    spdName: getRowValue(GULLINBURSTI_COLUMNS.SPD_NAME, 'SPD Name', 'SPD_NAME').trim() || undefined,
-    serviceStripe: getRowValue(GULLINBURSTI_COLUMNS.SERVICE_STRIPE, 'Service Stripe', 'SERVICE_STRIPE').toLowerCase().includes('yes'),
-    serviceStripeCorrect: getRowValue(GULLINBURSTI_COLUMNS.SERVICE_STRIPE_CORRECT, 'Service Stripe Correct', 'SERVICE_STRIPE_CORRECT').toLowerCase().includes('yes'),
-    promotionEligible: getRowValue(GULLINBURSTI_COLUMNS.PROMOTION_ELIGIBLE, 'Promotion Eligible', 'PROMOTION_ELIGIBLE').toLowerCase().includes('yes'),
+    spd: (getRowValue(GULLINBURSTI_COLUMNS.SPD_INDICATOR, 'SPD Indicator', 'SPD_INDICATOR') || getByIndex(17)).toLowerCase().includes('yes') ? 'Yes' : undefined,
+    spdName: (getRowValue(GULLINBURSTI_COLUMNS.SPD_NAME, 'SPD Name', 'SPD_NAME') || getByIndex(18)).trim() || undefined,
+    serviceStripe: (getRowValue(GULLINBURSTI_COLUMNS.SERVICE_STRIPE, 'Service Stripe', 'SERVICE_STRIPE') || getByIndex(19)).toLowerCase().includes('yes'),
+    serviceStripeCorrect: (getRowValue(GULLINBURSTI_COLUMNS.SERVICE_STRIPE_CORRECT, 'Service Stripe Correct', 'SERVICE_STRIPE_CORRECT') || getByIndex(20)).toLowerCase().includes('yes'),
+    promotionEligible: (getRowValue(GULLINBURSTI_COLUMNS.PROMOTION_ELIGIBLE, 'Promotion Eligible', 'PROMOTION_ELIGIBLE') || getByIndex(21)).toLowerCase().includes('yes'),
   };
+};
+
+/**
+ * Determine if a rank is command-level (should be in Command Staff)
+ */
+const isCommandRank = (rank: string): boolean => {
+  const r = rank.toLowerCase();
+  return r.includes('commander') || 
+         r.includes('midship') || 
+         r.includes('scpo') || 
+         r.includes('senior chief') ||
+         r.includes('captain') ||
+         r.includes('admiral') ||
+         r.includes('commodore');
 };
 
 /**
@@ -186,19 +224,38 @@ export const parseAllCrewMembers = (rows: Record<string, string>[]): ParsedCrewM
   let currentSquad = 'Unassigned';
 
   for (const row of rows) {
-    // Get values by either numeric index or header name
+    // Get values by either numeric index, header name, or positional index
+    const rowKeys = Object.keys(row);
+    const getByIndex = (index: number): string => {
+      if (index < rowKeys.length) {
+        return (row[rowKeys[index]] || '').trim();
+      }
+      return '';
+    };
+    
     const getRowValue = (numIndex: number, ...headerNames: string[]): string => {
       // Try numeric index first
       if (row[numIndex] !== undefined) {
         return (row[numIndex] || '').trim();
       }
-      // Try header names
+      // Try exact header names
       for (const headerName of headerNames) {
         if (row[headerName] !== undefined) {
           return (row[headerName] || '').trim();
         }
       }
-      return '';
+      // Try fuzzy match
+      for (const headerName of headerNames) {
+        const searchLower = headerName.toLowerCase().replace(/[_\s]/g, '');
+        for (const key of rowKeys) {
+          const keyLower = key.toLowerCase().replace(/[_\s]/g, '');
+          if (keyLower === searchLower || keyLower.includes(searchLower) || searchLower.includes(keyLower)) {
+            return (row[key] || '').trim();
+          }
+        }
+      }
+      // Fall back to positional index
+      return getByIndex(numIndex);
     };
 
     const rank = getRowValue(GULLINBURSTI_COLUMNS.RANK, 'Rank', 'RANK', 'rank');
@@ -220,7 +277,12 @@ export const parseAllCrewMembers = (rows: Record<string, string>[]): ParsedCrewM
     if (rank && name) {
       const crewMember = parseCrewMember(row);
       // Override the squad with the one we tracked
-      crewMember.squad = currentSquad;
+      // If still "Unassigned", check if this is a command-level rank
+      if (currentSquad === 'Unassigned' && isCommandRank(rank)) {
+        crewMember.squad = 'Command Staff';
+      } else {
+        crewMember.squad = currentSquad;
+      }
       result.push(crewMember);
     }
   }

@@ -22,7 +22,6 @@ import { ActionsTab } from './components/ActionsTab';
 import { ReportsTab } from './components/ReportsTab';
 import { LinkedSheetsTab } from './components/LinkedSheetsTab';
 import { SheetProvider } from './context/SheetDataContext';
-import { SnapshotProvider } from './context/SnapshotContext';
 import { VERSION_SHORT } from './version';
 import './App.css';
 
@@ -129,9 +128,7 @@ function AppContent() {
 function App() {
   return (
     <SheetProvider>
-      <SnapshotProvider>
-        <AppContent />
-      </SnapshotProvider>
+      <AppContent />
     </SheetProvider>
   );
 }

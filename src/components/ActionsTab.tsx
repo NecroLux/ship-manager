@@ -382,8 +382,7 @@ export const ActionsTab = () => {
                 <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Sailor</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Responsible</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Squad</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Squad</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Details</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Details</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
