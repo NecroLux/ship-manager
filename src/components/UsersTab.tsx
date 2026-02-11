@@ -302,13 +302,13 @@ export const UsersTab = () => {
                             }
                           }}
                         >
-                          <TableCell sx={{ width: '12%' }}>Rank</TableCell>
-                          <TableCell sx={{ width: '15%' }}>Name</TableCell>
-                          <TableCell sx={{ width: '10%' }}>Status</TableCell>
-                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Compliance</TableCell>
-                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Voyages</TableCell>
-                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Hosted</TableCell>
-                          <TableCell sx={{ width: '13%' }}>Timezone</TableCell>
+                          <TableCell sx={{ width: '15%' }}>Rank</TableCell>
+                          <TableCell sx={{ width: '17%' }}>Name</TableCell>
+                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Status</TableCell>
+                          <TableCell sx={{ width: '8%', textAlign: 'center' }}>Sailing</TableCell>
+                          <TableCell sx={{ width: '8%', textAlign: 'center' }}>Voyages</TableCell>
+                          <TableCell sx={{ width: '8%', textAlign: 'center' }}>Hosted</TableCell>
+                          <TableCell sx={{ width: '14%' }}>Timezone</TableCell>
                           <TableCell sx={{ width: '12%', textAlign: 'center' }}>Activity</TableCell>
                         </TableRow>
                       </TableHead>
@@ -362,20 +362,20 @@ export const UsersTab = () => {
                               </TableCell>
 
                               {/* Status */}
-                              <TableCell sx={{ py: 1.5 }}>
+                              <TableCell sx={{ py: 1.5, textAlign: 'center' }}>
                                 {(() => {
                                   const statusDisplay = getStatusDisplay(sailor);
                                   return (
                                     <Box
                                       sx={{
                                         display: 'inline-block',
-                                        px: 2,
+                                        px: 1.5,
                                         py: 0.5,
                                         borderRadius: 1,
                                         backgroundColor: statusDisplay.bgColor,
                                         color: statusDisplay.color,
                                         fontWeight: 600,
-                                        fontSize: '0.85rem',
+                                        fontSize: '0.8rem',
                                       }}
                                     >
                                       {statusDisplay.label}

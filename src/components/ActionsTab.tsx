@@ -371,70 +371,118 @@ export const ActionsTab = () => {
         </CardContent>
       </Card>
 
-      {/* Actions Table */}
-      <Paper sx={{ overflow: 'hidden' }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                <TableCell sx={{ fontWeight: 'bold', width: '5%' }}>Severity</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '25%' }}>Action</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Sailor</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Responsible</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Squad</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Details</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredActions.length > 0 ? (
-                filteredActions.map((action) => (
-                  <TableRow key={action.id} hover>
-                    <TableCell align="center">
-                      {getSeverityIcon(action.severity)}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {action.description}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">{action.sailor}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'primary.main' }}>
-                        {action.responsible}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip label={action.squad} size="small" variant="outlined" />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="small"
-                        variant="text"
-                        onClick={() => {
-                          setSelectedAction(action);
-                          setDetailsOpen(true);
-                        }}
-                      >
-                        View Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                    <Typography color="textSecondary">
-                      No action items for this priority level
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      {/* Actions Table - Grouped by Priority */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {(() => {
+          // Group filtered actions by severity
+          const groups: Record<string, typeof filteredActions> = {};
+          const severityLabels: Record<string, { label: string; color: string; bgColor: string }> = {
+            high: { label: '🔴 High Priority', color: '#dc2626', bgColor: 'rgba(220, 38, 38, 0.08)' },
+            medium: { label: '🟡 Medium Priority', color: '#eab308', bgColor: 'rgba(234, 179, 8, 0.08)' },
+            low: { label: '🔵 Low Priority', color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.08)' },
+            recurring: { label: '🔁 Recurring', color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.08)' },
+          };
+          const severityOrder = ['high', 'medium', 'low', 'recurring'];
+
+          filteredActions.forEach((action) => {
+            const sev = action.severity || 'low';
+            if (!groups[sev]) groups[sev] = [];
+            groups[sev].push(action);
+          });
+
+          if (filteredActions.length === 0) {
+            return (
+              <Paper sx={{ p: 4, textAlign: 'center' }}>
+                <Typography color="textSecondary">
+                  No action items for this category
+                </Typography>
+              </Paper>
+            );
+          }
+
+          return severityOrder.map((sev) => {
+            const items = groups[sev];
+            if (!items || items.length === 0) return null;
+            const meta = severityLabels[sev];
+
+            return (
+              <Paper key={sev} sx={{ overflow: 'hidden', border: `1px solid ${meta.color}22` }}>
+                <Box sx={{ px: 2, py: 1.5, backgroundColor: meta.bgColor, borderBottom: `2px solid ${meta.color}33` }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: meta.color }}>
+                    {meta.label} ({items.length})
+                  </Typography>
+                </Box>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                        <TableCell sx={{ fontWeight: 'bold', width: '5%', textAlign: 'center' }}></TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', width: '25%' }}>Action</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Sailor</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', width: '18%' }}>Responsible</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', width: '12%', textAlign: 'center' }}>Squad</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', width: '10%', textAlign: 'center' }}>Priority</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', width: '10%', textAlign: 'center' }}>Details</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {items.map((action) => (
+                        <TableRow key={action.id} hover>
+                          <TableCell align="center" sx={{ py: 1 }}>
+                            {getSeverityIcon(action.severity)}
+                          </TableCell>
+                          <TableCell sx={{ py: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {action.description}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ py: 1 }}>
+                            <Typography variant="body2">{action.sailor}</Typography>
+                          </TableCell>
+                          <TableCell sx={{ py: 1 }}>
+                            <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'primary.main' }}>
+                              {action.responsible}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ py: 1, textAlign: 'center' }}>
+                            <Chip label={action.squad} size="small" variant="outlined" />
+                          </TableCell>
+                          <TableCell sx={{ py: 1, textAlign: 'center' }}>
+                            <Chip
+                              label={action.severity.charAt(0).toUpperCase() + action.severity.slice(1)}
+                              size="small"
+                              sx={{
+                                fontWeight: 600,
+                                fontSize: '0.7rem',
+                                color: meta.color,
+                                borderColor: meta.color,
+                                backgroundColor: meta.bgColor,
+                              }}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell sx={{ py: 1, textAlign: 'center' }}>
+                            <Button
+                              size="small"
+                              variant="text"
+                              onClick={() => {
+                                setSelectedAction(action);
+                                setDetailsOpen(true);
+                              }}
+                            >
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            );
+          });
+        })()}
+      </Box>
 
       {/* Details Dialog */}
       <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} maxWidth="sm" fullWidth>
