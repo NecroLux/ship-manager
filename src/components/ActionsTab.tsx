@@ -20,6 +20,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Checkbox,
+  Tooltip,
 } from '@mui/material';
 import ErrorIcon from '@mui/icons-material/Error';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -29,10 +31,9 @@ import {
   parseAllCrewMembers,
   parseAllLeaderboardEntries,
   enrichCrewWithLeaderboardData,
-  parseStaffComments,
   getResponsibleStaff as getResponsibleStaffFromParser,
 } from '../services/dataParser';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 
 interface ActionItem {
   id: string;
@@ -40,16 +41,90 @@ interface ActionItem {
   severity: 'high' | 'medium' | 'low' | 'recurring';
   sailor: string;
   squad: string;
-  responsible: string; // Who should handle this (squad leader, COS, etc.)
+  responsible: string;
   description: string;
   details: string;
+  isRecurring?: boolean;
+  cadence?: 'daily' | 'weekly' | 'fortnightly';
 }
+
+// ==================== RECURRING SQUAD LEADER TASKS ====================
+interface RecurringTask {
+  id: string;
+  description: string;
+  details: string;
+  cadence: 'daily' | 'weekly' | 'fortnightly';
+  severity: 'high' | 'medium' | 'low';
+}
+
+const RECURRING_SL_TASKS: RecurringTask[] = [
+  { id: 'sl-qotd', description: 'Question of the Day', details: 'Post a question of the day in your squad channel to encourage engagement.', cadence: 'daily', severity: 'low' },
+  { id: 'sl-checkin', description: 'Check-in Squad Chat', details: 'Review squad chat activity and respond to any outstanding messages or concerns.', cadence: 'daily', severity: 'low' },
+  { id: 'sl-report', description: 'Run Member Report', details: 'Review member compliance and activity. Flag any issues to Command.', cadence: 'weekly', severity: 'medium' },
+  { id: 'sl-loa-check', description: 'Check on LOA Members', details: 'Check on LOA members expected to return. Follow up and update status as needed.', cadence: 'weekly', severity: 'medium' },
+  { id: 'sl-squad-report', description: 'Update Squad Report', details: 'Update the squad report with current member status, compliance, and any concerns for Command review.', cadence: 'fortnightly', severity: 'high' },
+];
+
+// Cadence → milliseconds
+const CADENCE_MS: Record<string, number> = {
+  daily: 24 * 60 * 60 * 1000,
+  weekly: 7 * 24 * 60 * 60 * 1000,
+  fortnightly: 14 * 24 * 60 * 60 * 1000,
+};
+
+const CADENCE_LABELS: Record<string, string> = {
+  daily: 'Daily',
+  weekly: 'Weekly',
+  fortnightly: 'Fortnightly',
+};
+
+// Load/save completed timestamps from localStorage
+const getCompletedTasks = (): Record<string, number> => {
+  try {
+    return JSON.parse(localStorage.getItem('sl-recurring-tasks') || '{}');
+  } catch { return {}; }
+};
+
+const saveCompletedTask = (taskId: string) => {
+  const completed = getCompletedTasks();
+  completed[taskId] = Date.now();
+  localStorage.setItem('sl-recurring-tasks', JSON.stringify(completed));
+};
+
+// Check if a recurring task is currently due (not completed within its cadence window)
+const isTaskDue = (task: RecurringTask): boolean => {
+  const completed = getCompletedTasks();
+  const lastCompleted = completed[task.id];
+  if (!lastCompleted) return true;
+  return Date.now() - lastCompleted >= CADENCE_MS[task.cadence];
+};
+
+// Get time remaining until task is due again (for display)
+const getNextDue = (task: RecurringTask): string => {
+  const completed = getCompletedTasks();
+  const lastCompleted = completed[task.id];
+  if (!lastCompleted) return 'Now';
+  const nextDue = lastCompleted + CADENCE_MS[task.cadence];
+  const remaining = nextDue - Date.now();
+  if (remaining <= 0) return 'Now';
+  const hours = Math.floor(remaining / (1000 * 60 * 60));
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+};
 
 export const ActionsTab = () => {
   const { data, loading, refreshData } = useSheetData();
   const [activeTab, setActiveTab] = useState<'all' | 'co' | 'firstofficer' | 'cos' | 'squadleader1' | 'squadleader2'>('all');
   const [selectedAction, setSelectedAction] = useState<ActionItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [recurringTick, setRecurringTick] = useState(0); // Force re-render on check-off
+
+  // Handle checking off a recurring task
+  const handleCompleteRecurring = useCallback((taskId: string) => {
+    saveCompletedTask(taskId);
+    setRecurringTick((t) => t + 1);
+  }, []);
 
   // Detect crew actions using the same enriched data pipeline as Crew tab
   const detectedActions = useMemo(() => {
@@ -148,19 +223,31 @@ export const ActionsTab = () => {
       }
     });
 
-    // === STEP 4: Parse staff comments for keyword-based actions ===
-    const commentActions = parseStaffComments(crew, actionId);
-    commentActions.forEach((action) => {
-      actions.push({
-        id: action.id,
-        type: action.type,
-        severity: action.severity as 'high' | 'medium' | 'low' | 'recurring',
-        sailor: action.sailor,
-        squad: action.squad,
-        responsible: action.responsible,
-        description: action.description,
-        details: action.details + (action.deadline ? `\n\nDeadline: ${action.deadline}` : ''),
-      });
+    // === STEP 4: Recurring Squad Leader tasks ===
+    // Only show tasks that are currently due (not completed within their cadence)
+    RECURRING_SL_TASKS.forEach((task) => {
+      if (isTaskDue(task)) {
+        // Add one per squad
+        const squads = enrichedCrew.reduce((acc, m) => {
+          if (m.squad !== 'Command Staff' && m.squad !== 'Unassigned' && !acc.includes(m.squad)) acc.push(m.squad);
+          return acc;
+        }, [] as string[]);
+
+        squads.forEach((squad) => {
+          actions.push({
+            id: `${task.id}-${squad}`,
+            type: 'recurring-sl',
+            severity: task.severity,
+            sailor: '—',
+            squad,
+            responsible: `${squad} Squad Leader`,
+            description: `${task.description}`,
+            details: `${task.details}\n\nCadence: ${CADENCE_LABELS[task.cadence]} · Next due: ${getNextDue(task)}`,
+            isRecurring: true,
+            cadence: task.cadence,
+          });
+        });
+      }
     });
 
     // Sort by priority (high > medium > low > recurring)
@@ -169,7 +256,8 @@ export const ActionsTab = () => {
       return severityOrder[a.severity as keyof typeof severityOrder] - severityOrder[b.severity as keyof typeof severityOrder];
     });
     return actions;
-  }, [data.gullinbursti, data.voyageAwards]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.gullinbursti, data.voyageAwards, recurringTick]);
 
   // Filter actions by responsibility
   const filteredActions = useMemo(() => {
@@ -318,9 +406,19 @@ export const ActionsTab = () => {
                             {getSeverityIcon(action.severity)}
                           </TableCell>
                           <TableCell sx={{ py: 1 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {action.description}
-                            </Typography>
+                            <Stack direction="row" alignItems="center" spacing={0.5}>
+                              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                {action.description}
+                              </Typography>
+                              {action.isRecurring && action.cadence && (
+                                <Chip
+                                  label={CADENCE_LABELS[action.cadence]}
+                                  size="small"
+                                  sx={{ fontSize: '0.65rem', height: 18, color: '#8b5cf6', borderColor: '#8b5cf633' }}
+                                  variant="outlined"
+                                />
+                              )}
+                            </Stack>
                           </TableCell>
                           <TableCell sx={{ py: 1 }}>
                             <Typography variant="body2">{action.sailor}</Typography>
@@ -348,16 +446,32 @@ export const ActionsTab = () => {
                             />
                           </TableCell>
                           <TableCell sx={{ py: 1, textAlign: 'center' }}>
-                            <Button
-                              size="small"
-                              variant="text"
-                              onClick={() => {
-                                setSelectedAction(action);
-                                setDetailsOpen(true);
-                              }}
-                            >
-                              View
-                            </Button>
+                            {action.isRecurring ? (
+                              <Tooltip title="Mark as done — will reappear when next due">
+                                <Checkbox
+                                  size="small"
+                                  checked={false}
+                                  onChange={() => {
+                                    // Extract the base task id (remove squad suffix)
+                                    const baseId = action.id.replace(/-[^-]+$/, '') + '-' + action.id.split('-').pop();
+                                    const taskId = RECURRING_SL_TASKS.find(t => action.id.startsWith(t.id))?.id || baseId;
+                                    handleCompleteRecurring(taskId);
+                                  }}
+                                  sx={{ color: '#22c55e', '&.Mui-checked': { color: '#22c55e' } }}
+                                />
+                              </Tooltip>
+                            ) : (
+                              <Button
+                                size="small"
+                                variant="text"
+                                onClick={() => {
+                                  setSelectedAction(action);
+                                  setDetailsOpen(true);
+                                }}
+                              >
+                                View
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
