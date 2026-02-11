@@ -15,7 +15,6 @@ import {
   Button,
   LinearProgress,
   useTheme,
-  Tooltip,
 } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -103,38 +102,27 @@ export const OverviewTab = () => {
 
       totalCrew++;
 
-      // Get compliance status
-      let compliance = '';
-      for (let i = 0; i < headers.length; i++) {
-        if (headers[i].toLowerCase().includes('compliance')) {
-          compliance = (row[headers[i]] || '').trim();
-          break;
-        }
-      }
+      // Get compliance status - use same index as ReportsTab (headers[8])
+      const compliance = (row[headers[8]] || '').trim();
 
       // Categorize compliance - check exact compliance value from Gullinbursti
-      const complianceNorm = compliance.toLowerCase().trim();
+      const complianceNorm = compliance.toLowerCase();
       let isActive = false;
       let isFlagged = false;
       
-      // Active status: exact match or contains "active"
-      if (complianceNorm === 'active' || complianceNorm.includes('active') || complianceNorm === 'yes') {
+      // Active status: contains "active" or "duty"
+      if (complianceNorm.includes('active') || complianceNorm.includes('duty') || complianceNorm === '') {
         isActive = true;
         activeCrew++;
       } 
-      // LOA statuses: any variation of LOA
-      else if (complianceNorm.startsWith('loa')) {
+      // LOA statuses: LOA-1 specifically
+      else if (complianceNorm === 'loa-1') {
         loaCrew++;
       } 
-      // Flagged/Non-compliant: exact matches
-      else if (complianceNorm === 'flagged' || complianceNorm === 'no' || complianceNorm === 'non-compliant' || complianceNorm === 'inactive' || complianceNorm === 'requires action') {
+      // LOA-2 and other issues
+      else if (complianceNorm === 'loa-2' || complianceNorm === 'flagged' || complianceNorm === 'no' || complianceNorm === 'non-compliant' || complianceNorm === 'inactive' || complianceNorm === 'requires action') {
         isFlagged = true;
         flaggedCrew++;
-      }
-      // Empty or unknown = consider as active (crew with no flag)
-      else if (complianceNorm === '') {
-        isActive = true;
-        activeCrew++;
       }
 
       // Track squad stats
@@ -489,50 +477,54 @@ export const OverviewTab = () => {
                     const loa2Percent = squad.totalCount > 0 ? (squad.loa2Count / squad.totalCount) * 100 : 0;
                     
                     if (squad.name === 'Command Staff') {
+                      // Create a split bar for Command Staff: CO (Red), FO (Pink), COS (Purple)
+                      let coCount = 0;
+                      let foCount = 0;
+                      let cosCount = 0;
+                      
+                      squad.members.forEach((member) => {
+                        if (member.name.toLowerCase().includes('hoit') && !member.name.toLowerCase().includes('lady')) {
+                          coCount++;
+                        } else if (member.name.toLowerCase().includes('ladyhoit')) {
+                          foCount++;
+                        } else if (member.name.toLowerCase().includes('spice')) {
+                          cosCount++;
+                        }
+                      });
+
+                      const coPercent = squad.totalCount > 0 ? (coCount / squad.totalCount) * 100 : 0;
+                      const foPercent = squad.totalCount > 0 ? (foCount / squad.totalCount) * 100 : 0;
+                      const cosPercent = squad.totalCount > 0 ? (cosCount / squad.totalCount) * 100 : 0;
+
                       return (
                         <Box key={squad.name}>
-                          <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                            Command Staff
-                          </Typography>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                            {squad.members.map((member, idx) => {
-                              let bgColor = '#6b7280';
-                              let role = 'Staff';
-                              
-                              // Determine role and color based on name
-                              if (member.name.toLowerCase().includes('hoit')) {
-                                bgColor = '#FF5555'; // Red for CO
-                                role = 'CO';
-                              } else if (member.name.toLowerCase().includes('ladyhoit')) {
-                                bgColor = '#FF66B2'; // Pink for FO
-                                role = 'FO';
-                              } else if (member.name.toLowerCase().includes('spice')) {
-                                bgColor = '#D946EF'; // Purple for COS
-                                role = 'COS';
-                              }
-                              
-                              return (
-                                <Tooltip key={idx} title={`Click to view ${member.name} details`}>
-                                  <Chip
-                                    label={`${member.name} (${role})`}
-                                    size="small"
-                                    onClick={() => {
-                                      // Link to user details - can be implemented later
-                                      console.log(`View ${member.name} details`);
-                                    }}
-                                    sx={{
-                                      backgroundColor: bgColor,
-                                      color: 'white',
-                                      fontWeight: 'bold',
-                                      cursor: 'pointer',
-                                      '&:hover': {
-                                        opacity: 0.8,
-                                      }
-                                    }}
-                                  />
-                                </Tooltip>
-                              );
-                            })}
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                              Command Staff
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                              {squad.totalCount}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', height: 8, borderRadius: 1, overflow: 'hidden', backgroundColor: 'action.disabledBackground' }}>
+                            {coPercent > 0 && (
+                              <Box 
+                                sx={{ width: `${coPercent}%`, backgroundColor: '#FF5555' }} 
+                                title={`CO (Hoit): ${coCount}`} 
+                              />
+                            )}
+                            {foPercent > 0 && (
+                              <Box 
+                                sx={{ width: `${foPercent}%`, backgroundColor: '#FF66B2' }} 
+                                title={`FO (LadyHoit): ${foCount}`} 
+                              />
+                            )}
+                            {cosPercent > 0 && (
+                              <Box 
+                                sx={{ width: `${cosPercent}%`, backgroundColor: '#D946EF' }} 
+                                title={`COS (Spice): ${cosCount}`} 
+                              />
+                            )}
                           </Box>
                         </Box>
                       );
