@@ -158,7 +158,7 @@ export const UsersTab = () => {
     name: member.name,
     squad: member.squad,
     discordNickname: member.discordUsername,
-    compliance: member.loaStatus ? 'LOA' : member.sailingCompliant && member.hostingCompliant ? 'Compliant' : 'Requires Attention',
+    compliance: member.complianceStatus,
     timezone: member.timezone,
     stars: member.chatActivity.toString(),
     loaReturnDate: member.loaReturnDate,

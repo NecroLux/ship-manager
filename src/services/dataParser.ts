@@ -31,6 +31,7 @@ export interface ParsedCrewMember {
   // Status
   loaStatus: boolean;
   loaReturnDate?: string;
+  complianceStatus: string; // Raw LOA status value for display (e.g., "Active Duty", "LOA-1", etc.)
   
   // Activity & Compliance
   chatActivity: number; // 0-5 stars
@@ -141,6 +142,9 @@ export const parseCrewMember = (row: Record<string, string>): ParsedCrewMember =
   // Extract birthday (MM/DD only, no year)
   const birthday = getRowValue(GULLINBURSTI_COLUMNS.BIRTHDAY, 'Birthday', 'BIRTHDAY').trim();
 
+  // Get compliance status from LOA_STATUS column (column 8)
+  const complianceStatus = getRowValue(GULLINBURSTI_COLUMNS.LOA_STATUS, 'LOA Status', 'LOA_STATUS').trim() || 'Unknown';
+
   // Squad extraction: try header search, fallback to column 3
   let squad = getRowValue(GULLINBURSTI_COLUMNS.SQUAD_LEADER_COMMENTS, 'Squad Leader Comments', 'SQUAD_LEADER_COMMENTS').trim().split('\n')[0] || 'Unassigned';
   // Note: In actual implementation, we'd scan through headers to find squad column
@@ -156,6 +160,7 @@ export const parseCrewMember = (row: Record<string, string>): ParsedCrewMember =
     xboxGamertag: getRowValue(GULLINBURSTI_COLUMNS.GAMERTAG_XBOX, 'Xbox Gamertag', 'GAMERTAG_XBOX').trim() || undefined,
     loaStatus: isOnLOA(row),
     loaReturnDate: getRowValue(GULLINBURSTI_COLUMNS.LOA_RETURN_DATE, 'LOA Return Date', 'LOA_RETURN_DATE').trim() || undefined,
+    complianceStatus,
     chatActivity,
     sailingCompliant,
     hostingCompliant,
@@ -174,36 +179,53 @@ export const parseCrewMember = (row: Record<string, string>): ParsedCrewMember =
 
 /**
  * Parse all crew members from Gullinbursti sheet
+ * Handles squad headers (rows with rank but no name) to track squad assignments
  */
 export const parseAllCrewMembers = (rows: Record<string, string>[]): ParsedCrewMember[] => {
-  return rows
-    .filter((row) => {
-      // Get values by either numeric index or header name
-      const getRank = () => {
-        // Try numeric index first
-        if (row[GULLINBURSTI_COLUMNS.RANK] !== undefined) {
-          return (row[GULLINBURSTI_COLUMNS.RANK] || '').trim();
-        }
-        // Fallback to common header names
-        return (row['Rank'] || row['RANK'] || row['rank'] || '').trim();
-      };
-      
-      const getName = () => {
-        if (row[GULLINBURSTI_COLUMNS.NAME] !== undefined) {
-          return (row[GULLINBURSTI_COLUMNS.NAME] || '').trim();
-        }
-        return (row['Name'] || row['NAME'] || row['name'] || '').trim();
-      };
+  const result: ParsedCrewMember[] = [];
+  let currentSquad = 'Unassigned';
 
-      const rank = getRank();
-      const name = getName();
-      
-      // Skip empty rows and header rows
-      if (!rank || !name) return false;
-      if (rank.toLowerCase() === 'rank' && name.toLowerCase() === 'name') return false;
-      return true;
-    })
-    .map((row) => parseCrewMember(row));
+  for (const row of rows) {
+    // Get values by either numeric index or header name
+    const getRank = () => {
+      if (row[GULLINBURSTI_COLUMNS.RANK] !== undefined) {
+        return (row[GULLINBURSTI_COLUMNS.RANK] || '').trim();
+      }
+      return (row['Rank'] || row['RANK'] || row['rank'] || '').trim();
+    };
+    
+    const getName = () => {
+      if (row[GULLINBURSTI_COLUMNS.NAME] !== undefined) {
+        return (row[GULLINBURSTI_COLUMNS.NAME] || '').trim();
+      }
+      return (row['Name'] || row['NAME'] || row['name'] || '').trim();
+    };
+
+    const rank = getRank();
+    const name = getName();
+    
+    // Skip completely empty rows
+    if (!rank && !name) continue;
+    
+    // Skip column header rows (Rank/Name header row)
+    if (rank.toLowerCase() === 'rank' && name.toLowerCase() === 'name') continue;
+    
+    // Squad header row: rank has value but name is empty
+    if (rank && !name) {
+      currentSquad = rank;
+      continue;
+    }
+    
+    // Crew member row: both rank and name have values
+    if (rank && name) {
+      const crewMember = parseCrewMember(row);
+      // Override the squad with the one we tracked
+      crewMember.squad = currentSquad;
+      result.push(crewMember);
+    }
+  }
+
+  return result;
 };
 
 /**
