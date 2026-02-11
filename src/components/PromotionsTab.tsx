@@ -60,7 +60,7 @@ interface PromotionCandidate {
   promoted: boolean;
 }
 
-type FilterTab = 'all' | 'co' | 'fo' | 'cos' | 'sl' | 'boa';
+type FilterTab = 'all' | 'co' | 'fo' | 'cos' | 'sl1' | 'sl2' | 'boa';
 
 // ==================== SHARED STATE ====================
 
@@ -274,7 +274,8 @@ export const PromotionsTab = () => {
         case 'co': return r.includes('hoit') && !r.includes('lady');
         case 'fo': return r.includes('ladyhoit') || r.includes('lady');
         case 'cos': return r.includes('spice');
-        case 'sl': return r.includes('necro') || r.includes('shade');
+        case 'sl1': return r.includes('necro');
+        case 'sl2': return r.includes('shade');
         case 'boa': return r.includes('admiralty') || r.includes('fleet');
         default: return false;
       }
@@ -291,7 +292,8 @@ export const PromotionsTab = () => {
       co: byPerson((r) => r.includes('hoit') && !r.includes('lady')),
       fo: byPerson((r) => r.includes('ladyhoit') || r.includes('lady')),
       cos: byPerson((r) => r.includes('spice')),
-      sl: byPerson((r) => r.includes('necro') || r.includes('shade')),
+      sl1: byPerson((r) => r.includes('necro')),
+      sl2: byPerson((r) => r.includes('shade')),
       boa: byPerson((r) => r.includes('admiralty') || r.includes('fleet')),
     };
   }, [candidates]);
@@ -362,8 +364,12 @@ export const PromotionsTab = () => {
               </Box>
               <Stack direction="row" spacing={3} alignItems="baseline">
                 <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#60A5FA', lineHeight: 1 }}>{counts.sl}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL</Typography>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#60A5FA', lineHeight: 1 }}>{counts.sl1}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL1</Typography>
+                </Stack>
+                <Stack alignItems="center" spacing={0.5}>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#38BDF8', lineHeight: 1 }}>{counts.sl2}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL2</Typography>
                 </Stack>
                 <Stack alignItems="center" spacing={0.5}>
                   <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#D946EF', lineHeight: 1 }}>{counts.cos}</Typography>
@@ -397,7 +403,8 @@ export const PromotionsTab = () => {
           sx={{ '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minWidth: 80 } }}
         >
           <Tab label={`All (${counts.total})`} value="all" />
-          <Tab label={`SL (${counts.sl})`} value="sl" />
+          <Tab label={`SL1 (${counts.sl1})`} value="sl1" />
+          <Tab label={`SL2 (${counts.sl2})`} value="sl2" />
           <Tab label={`CoS (${counts.cos})`} value="cos" />
           <Tab label={`FO (${counts.fo})`} value="fo" />
           <Tab label={`CO (${counts.co})`} value="co" />
