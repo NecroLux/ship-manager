@@ -22,34 +22,41 @@ import { parseAllCrewMembers, parseAllLeaderboardEntries, enrichCrewWithLeaderbo
 // Helper function to get compliance status
 // Compliance = have they sailed / hosted within required timeframes?
 // LOA is completely unrelated to compliance
+//
+// Thresholds:
+//   Voyage: 37 days (1 month + 1 week) → Requires Action at 37+, Requires Attention at 35-36
+//   Hosting (JPO+): 21 days (3 weeks) → Requires Action at 21+, Requires Attention at 19-20
 const getComplianceStatus = (member: any) => {
   // If on LOA, they are exempt from sailing/hosting requirements
   if (member.loaStatus) {
     return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
   }
 
-  // Check for "Requires Action" conditions (more severe):
-  // 1. More than 37 days (1 month + 1 week) since last official voyage
-  // 2. More than 21 days (3 weeks) since an eligible NCO hosted (canHostRank = JPO+)
   const now = new Date();
   let requiresAction = false;
+  let requiresAttention = false;
 
+  // Check voyage threshold
   if (member.lastVoyageDate) {
     const lastVoyage = new Date(member.lastVoyageDate);
     if (!isNaN(lastVoyage.getTime())) {
       const daysSinceVoyage = Math.floor((now.getTime() - lastVoyage.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSinceVoyage > 37) requiresAction = true;
+      if (daysSinceVoyage >= 37) requiresAction = true;
+      else if (daysSinceVoyage >= 35) requiresAttention = true;
     }
-  } else if (member.daysInactive > 37) {
-    // Fallback: if no date available, use daysInactive from the sheet
+  } else if (member.daysInactive >= 37) {
     requiresAction = true;
+  } else if (member.daysInactive >= 35) {
+    requiresAttention = true;
   }
 
+  // Check hosting threshold (only for JPO+ who are eligible to host)
   if (member.canHostRank && member.lastHostDate) {
     const lastHost = new Date(member.lastHostDate);
     if (!isNaN(lastHost.getTime())) {
       const daysSinceHost = Math.floor((now.getTime() - lastHost.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSinceHost > 21) requiresAction = true;
+      if (daysSinceHost >= 21) requiresAction = true;
+      else if (daysSinceHost >= 19) requiresAttention = true;
     }
   }
 
@@ -57,12 +64,16 @@ const getComplianceStatus = (member: any) => {
     return { label: 'Requires Action', color: 'error' as const, icon: '!', status: 'action-required' };
   }
 
+  if (requiresAttention) {
+    return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
+  }
+
   // If they have sailed (sailingCompliant), they are compliant
   if (member.sailingCompliant) {
     return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
   }
   
-  // Not sailed and not on LOA but not yet at action threshold = Requires Attention
+  // Not sailed and not on LOA but not yet near any threshold = Requires Attention
   return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
 };
 

@@ -128,18 +128,18 @@ export const OverviewTab = () => {
   return (
     <Box sx={{ mt: 3 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }} useFlexGap>
-        <Card sx={{ flex: 1 }}><CardContent><Stack spacing={1}>
+        <Card sx={{ flex: 1, minHeight: 120 }}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><GroupIcon sx={{ color: 'success.main' }} /><Typography color="textSecondary" variant="body2">Total Crew</Typography></Box>
           <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{crewAnalysis.totalCrew}</Typography>
         </Stack></CardContent></Card>
 
-        <Card sx={{ flex: 1, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(76,175,80,0.1)' : 'rgba(76,175,80,0.05)' }}><CardContent><Stack spacing={1}>
+        <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(76,175,80,0.1)' : 'rgba(76,175,80,0.05)' }}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CheckCircleIcon sx={{ color: complianceColor }} /><Typography color="textSecondary" variant="body2">Sailing Compliance</Typography></Box>
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#fff' }}>{crewAnalysis.compliancePercentage}%</Typography>
           <LinearProgress variant="determinate" value={crewAnalysis.compliancePercentage} sx={{ height: 6, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: complianceColor } }} />
         </Stack></CardContent></Card>
 
-        <Card sx={{ flex: 1, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)' }}><CardContent><Stack spacing={1}>
+        <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)' }}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><TaskAltIcon sx={{ color: '#3b82f6' }} /><Typography color="textSecondary" variant="body2">Actions Required</Typography></Box>
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#3b82f6' }}>{actionsCount}</Typography>
         </Stack></CardContent></Card>
@@ -188,10 +188,34 @@ export const OverviewTab = () => {
                 return (
                   <Box key={squad.name}>
                     <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1.5 }}>Command</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                      <Tooltip title={coMember ? 'CO: ' + coMember : 'CO: Role available'}><Box sx={{ width: 30, height: 30, borderRadius: '50%', backgroundColor: coMember ? '#FF5555' : '#9CA3AF', cursor: 'pointer', boxShadow: coMember ? '0 0 8px rgba(255,85,85,0.4)' : 'none' }} /></Tooltip>
-                      <Tooltip title={foMember ? 'FO: ' + foMember : 'FO: Role available'}><Box sx={{ width: 30, height: 30, borderRadius: '50%', backgroundColor: foMember ? '#FF66B2' : '#9CA3AF', cursor: 'pointer', boxShadow: foMember ? '0 0 8px rgba(255,102,178,0.4)' : 'none' }} /></Tooltip>
-                      <Tooltip title={cosMember ? 'COS: ' + cosMember : 'COS: Role available'}><Box sx={{ width: 30, height: 30, borderRadius: '50%', backgroundColor: cosMember ? '#D946EF' : '#9CA3AF', cursor: 'pointer', boxShadow: cosMember ? '0 0 8px rgba(217,70,239,0.4)' : 'none' }} /></Tooltip>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3, mb: 2 }}>
+                      {/* CO */}
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                        <Tooltip title={coMember ? 'Commanding Officer' : 'CO: Role available'}>
+                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: coMember ? '#FF5555' : '#9CA3AF', cursor: 'pointer', boxShadow: coMember ? '0 0 8px rgba(255,85,85,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.7rem', lineHeight: 1 }}>CO</Typography>
+                          </Box>
+                        </Tooltip>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: coMember ? '#FF5555' : '#9CA3AF' }}>{coMember || '—'}</Typography>
+                      </Box>
+                      {/* FO */}
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                        <Tooltip title={foMember ? 'First Officer' : 'FO: Role available'}>
+                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: foMember ? '#FF66B2' : '#9CA3AF', cursor: 'pointer', boxShadow: foMember ? '0 0 8px rgba(255,102,178,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.7rem', lineHeight: 1 }}>FO</Typography>
+                          </Box>
+                        </Tooltip>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: foMember ? '#FF66B2' : '#9CA3AF' }}>{foMember || '—'}</Typography>
+                      </Box>
+                      {/* CoS */}
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                        <Tooltip title={cosMember ? 'Chief of Ship' : 'CoS: Role available'}>
+                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: cosMember ? '#D946EF' : '#9CA3AF', cursor: 'pointer', boxShadow: cosMember ? '0 0 8px rgba(217,70,239,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: 1 }}>CoS</Typography>
+                          </Box>
+                        </Tooltip>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: cosMember ? '#D946EF' : '#9CA3AF' }}>{cosMember || '—'}</Typography>
+                      </Box>
                     </Box>
                   </Box>
                 );
@@ -220,42 +244,45 @@ export const OverviewTab = () => {
         </CardContent></Card></Box>
       </Stack>
 
-      {(topHosts.length > 0 || topVoyages.length > 0) && (
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }} useFlexGap>
-          {topHosts.length > 0 && (
-            <Card sx={{ flex: 1 }}><CardContent>
-              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}><TrendingUpIcon color="success" />Top 10 Hosts</Typography>
-              <TableContainer><Table size="small">
-                <TableHead><TableRow sx={{ backgroundColor: 'action.hover' }}>
-                  <TableCell sx={{ fontWeight: 'bold' }}>#</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
-                </TableRow></TableHead>
-                <TableBody>{topHosts.map((s, i) => (
-                  <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{s.name}</TableCell>
-                  <TableCell align="right"><Chip label={s.hosted} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} /></TableCell></TableRow>
-                ))}</TableBody>
-              </Table></TableContainer>
-            </CardContent></Card>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }} useFlexGap>
+        <Card sx={{ flex: 1 }}><CardContent>
+          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}><TrendingUpIcon color="success" />Top 10 Voyagers</Typography>
+          {topVoyages.length > 0 ? (
+            <TableContainer><Table size="small">
+              <TableHead><TableRow sx={{ backgroundColor: 'action.hover' }}>
+                <TableCell sx={{ fontWeight: 'bold' }}>#</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
+              </TableRow></TableHead>
+              <TableBody>{topVoyages.map((s, i) => (
+                <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{s.name}</TableCell>
+                <TableCell align="right"><Chip label={s.voyages} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} /></TableCell></TableRow>
+              ))}</TableBody>
+            </Table></TableContainer>
+          ) : (
+            <Typography color="textSecondary" variant="body2">No voyage data available yet. Check that the Time/Voyage Awards sheet is connected.</Typography>
           )}
-          {topVoyages.length > 0 && (
-            <Card sx={{ flex: 1 }}><CardContent>
-              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}><TrendingUpIcon color="success" />Top 10 Voyagers</Typography>
-              <TableContainer><Table size="small">
-                <TableHead><TableRow sx={{ backgroundColor: 'action.hover' }}>
-                  <TableCell sx={{ fontWeight: 'bold' }}>#</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
-                </TableRow></TableHead>
-                <TableBody>{topVoyages.map((s, i) => (
-                  <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{s.name}</TableCell>
-                  <TableCell align="right"><Chip label={s.voyages} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} /></TableCell></TableRow>
-                ))}</TableBody>
-              </Table></TableContainer>
-            </CardContent></Card>
+        </CardContent></Card>
+
+        <Card sx={{ flex: 1 }}><CardContent>
+          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}><TrendingUpIcon color="success" />Top 10 Hosts</Typography>
+          {topHosts.length > 0 ? (
+            <TableContainer><Table size="small">
+              <TableHead><TableRow sx={{ backgroundColor: 'action.hover' }}>
+                <TableCell sx={{ fontWeight: 'bold' }}>#</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
+              </TableRow></TableHead>
+              <TableBody>{topHosts.map((s, i) => (
+                <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{s.name}</TableCell>
+                <TableCell align="right"><Chip label={s.hosted} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} /></TableCell></TableRow>
+              ))}</TableBody>
+            </Table></TableContainer>
+          ) : (
+            <Typography color="textSecondary" variant="body2">No hosting data available yet. Check that the Time/Voyage Awards sheet is connected.</Typography>
           )}
-        </Stack>
-      )}
+        </CardContent></Card>
+      </Stack>
     </Box>
   );
 };
