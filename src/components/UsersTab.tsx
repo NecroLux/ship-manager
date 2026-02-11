@@ -113,6 +113,15 @@ export const UsersTab = () => {
     );
   }
 
+  // Check data exists
+  if (!data.gullinbursti || !data.gullinbursti.rows || data.gullinbursti.rows.length === 0) {
+    return (
+      <Box sx={{ mt: 3 }}>
+        <Typography color="textSecondary">No crew data available</Typography>
+      </Box>
+    );
+  }
+
   // Debug logs removed for production
 
   // Parse crew members using centralized data parser

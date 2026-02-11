@@ -245,9 +245,9 @@ export const OverviewTab = () => {
   };
 
   // Get top hosts and voyagers using centralized parser
-  const leaderboardData = parseAllLeaderboardEntries(data.voyageAwards?.rows || []);
-  const topHostsList = getTopHostsFromParser(leaderboardData, 5);
-  const topVoyagersList = getTopVoyagersFromParser(leaderboardData, 5);
+  const leaderboardData = data.voyageAwards?.rows ? parseAllLeaderboardEntries(data.voyageAwards.rows) : [];
+  const topHostsList = leaderboardData.length > 0 ? getTopHostsFromParser(leaderboardData, 5) : [];
+  const topVoyagersList = leaderboardData.length > 0 ? getTopVoyagersFromParser(leaderboardData, 5) : [];
 
   // Convert parser format to UI format
   const getTopHosts = (): TopVoyager[] => {
