@@ -172,7 +172,7 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
           <LinearProgress variant="determinate" value={crewAnalysis.compliancePercentage} sx={{ height: 6, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: complianceColor } }} />
         </Stack></CardContent></Card>
 
-        <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)', cursor: onNavigateToActions ? 'pointer' : 'default', '&:hover': onNavigateToActions ? { boxShadow: 4 } : {} }} onClick={onNavigateToActions}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1}>
+        <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)', cursor: onNavigateToActions ? 'pointer' : 'default', '&:hover': onNavigateToActions ? { boxShadow: 4 } : {} }} onClick={onNavigateToActions}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1.5}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><TaskAltIcon sx={{ color: '#3b82f6' }} /><Typography color="textSecondary" variant="body2">Actions</Typography></Box>
           <Stack direction="row" spacing={3} alignItems="baseline">
             <Tooltip title="High Priority"><Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#dc2626', lineHeight: 1 }}>{actionsCounts.high}</Typography></Tooltip>
@@ -189,17 +189,17 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
           </Box>
           <Stack spacing={2}>
             <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}><Typography variant="body2">Compliant (Sailed / On LOA)</Typography><Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>{crewAnalysis.compliantCrew}</Typography></Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}><Typography variant="body2" sx={{ fontWeight: 'bold' }}>Compliant (Sailed / On LOA)</Typography><Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>{crewAnalysis.compliantCrew}</Typography></Box>
               <LinearProgress variant="determinate" value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.compliantCrew / crewAnalysis.totalCrew) * 100 : 0} sx={{ height: 8, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: 'success.main' } }} />
             </Box>
-            <Tooltip title={crewAnalysis.attentionNames.length > 0 ? crewAnalysis.attentionNames.join(', ') : ''} arrow placement="bottom">
+            <Tooltip title={crewAnalysis.attentionNames.length > 0 ? crewAnalysis.attentionNames.join(', ') : ''} arrow followCursor>
               <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}><Typography variant="body2">Attention Required (Not Sailed)</Typography><Typography variant="body2" sx={{ fontWeight: 'bold', color: 'warning.main' }}>{crewAnalysis.attentionCrew}</Typography></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}><Typography variant="body2" sx={{ fontWeight: 'bold' }}>Attention Required (Not Sailed)</Typography><Typography variant="body2" sx={{ fontWeight: 'bold', color: 'warning.main' }}>{crewAnalysis.attentionCrew}</Typography></Box>
                 <LinearProgress variant="determinate" value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.attentionCrew / crewAnalysis.totalCrew) * 100 : 0} sx={{ height: 8, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: 'warning.main' } }} />
               </Box>
             </Tooltip>
             <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}><Typography variant="body2">Action Required</Typography><Typography variant="body2" sx={{ fontWeight: 'bold', color: 'error.main' }}>{crewAnalysis.actionCrew}</Typography></Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}><Typography variant="body2" sx={{ fontWeight: 'bold' }}>Action Required</Typography><Typography variant="body2" sx={{ fontWeight: 'bold', color: 'error.main' }}>{crewAnalysis.actionCrew}</Typography></Box>
               <LinearProgress variant="determinate" value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.actionCrew / crewAnalysis.totalCrew) * 100 : 0} sx={{ height: 8, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: 'error.main' } }} />
             </Box>
           </Stack>
@@ -270,7 +270,7 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
                 const acP = squad.totalCount > 0 ? (squad.actionCount / squad.totalCount) * 100 : 0;
                 const attentionTooltip = squad.attentionNames.length > 0 ? squad.attentionNames.join(', ') : '';
                 return (
-                  <Tooltip key={squad.name} title={attentionTooltip} arrow placement="bottom">
+                  <Tooltip key={squad.name} title={attentionTooltip} arrow followCursor>
                     <Box>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{squad.name}</Typography>
@@ -301,7 +301,7 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
                 <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
               </TableRow></TableHead>
               <TableBody>{topVoyages.map((s, i) => (
-                <TableRow key={i}><TableCell>{i === 0 ? '👑' : i + 1}</TableCell><TableCell>{s.name}</TableCell>
+                <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{i === 0 ? '👑 ' : ''}{s.name}</TableCell>
                 <TableCell align="right"><Chip label={s.voyages} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} /></TableCell></TableRow>
               ))}</TableBody>
             </Table></TableContainer>
@@ -320,7 +320,7 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
                 <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
               </TableRow></TableHead>
               <TableBody>{topHosts.map((s, i) => (
-                <TableRow key={i}><TableCell>{i === 0 ? '👑' : i + 1}</TableCell><TableCell>{s.name}</TableCell>
+                <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{i === 0 ? '👑 ' : ''}{s.name}</TableCell>
                 <TableCell align="right"><Chip label={s.hosted} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} /></TableCell></TableRow>
               ))}</TableBody>
             </Table></TableContainer>

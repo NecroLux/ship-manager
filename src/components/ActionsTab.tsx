@@ -428,7 +428,7 @@ export const ActionsTab = () => {
                 size="small"
                 startIcon={<AddIcon />}
                 onClick={() => setAddDialogOpen(true)}
-                color="success"
+                color="primary"
               >
                 Add
               </Button>
