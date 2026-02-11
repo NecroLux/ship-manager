@@ -37,7 +37,6 @@ import {
   type AwardDefinition,
   type AwardCategory,
 } from '../config/AwardsConfig';
-import { isRankAtOrAbove } from '../config/RankCodes';
 import { buildKnownAwardsSet, isKnownAwarded } from '../config/KnownAwards';
 
 // ==================== TYPES ====================
@@ -92,7 +91,7 @@ const getResponsiblePerson = (
   // O-1+ → XO, CO
   // O-4+ → CO (if O-4+)
   // O-7+ → BOA (not our ship)
-  if (isRankAtOrAbove('O-7', responsibleRank) || responsibleRank === 'O-7' || responsibleRank === 'O-8' || responsibleRank === 'O-9' || responsibleRank === 'O-10') {
+  if (responsibleRank === 'O-7' || responsibleRank === 'O-8' || responsibleRank === 'O-9' || responsibleRank === 'O-10' || responsibleRank === 'BOA') {
     return 'Board of Admiralty';
   }
   if (responsibleRank === 'O-4') return commandStaff.co || 'Ship CO';
