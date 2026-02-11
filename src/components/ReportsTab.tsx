@@ -267,21 +267,20 @@ export const ReportsTab = () => {
           // Timezone
           doc.text((sailor.timezone || '-').replace(/\s*\(.*?\)/, '').substring(0, 8), colX.tz, yPosition);
 
-          // Chat activity (star scale ★)
+          // Chat activity (filled/empty circles)
           const stars = Math.min(sailor.chatActivity || 0, 5);
-          const starStr = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+          const starStr = '\u25CF'.repeat(stars) + '\u25CB'.repeat(5 - stars);
           doc.text(starStr, colX.activity, yPosition);
 
           yPosition += 4.5;
         });
       };
 
-      // ===== PAGE 1 (continued): COMMAND STAFF at bottom of page 1 =====
-      drawSquadRoster('COMMAND STAFF', commandStaff, false);
+      // ===== PAGE 2: COMMAND STAFF + SQUAD ROSTERS =====
+      drawSquadRoster('COMMAND STAFF', commandStaff, true);
 
-      // ===== PAGE 2: BOTH SQUAD ROSTERS =====
       const squad1Label = squad1.length > 0 ? squad1[0].squad.toUpperCase() : 'SQUAD 1';
-      drawSquadRoster(squad1Label, squad1, true);
+      drawSquadRoster(squad1Label, squad1, false);
 
       const squad2Label = squad2.length > 0 ? squad2[0].squad.toUpperCase() : 'SQUAD 2';
       drawSquadRoster(squad2Label, squad2, false);
