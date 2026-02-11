@@ -29,8 +29,6 @@ import {
   InputLabel,
   IconButton,
 } from '@mui/material';
-import ErrorIcon from '@mui/icons-material/Error';
-import WarningIcon from '@mui/icons-material/Warning';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -339,10 +337,15 @@ export const ActionsTab = () => {
       });
     });
 
-    // Sort by priority (high > medium > low)
+    // Sort by priority (high > medium > low), then recurring before non-recurring
     actions.sort((a, b) => {
       const severityOrder = { high: 0, medium: 1, low: 2, recurring: 3 };
-      return severityOrder[a.severity as keyof typeof severityOrder] - severityOrder[b.severity as keyof typeof severityOrder];
+      const sevDiff = severityOrder[a.severity as keyof typeof severityOrder] - severityOrder[b.severity as keyof typeof severityOrder];
+      if (sevDiff !== 0) return sevDiff;
+      // Within same severity: recurring/manual tasks first, then data-driven
+      const aRecurring = a.isRecurring || a.isManual ? 0 : 1;
+      const bRecurring = b.isRecurring || b.isManual ? 0 : 1;
+      return aRecurring - bRecurring;
     });
     return actions;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -387,15 +390,17 @@ export const ActionsTab = () => {
   }
 
   const getSeverityIcon = (severity: string) => {
+    const circleStyle = (bgColor: string) => ({
+      width: 24, height: 24, borderRadius: '50%', backgroundColor: bgColor,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    });
     switch (severity) {
       case 'high':
-        return <ErrorIcon sx={{ color: '#dc2626' }} />;
+        return <Box sx={circleStyle('#dc2626')}><Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.75rem', lineHeight: 1 }}>1</Typography></Box>;
       case 'medium':
-        return <WarningIcon sx={{ color: '#eab308' }} />;
+        return <Box sx={circleStyle('#f97316')}><Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.75rem', lineHeight: 1 }}>2</Typography></Box>;
       case 'low':
-        return <WarningIcon sx={{ color: '#3b82f6' }} />;
-      case 'recurring':
-        return <WarningIcon sx={{ color: '#3b82f6' }} />;
+        return <Box sx={circleStyle('#eab308')}><Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.75rem', lineHeight: 1 }}>3</Typography></Box>;
       default:
         return null;
     }

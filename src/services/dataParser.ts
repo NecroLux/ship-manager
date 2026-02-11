@@ -635,8 +635,6 @@ export const getResponsibleStaff = (actionType: string, squad: string): string =
 
   if (
     actionType === 'compliance-issue' ||
-    actionType === 'sailing-issue' ||
-    actionType === 'hosting-issue' ||
     actionType === 'deckhand-action' ||
     actionType === 'demotion-pending' ||
     actionType === 'suspension-pending'
@@ -649,6 +647,8 @@ export const getResponsibleStaff = (actionType: string, squad: string): string =
   }
 
   if (
+    actionType === 'sailing-issue' ||
+    actionType === 'hosting-issue' ||
     actionType === 'no-chat-activity' ||
     actionType === 'low-chat-activity' ||
     actionType === 'encourage-sailing' ||

@@ -26,6 +26,7 @@ import { useSheetData } from '../context/SheetDataContext';
 import {
   parseAllCrewMembers,
   parseAllLeaderboardEntries,
+  enrichCrewWithLeaderboardData,
   getTopHosts as getTopHostsFromParser,
   getTopVoyagers as getTopVoyagersFromParser,
 } from '../services/dataParser';
@@ -51,7 +52,11 @@ interface TopVoyager {
   voyages: number;
 }
 
-export const OverviewTab = () => {
+interface OverviewTabProps {
+  onNavigateToActions?: () => void;
+}
+
+export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
   const { data, loading, refreshData } = useSheetData();
   const theme = useTheme();
 
@@ -101,15 +106,30 @@ export const OverviewTab = () => {
     };
   };
 
-  const getActionsCount = () => {
-    if (!data.gullinbursti || data.gullinbursti.rows.length === 0) return 0;
+  const getActionsCounts = () => {
+    if (!data.gullinbursti || data.gullinbursti.rows.length === 0) return { total: 0, high: 0, medium: 0, low: 0 };
     const crew = parseAllCrewMembers(data.gullinbursti.rows);
-    let count = 0;
-    crew.forEach((m) => {
-      if (m.chatActivity === 0 && !m.loaStatus) count++;
-      if (!m.sailingCompliant && !m.loaStatus) count++;
+    const enrichedCrew = crew.map((m) => enrichCrewWithLeaderboardData(m, leaderboardData));
+    const now = new Date();
+    let high = 0, medium = 0, low = 0;
+
+    enrichedCrew.forEach((member) => {
+      if (member.loaStatus) return;
+      if (!member.sailingCompliant) {
+        let days = 0;
+        if (member.lastVoyageDate) { const lv = new Date(member.lastVoyageDate); if (!isNaN(lv.getTime())) days = Math.floor((now.getTime() - lv.getTime()) / (1000 * 60 * 60 * 24)); }
+        else days = member.daysInactive;
+        if (days >= 30) high++; else medium++;
+      }
+      if (member.canHostRank && !member.hostingCompliant) {
+        let days = 0;
+        if (member.lastHostDate) { const lh = new Date(member.lastHostDate); if (!isNaN(lh.getTime())) days = Math.floor((now.getTime() - lh.getTime()) / (1000 * 60 * 60 * 24)); }
+        if (days >= 14) high++; else medium++;
+      }
+      if (member.chatActivity === 0) low++;
     });
-    return count;
+
+    return { total: high + medium + low, high, medium, low };
   };
 
   const leaderboardData = data.voyageAwards?.rows ? parseAllLeaderboardEntries(data.voyageAwards.rows) : [];
@@ -120,7 +140,7 @@ export const OverviewTab = () => {
   const topVoyages: TopVoyager[] = topVoyagersList.map((e: any) => ({ name: e.name, rank: e.rank, hosted: e.hostCount, voyages: e.voyageCount }));
 
   const crewAnalysis = analyzeCrewData();
-  const actionsCount = getActionsCount();
+  const actionsCounts = getActionsCounts();
 
   const getComplianceColor = (p: number) => { if (p > 75) return '#22c55e'; if (p >= 50) return '#eab308'; if (p >= 25) return '#f97316'; return '#ef4444'; };
   const complianceColor = getComplianceColor(crewAnalysis.compliancePercentage);
@@ -139,9 +159,14 @@ export const OverviewTab = () => {
           <LinearProgress variant="determinate" value={crewAnalysis.compliancePercentage} sx={{ height: 6, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: complianceColor } }} />
         </Stack></CardContent></Card>
 
-        <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)' }}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><TaskAltIcon sx={{ color: '#3b82f6' }} /><Typography color="textSecondary" variant="body2">Actions Required</Typography></Box>
-          <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#3b82f6' }}>{actionsCount}</Typography>
+        <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)', cursor: onNavigateToActions ? 'pointer' : 'default', '&:hover': onNavigateToActions ? { boxShadow: 4 } : {} }} onClick={onNavigateToActions}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><TaskAltIcon sx={{ color: '#3b82f6' }} /><Typography color="textSecondary" variant="body2">Actions</Typography></Box>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#3b82f6' }}>{actionsCounts.total}</Typography>
+          <Stack direction="row" spacing={1.5}>
+            <Stack direction="row" spacing={0.5} alignItems="center"><Box sx={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.55rem', lineHeight: 1 }}>1</Typography></Box><Typography variant="caption" sx={{ color: '#dc2626', fontWeight: 600 }}>{actionsCounts.high}</Typography></Stack>
+            <Stack direction="row" spacing={0.5} alignItems="center"><Box sx={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.55rem', lineHeight: 1 }}>2</Typography></Box><Typography variant="caption" sx={{ color: '#f97316', fontWeight: 600 }}>{actionsCounts.medium}</Typography></Stack>
+            <Stack direction="row" spacing={0.5} alignItems="center"><Box sx={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.55rem', lineHeight: 1 }}>3</Typography></Box><Typography variant="caption" sx={{ color: '#eab308', fontWeight: 600 }}>{actionsCounts.low}</Typography></Stack>
+          </Stack>
         </Stack></CardContent></Card>
       </Stack>
 

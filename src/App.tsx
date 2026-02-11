@@ -98,7 +98,7 @@ function AppContent() {
 
         {/* Overview Tab */}
         {activeTab === 0 && (
-          <OverviewTab />
+          <OverviewTab onNavigateToActions={() => setActiveTab(2)} />
         )}
 
         {/* Sailors Tab */}
