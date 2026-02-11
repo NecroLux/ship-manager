@@ -182,6 +182,7 @@ export const ReportsTab = () => {
           doc.addPage();
           yPosition = margin;
         } else {
+          yPosition += 8; // Line break before each roster
           addPageIfNeeded(30);
         }
 
