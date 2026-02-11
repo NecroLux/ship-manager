@@ -267,8 +267,10 @@ export const ReportsTab = () => {
           // Timezone
           doc.text((sailor.timezone || '-').replace(/\s*\(.*?\)/, '').substring(0, 8), colX.tz, yPosition);
 
-          // Chat activity (stars as number /5)
-          doc.text(`${sailor.chatActivity}/5`, colX.activity, yPosition);
+          // Chat activity (star scale ★)
+          const stars = Math.min(sailor.chatActivity || 0, 5);
+          const starStr = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+          doc.text(starStr, colX.activity, yPosition);
 
           yPosition += 4.5;
         });

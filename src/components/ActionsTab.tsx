@@ -22,9 +22,17 @@ import {
   DialogActions,
   Checkbox,
   Tooltip,
+  TextField,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  IconButton,
 } from '@mui/material';
 import ErrorIcon from '@mui/icons-material/Error';
 import WarningIcon from '@mui/icons-material/Warning';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSheetData } from '../context/SheetDataContext';
 import {
@@ -46,7 +54,46 @@ interface ActionItem {
   details: string;
   isRecurring?: boolean;
   cadence?: 'daily' | 'weekly' | 'fortnightly';
+  isManual?: boolean;
 }
+
+// ==================== RESPONSIBLE NAME MAPPING ====================
+const RESPONSIBLE_OPTIONS = [
+  { name: 'Hoit', role: 'CO' },
+  { name: 'LadyHoit', role: 'FO' },
+  { name: 'Spice', role: 'CoS' },
+  { name: 'Necro', role: 'SL1' },
+  { name: 'Shade', role: 'SL2' },
+];
+
+// Map squad name to SL name
+const getSquadLeaderName = (squad: string): string => {
+  const sqLower = squad.toLowerCase();
+  if (sqLower.includes('necro')) return 'Necro';
+  if (sqLower.includes('shade')) return 'Shade';
+  return squad;
+};
+
+// ==================== MANUAL ACTIONS (localStorage) ====================
+interface ManualAction {
+  id: string;
+  description: string;
+  severity: 'high' | 'medium' | 'low';
+  sailor: string;
+  responsible: string;
+  cadence: '' | 'daily' | 'weekly' | 'fortnightly';
+}
+
+const getManualActions = (): ManualAction[] => {
+  try { return JSON.parse(localStorage.getItem('manual-actions') || '[]'); } catch { return []; }
+};
+const saveManualActions = (actions: ManualAction[]) => {
+  localStorage.setItem('manual-actions', JSON.stringify(actions));
+};
+const deleteManualAction = (id: string) => {
+  const actions = getManualActions().filter(a => a.id !== id);
+  saveManualActions(actions);
+};
 
 // ==================== RECURRING SQUAD LEADER TASKS ====================
 interface RecurringTask {
@@ -118,12 +165,31 @@ export const ActionsTab = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'co' | 'firstofficer' | 'cos' | 'squadleader1' | 'squadleader2'>('all');
   const [selectedAction, setSelectedAction] = useState<ActionItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [recurringTick, setRecurringTick] = useState(0); // Force re-render on check-off
+  const [recurringTick, setRecurringTick] = useState(0);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [manualTick, setManualTick] = useState(0);
 
-  // Handle checking off a recurring task
+  // New action form state
+  const [newAction, setNewAction] = useState({ description: '', severity: 'medium' as 'high' | 'medium' | 'low', sailor: '', responsible: 'Necro', cadence: '' as '' | 'daily' | 'weekly' | 'fortnightly' });
+
   const handleCompleteRecurring = useCallback((taskId: string) => {
     saveCompletedTask(taskId);
     setRecurringTick((t) => t + 1);
+  }, []);
+
+  const handleAddAction = useCallback(() => {
+    if (!newAction.description.trim()) return;
+    const actions = getManualActions();
+    actions.push({ ...newAction, id: `manual-${Date.now()}` });
+    saveManualActions(actions);
+    setNewAction({ description: '', severity: 'medium', sailor: '', responsible: 'Necro', cadence: '' });
+    setAddDialogOpen(false);
+    setManualTick((t) => t + 1);
+  }, [newAction]);
+
+  const handleDeleteManual = useCallback((id: string) => {
+    deleteManualAction(id);
+    setManualTick((t) => t + 1);
   }, []);
 
   // Detect crew actions using the same enriched data pipeline as Crew tab
@@ -240,7 +306,7 @@ export const ActionsTab = () => {
             severity: task.severity,
             sailor: '—',
             squad,
-            responsible: `${squad} Squad Leader`,
+            responsible: getSquadLeaderName(squad),
             description: `${task.description}`,
             details: `${task.details}\n\nCadence: ${CADENCE_LABELS[task.cadence]} · Next due: ${getNextDue(task)}`,
             isRecurring: true,
@@ -250,28 +316,51 @@ export const ActionsTab = () => {
       }
     });
 
-    // Sort by priority (high > medium > low > recurring)
+    // === STEP 5: Manual actions from localStorage ===
+    const manualActions = getManualActions();
+    manualActions.forEach((ma) => {
+      // Determine squad from responsible name for filtering
+      let squad = 'Command Staff';
+      if (ma.responsible === 'Necro') squad = 'Necro Squad';
+      else if (ma.responsible === 'Shade') squad = 'Shade Squad';
+
+      actions.push({
+        id: ma.id,
+        type: 'manual',
+        severity: ma.severity,
+        sailor: ma.sailor || '—',
+        squad,
+        responsible: ma.responsible,
+        description: ma.description,
+        details: ma.cadence ? `Frequency: ${CADENCE_LABELS[ma.cadence]}` : 'One-time action',
+        isManual: true,
+        isRecurring: !!ma.cadence,
+        cadence: ma.cadence || undefined,
+      });
+    });
+
+    // Sort by priority (high > medium > low)
     actions.sort((a, b) => {
       const severityOrder = { high: 0, medium: 1, low: 2, recurring: 3 };
       return severityOrder[a.severity as keyof typeof severityOrder] - severityOrder[b.severity as keyof typeof severityOrder];
     });
     return actions;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.gullinbursti, data.voyageAwards, recurringTick]);
+  }, [data.gullinbursti, data.voyageAwards, recurringTick, manualTick]);
 
-  // Filter actions by responsibility
+  // Filter actions by responsibility (using names)
   const filteredActions = useMemo(() => {
     switch (activeTab) {
       case 'co':
-        return detectedActions.filter(a => a.responsible === 'Commanding Officer (Hoit)' || a.responsible === 'Command');
+        return detectedActions.filter(a => a.responsible === 'Hoit');
       case 'firstofficer':
-        return detectedActions.filter(a => a.responsible === 'First Officer (LadyHoit)' || a.responsible === 'First Officer');
+        return detectedActions.filter(a => a.responsible === 'LadyHoit');
       case 'cos':
-        return detectedActions.filter(a => a.responsible === 'Chief of Ship (Spice)' || a.responsible.includes('Chief of Ship'));
+        return detectedActions.filter(a => a.responsible === 'Spice');
       case 'squadleader1':
-        return detectedActions.filter(a => a.responsible.includes('Necro') || (a.responsible.includes('Squad Leader') && a.squad === 'Squad 1'));
+        return detectedActions.filter(a => a.responsible === 'Necro');
       case 'squadleader2':
-        return detectedActions.filter(a => a.responsible.includes('Shade') || (a.responsible.includes('Squad Leader') && a.squad === 'Squad 2'));
+        return detectedActions.filter(a => a.responsible === 'Shade');
       default:
         return detectedActions;
     }
@@ -281,11 +370,11 @@ export const ActionsTab = () => {
   const counts = useMemo(() => {
     return {
       all: detectedActions.length,
-      co: detectedActions.filter(a => a.responsible === 'Commanding Officer (Hoit)' || a.responsible === 'Command').length,
-      firstofficer: detectedActions.filter(a => a.responsible === 'First Officer (LadyHoit)' || a.responsible === 'First Officer').length,
-      cos: detectedActions.filter(a => a.responsible === 'Chief of Ship (Spice)' || a.responsible.includes('Chief of Ship')).length,
-      squadleader1: detectedActions.filter(a => a.responsible.includes('Necro') || (a.responsible.includes('Squad Leader') && a.squad === 'Squad 1')).length,
-      squadleader2: detectedActions.filter(a => a.responsible.includes('Shade') || (a.responsible.includes('Squad Leader') && a.squad === 'Squad 2')).length,
+      co: detectedActions.filter(a => a.responsible === 'Hoit').length,
+      firstofficer: detectedActions.filter(a => a.responsible === 'LadyHoit').length,
+      cos: detectedActions.filter(a => a.responsible === 'Spice').length,
+      squadleader1: detectedActions.filter(a => a.responsible === 'Necro').length,
+      squadleader2: detectedActions.filter(a => a.responsible === 'Shade').length,
     };
   }, [detectedActions]);
 
@@ -317,7 +406,7 @@ export const ActionsTab = () => {
       {/* Header with Tabs */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          {/* Priority Tabs with Refresh Button */}
+          {/* Priority Tabs with Refresh + Add Buttons */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider', mb: 3 }}>
             <Tabs 
               value={activeTab} 
@@ -327,20 +416,30 @@ export const ActionsTab = () => {
               <Tab label={`All (${counts.all})`} value="all" />
               <Tab label={`CO (${counts.co})`} value="co" />
               <Tab label={`FO (${counts.firstofficer})`} value="firstofficer" />
-              <Tab label={`COS (${counts.cos})`} value="cos" />
+              <Tab label={`CoS (${counts.cos})`} value="cos" />
               <Tab label={`SL1 (${counts.squadleader1})`} value="squadleader1" />
               <Tab label={`SL2 (${counts.squadleader2})`} value="squadleader2" />
             </Tabs>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<RefreshIcon />}
-              onClick={refreshData}
-              disabled={loading}
-              sx={{ ml: 2, flexShrink: 0 }}
-            >
-              Refresh
-            </Button>
+            <Stack direction="row" spacing={1} sx={{ ml: 2, flexShrink: 0 }}>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => setAddDialogOpen(true)}
+                color="success"
+              >
+                Add
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<RefreshIcon />}
+                onClick={refreshData}
+                disabled={loading}
+              >
+                Refresh
+              </Button>
+            </Stack>
           </Box>
         </CardContent>
       </Card>
@@ -348,15 +447,13 @@ export const ActionsTab = () => {
       {/* Actions Table - Grouped by Priority */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {(() => {
-          // Group filtered actions by severity
           const groups: Record<string, typeof filteredActions> = {};
           const severityLabels: Record<string, { label: string; color: string; bgColor: string }> = {
             high: { label: '🔴 High Priority', color: '#dc2626', bgColor: 'rgba(220, 38, 38, 0.08)' },
             medium: { label: '🟡 Medium Priority', color: '#eab308', bgColor: 'rgba(234, 179, 8, 0.08)' },
             low: { label: '🔵 Low Priority', color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.08)' },
-            recurring: { label: '🔁 Recurring', color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.08)' },
           };
-          const severityOrder = ['high', 'medium', 'low', 'recurring'];
+          const severityOrder = ['high', 'medium', 'low'];
 
           filteredActions.forEach((action) => {
             const sev = action.severity || 'low';
@@ -391,12 +488,11 @@ export const ActionsTab = () => {
                     <TableHead>
                       <TableRow sx={{ backgroundColor: 'action.hover' }}>
                         <TableCell sx={{ fontWeight: 'bold', width: '5%', textAlign: 'center' }}></TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', width: '25%' }}>Action</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', width: '30%' }}>Action</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Sailor</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', width: '18%' }}>Responsible</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', width: '12%', textAlign: 'center' }}>Squad</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', width: '10%', textAlign: 'center' }}>Priority</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', width: '10%', textAlign: 'center' }}>Details</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Responsible</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', width: '12%', textAlign: 'center' }}>Priority</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', width: '13%', textAlign: 'center' }}></TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -424,12 +520,9 @@ export const ActionsTab = () => {
                             <Typography variant="body2">{action.sailor}</Typography>
                           </TableCell>
                           <TableCell sx={{ py: 1 }}>
-                            <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'primary.main' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: 'primary.main' }}>
                               {action.responsible}
                             </Typography>
-                          </TableCell>
-                          <TableCell sx={{ py: 1, textAlign: 'center' }}>
-                            <Chip label={action.squad} size="small" variant="outlined" />
                           </TableCell>
                           <TableCell sx={{ py: 1, textAlign: 'center' }}>
                             <Chip
@@ -446,32 +539,37 @@ export const ActionsTab = () => {
                             />
                           </TableCell>
                           <TableCell sx={{ py: 1, textAlign: 'center' }}>
-                            {action.isRecurring ? (
-                              <Tooltip title="Mark as done — will reappear when next due">
-                                <Checkbox
+                            <Stack direction="row" spacing={0.5} justifyContent="center">
+                              {action.isRecurring && (
+                                <Tooltip title="Mark as done — will reappear when next due">
+                                  <Checkbox
+                                    size="small"
+                                    checked={false}
+                                    onChange={() => {
+                                      const taskId = RECURRING_SL_TASKS.find(t => action.id.startsWith(t.id))?.id;
+                                      if (taskId) handleCompleteRecurring(taskId);
+                                    }}
+                                    sx={{ color: '#22c55e', '&.Mui-checked': { color: '#22c55e' }, p: 0.5 }}
+                                  />
+                                </Tooltip>
+                              )}
+                              {action.isManual && (
+                                <Tooltip title="Delete this action">
+                                  <IconButton size="small" onClick={() => handleDeleteManual(action.id)} sx={{ color: '#ef4444' }}>
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                              {!action.isRecurring && !action.isManual && (
+                                <Button
                                   size="small"
-                                  checked={false}
-                                  onChange={() => {
-                                    // Extract the base task id (remove squad suffix)
-                                    const baseId = action.id.replace(/-[^-]+$/, '') + '-' + action.id.split('-').pop();
-                                    const taskId = RECURRING_SL_TASKS.find(t => action.id.startsWith(t.id))?.id || baseId;
-                                    handleCompleteRecurring(taskId);
-                                  }}
-                                  sx={{ color: '#22c55e', '&.Mui-checked': { color: '#22c55e' } }}
-                                />
-                              </Tooltip>
-                            ) : (
-                              <Button
-                                size="small"
-                                variant="text"
-                                onClick={() => {
-                                  setSelectedAction(action);
-                                  setDetailsOpen(true);
-                                }}
-                              >
-                                View
-                              </Button>
-                            )}
+                                  variant="text"
+                                  onClick={() => { setSelectedAction(action); setDetailsOpen(true); }}
+                                >
+                                  View
+                                </Button>
+                              )}
+                            </Stack>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -489,43 +587,92 @@ export const ActionsTab = () => {
         <DialogTitle>
           <Stack direction="row" spacing={1} alignItems="center">
             {selectedAction && getSeverityIcon(selectedAction.severity)}
-            <Typography variant="h6">
-              {selectedAction?.description}
-            </Typography>
+            <Typography variant="h6">{selectedAction?.description}</Typography>
           </Stack>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box>
-              <Typography variant="subtitle2" color="textSecondary">
-                Sailor
-              </Typography>
+              <Typography variant="subtitle2" color="textSecondary">Sailor</Typography>
               <Typography variant="body1">{selectedAction?.sailor}</Typography>
             </Box>
             <Box>
-              <Typography variant="subtitle2" color="textSecondary">
-                Responsible For Action
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 500, color: 'primary.main' }}>
-                {selectedAction?.responsible}
-              </Typography>
+              <Typography variant="subtitle2" color="textSecondary">Responsible</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 500, color: 'primary.main' }}>{selectedAction?.responsible}</Typography>
             </Box>
             <Box>
-              <Typography variant="subtitle2" color="textSecondary">
-                Squad
-              </Typography>
-              <Typography variant="body1">{selectedAction?.squad}</Typography>
-            </Box>
-            <Box>
-              <Typography variant="subtitle2" color="textSecondary">
-                Details
-              </Typography>
+              <Typography variant="subtitle2" color="textSecondary">Details</Typography>
               <Typography variant="body2">{selectedAction?.details}</Typography>
             </Box>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailsOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Action Dialog */}
+      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add Action</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <TextField
+              label="Action Name"
+              fullWidth
+              size="small"
+              value={newAction.description}
+              onChange={(e) => setNewAction({ ...newAction, description: e.target.value })}
+            />
+            <FormControl fullWidth size="small">
+              <InputLabel>Priority</InputLabel>
+              <Select
+                value={newAction.severity}
+                label="Priority"
+                onChange={(e) => setNewAction({ ...newAction, severity: e.target.value as any })}
+              >
+                <MenuItem value="high">High</MenuItem>
+                <MenuItem value="medium">Medium</MenuItem>
+                <MenuItem value="low">Low</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="User (if applicable)"
+              fullWidth
+              size="small"
+              value={newAction.sailor}
+              onChange={(e) => setNewAction({ ...newAction, sailor: e.target.value })}
+              placeholder="Leave blank if not user-specific"
+            />
+            <FormControl fullWidth size="small">
+              <InputLabel>Responsible</InputLabel>
+              <Select
+                value={newAction.responsible}
+                label="Responsible"
+                onChange={(e) => setNewAction({ ...newAction, responsible: e.target.value })}
+              >
+                {RESPONSIBLE_OPTIONS.map((opt) => (
+                  <MenuItem key={opt.name} value={opt.name}>{opt.name} ({opt.role})</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth size="small">
+              <InputLabel>Frequency</InputLabel>
+              <Select
+                value={newAction.cadence}
+                label="Frequency"
+                onChange={(e) => setNewAction({ ...newAction, cadence: e.target.value as any })}
+              >
+                <MenuItem value="">One-time</MenuItem>
+                <MenuItem value="daily">Daily</MenuItem>
+                <MenuItem value="weekly">Weekly</MenuItem>
+                <MenuItem value="fortnightly">Fortnightly</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAddAction} disabled={!newAction.description.trim()}>Add</Button>
         </DialogActions>
       </Dialog>
     </Box>

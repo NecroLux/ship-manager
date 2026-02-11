@@ -625,6 +625,14 @@ export const parseStaffComments = (
  * Get responsible staff for an action type
  */
 export const getResponsibleStaff = (actionType: string, squad: string): string => {
+  // Map squad names to squad leader names
+  const getSquadLeader = (sq: string): string => {
+    const sqLower = sq.toLowerCase();
+    if (sqLower.includes('necro')) return 'Necro';
+    if (sqLower.includes('shade')) return 'Shade';
+    return sq; // fallback to squad name
+  };
+
   if (
     actionType === 'compliance-issue' ||
     actionType === 'sailing-issue' ||
@@ -633,11 +641,11 @@ export const getResponsibleStaff = (actionType: string, squad: string): string =
     actionType === 'demotion-pending' ||
     actionType === 'suspension-pending'
   ) {
-    return 'Chief of Ship / Command';
+    return 'Spice';
   }
 
   if (actionType === 'award-eligible' || actionType === 'subclass-ready' || actionType === 'promotion-eligible') {
-    return 'First Officer';
+    return 'LadyHoit';
   }
 
   if (
@@ -648,10 +656,10 @@ export const getResponsibleStaff = (actionType: string, squad: string): string =
     actionType === 'engagement-needed' ||
     actionType === 'chat-activity'
   ) {
-    return `${squad} Squad Leader`;
+    return getSquadLeader(squad);
   }
 
-  return 'Command';
+  return 'Hoit';
 };
 
 export default {
