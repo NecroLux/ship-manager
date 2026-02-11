@@ -12,13 +12,11 @@
   TableContainer,
   TableHead,
   TableRow,
-  Button,
   LinearProgress,
   useTheme,
   Tooltip,
 } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import GroupIcon from '@mui/icons-material/Group';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
@@ -57,7 +55,7 @@ interface OverviewTabProps {
 }
 
 export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
-  const { data, loading, refreshData } = useSheetData();
+  const { data, loading } = useSheetData();
   const theme = useTheme();
 
   if (loading) {
@@ -173,7 +171,6 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
         <Box sx={{ flex: 1, display: 'flex' }}><Card sx={{ flex: 1 }}><CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">Compliance Breakdown</Typography>
-            <Button size="small" variant="outlined" startIcon={<RefreshIcon />} onClick={refreshData}>Refresh</Button>
           </Box>
           <Stack spacing={2}>
             <Box>
@@ -221,29 +218,29 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
                       {/* CO */}
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title={coMember ? 'Commanding Officer' : 'CO: Role available'}>
-                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: coMember ? '#FF5555' : '#9CA3AF', cursor: 'pointer', boxShadow: coMember ? '0 0 8px rgba(255,85,85,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: coMember ? '#6366f1' : '#9CA3AF', cursor: 'pointer', boxShadow: coMember ? '0 0 8px rgba(99,102,241,0.35)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.7rem', lineHeight: 1 }}>CO</Typography>
                           </Box>
                         </Tooltip>
-                        <Typography variant="caption" sx={{ fontWeight: 500, color: coMember ? '#FF5555' : '#9CA3AF' }}>{coMember || '—'}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: coMember ? '#818cf8' : '#9CA3AF' }}>{coMember || '—'}</Typography>
                       </Box>
                       {/* FO */}
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title={foMember ? 'First Officer' : 'FO: Role available'}>
-                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: foMember ? '#FF66B2' : '#9CA3AF', cursor: 'pointer', boxShadow: foMember ? '0 0 8px rgba(255,102,178,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: foMember ? '#8b5cf6' : '#9CA3AF', cursor: 'pointer', boxShadow: foMember ? '0 0 8px rgba(139,92,246,0.35)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.7rem', lineHeight: 1 }}>FO</Typography>
                           </Box>
                         </Tooltip>
-                        <Typography variant="caption" sx={{ fontWeight: 500, color: foMember ? '#FF66B2' : '#9CA3AF' }}>{foMember || '—'}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: foMember ? '#a78bfa' : '#9CA3AF' }}>{foMember || '—'}</Typography>
                       </Box>
                       {/* CoS */}
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title={cosMember ? 'Chief of Ship' : 'CoS: Role available'}>
-                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: cosMember ? '#D946EF' : '#9CA3AF', cursor: 'pointer', boxShadow: cosMember ? '0 0 8px rgba(217,70,239,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: cosMember ? '#a855f7' : '#9CA3AF', cursor: 'pointer', boxShadow: cosMember ? '0 0 8px rgba(168,85,247,0.35)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: 1 }}>CoS</Typography>
                           </Box>
                         </Tooltip>
-                        <Typography variant="caption" sx={{ fontWeight: 500, color: cosMember ? '#D946EF' : '#9CA3AF' }}>{cosMember || '—'}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: cosMember ? '#c084fc' : '#9CA3AF' }}>{cosMember || '—'}</Typography>
                       </Box>
                     </Box>
                   </Box>
