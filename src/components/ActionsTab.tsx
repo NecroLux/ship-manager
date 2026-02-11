@@ -279,12 +279,16 @@ export const ActionsTab = () => {
   // Filter actions by responsibility
   const filteredActions = useMemo(() => {
     switch (activeTab) {
-      case 'command':
-        return detectedActions.filter(a => a.responsible.includes('Chief of Ship') || a.responsible.includes('Command'));
+      case 'co':
+        return detectedActions.filter(a => a.responsible === 'Commanding Officer (Hoit)' || a.responsible === 'Command');
       case 'firstofficer':
-        return detectedActions.filter(a => a.responsible.includes('First Officer'));
-      case 'squadleader':
-        return detectedActions.filter(a => a.responsible.includes('Squad Leader'));
+        return detectedActions.filter(a => a.responsible === 'First Officer (LadyHoit)' || a.responsible === 'First Officer');
+      case 'cos':
+        return detectedActions.filter(a => a.responsible === 'Chief of Ship (Spice)' || a.responsible.includes('Chief of Ship'));
+      case 'squadleader1':
+        return detectedActions.filter(a => a.responsible.includes('Necro') || (a.responsible.includes('Squad Leader') && a.squad === 'Squad 1'));
+      case 'squadleader2':
+        return detectedActions.filter(a => a.responsible.includes('Shade') || (a.responsible.includes('Squad Leader') && a.squad === 'Squad 2'));
       default:
         return detectedActions;
     }
@@ -294,9 +298,11 @@ export const ActionsTab = () => {
   const counts = useMemo(() => {
     return {
       all: detectedActions.length,
-      command: detectedActions.filter(a => a.responsible.includes('Chief of Ship') || a.responsible.includes('Command')).length,
-      firstofficer: detectedActions.filter(a => a.responsible.includes('First Officer')).length,
-      squadleader: detectedActions.filter(a => a.responsible.includes('Squad Leader')).length,
+      co: detectedActions.filter(a => a.responsible === 'Commanding Officer (Hoit)' || a.responsible === 'Command').length,
+      firstofficer: detectedActions.filter(a => a.responsible === 'First Officer (LadyHoit)' || a.responsible === 'First Officer').length,
+      cos: detectedActions.filter(a => a.responsible === 'Chief of Ship (Spice)' || a.responsible.includes('Chief of Ship')).length,
+      squadleader1: detectedActions.filter(a => a.responsible.includes('Necro') || (a.responsible.includes('Squad Leader') && a.squad === 'Squad 1')).length,
+      squadleader2: detectedActions.filter(a => a.responsible.includes('Shade') || (a.responsible.includes('Squad Leader') && a.squad === 'Squad 2')).length,
     };
   }, [detectedActions]);
 
@@ -323,18 +329,10 @@ export const ActionsTab = () => {
 
   return (
     <Box sx={{ mt: 3 }}>
-      {/* Header Card */}
+      {/* Header with Tabs */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Box>
-              <Typography variant="h5" gutterBottom>
-                Crew Action Items
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                Intelligent detection of crew concerns requiring attention
-              </Typography>
-            </Box>
             <Button
               variant="outlined"
               startIcon={<RefreshIcon />}
@@ -352,9 +350,11 @@ export const ActionsTab = () => {
               onChange={(_e, newValue) => setActiveTab(newValue as any)}
             >
               <Tab label={`All Actions (${counts.all})`} value="all" />
-              <Tab label={`Chief of Ship (${counts.command})`} value="command" />
-              <Tab label={`First Officer (${counts.firstofficer})`} value="firstofficer" />
-              <Tab label={`Squad Leaders (${counts.squadleader})`} value="squadleader" />
+              <Tab label={`CO - Hoit (${counts.co})`} value="co" />
+              <Tab label={`First Officer - LadyHoit (${counts.firstofficer})`} value="firstofficer" />
+              <Tab label={`Chief of Ship - Spice (${counts.cos})`} value="cos" />
+              <Tab label={`Squad Leader 1 - Necro (${counts.squadleader1})`} value="squadleader1" />
+              <Tab label={`Squad Leader 2 - Shade (${counts.squadleader2})`} value="squadleader2" />
             </Tabs>
           </Box>
 
@@ -362,15 +362,15 @@ export const ActionsTab = () => {
           <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
             <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
               <Typography variant="caption" color="textSecondary">
-                Chief of Ship / Command
+                CO (Hoit)
               </Typography>
               <Typography variant="h6" sx={{ color: '#d32f2f' }}>
-                {counts.command}
+                {counts.co}
               </Typography>
             </Paper>
             <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
               <Typography variant="caption" color="textSecondary">
-                First Officer
+                First Officer (LadyHoit)
               </Typography>
               <Typography variant="h6" sx={{ color: '#f57c00' }}>
                 {counts.firstofficer}
@@ -378,10 +378,18 @@ export const ActionsTab = () => {
             </Paper>
             <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
               <Typography variant="caption" color="textSecondary">
-                Squad Leaders
+                Chief of Ship (Spice)
               </Typography>
               <Typography variant="h6" sx={{ color: '#1976d2' }}>
-                {counts.squadleader}
+                {counts.cos}
+              </Typography>
+            </Paper>
+            <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
+              <Typography variant="caption" color="textSecondary">
+                Squad Leaders
+              </Typography>
+              <Typography variant="h6" sx={{ color: '#7c3aed' }}>
+                {counts.squadleader1 + counts.squadleader2}
               </Typography>
             </Paper>
           </Stack>
@@ -453,50 +461,6 @@ export const ActionsTab = () => {
           </Table>
         </TableContainer>
       </Paper>
-
-      {/* Info Section */}
-      <Card sx={{ mt: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Action Types
-          </Typography>
-          <Stack spacing={2}>
-            <Box>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                <ErrorIcon sx={{ color: '#d32f2f', fontSize: 20 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  Compliance Issue
-                </Typography>
-              </Stack>
-              <Typography variant="body2" color="textSecondary" sx={{ ml: 4 }}>
-                Member is inactive or flagged - requires immediate command attention
-              </Typography>
-            </Box>
-            <Box>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                <ErrorIcon sx={{ color: '#d32f2f', fontSize: 20 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  Sailing / Hosting Issue
-                </Typography>
-              </Stack>
-              <Typography variant="body2" color="textSecondary" sx={{ ml: 4 }}>
-                Member has flagged sailing or hosting status - requires command review
-              </Typography>
-            </Box>
-            <Box>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                <WarningIcon sx={{ color: '#f57c00', fontSize: 20 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  No Chat Activity
-                </Typography>
-              </Stack>
-              <Typography variant="body2" color="textSecondary" sx={{ ml: 4 }}>
-                Member has zero stars/activity - squad leader should encourage participation
-              </Typography>
-            </Box>
-          </Stack>
-        </CardContent>
-      </Card>
 
       {/* Details Dialog */}
       <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} maxWidth="sm" fullWidth>

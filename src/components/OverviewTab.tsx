@@ -76,7 +76,7 @@ export const OverviewTab = () => {
     
     const squadMap: Record<string, SquadStatsDetailed> = {};
     const commandStaffMembers: Array<{ name: string; rank: string }> = [];
-    let currentSquad = 'Command Staff';
+    let currentSquad = '';
 
     gullinRows.forEach((row) => {
       const rank = (row[headers[0]] || '').trim();
@@ -145,7 +145,7 @@ export const OverviewTab = () => {
       }
 
       // Track Command Staff members for split display
-      if (currentSquad === 'Command Staff') {
+      if (currentSquad.trim().toLowerCase() === 'command staff') {
         commandStaffMembers.push({ name, rank });
       }
     });
@@ -170,8 +170,7 @@ export const OverviewTab = () => {
 
     let actionCount = 0;
     const headers = data.gullinbursti.headers;
-    let currentSquad = 'Command Staff';
-
+    let currentSquad = '';
     data.gullinbursti.rows.forEach((row) => {
       const rank = (row[headers[0]] || '').trim();
       const name = (row[headers[1]] || '').trim();
@@ -248,7 +247,7 @@ export const OverviewTab = () => {
     const crewRanks: Record<string, string> = {};
 
     // Build crew name and rank map
-    let currentSquad = 'Command Staff';
+    let currentSquad = '';
     data.gullinbursti.rows.forEach((row) => {
       const rank = (row[data.gullinbursti.headers[0]] || '').trim();
       const name = (row[data.gullinbursti.headers[1]] || '').trim();
