@@ -181,9 +181,15 @@ export const OverviewTab = () => {
                 squad.members.forEach((m) => {
                   const nL = m.name.toLowerCase();
                   const rL = m.rank.toLowerCase();
-                  if (rL.includes('commander') && !nL.includes('lady')) coMember = m.name;
-                  else if (nL.includes('ladyhoit') || rL.includes('midship')) foMember = m.name;
-                  else if (nL.includes('spice') || rL.includes('scpo') || rL.includes('senior chief')) cosMember = m.name;
+                  // CO: rank is "Lt. Commander" or "Commander" (but not "Lt." alone) — match first found only
+                  if (!coMember && (rL === 'lt. commander' || rL === 'commander' || (rL.includes('commander') && !rL.includes('midship')))) {
+                    // Exclude FO/CoS names to avoid false matches
+                    if (!nL.includes('lady') && !nL.includes('spice')) coMember = m.name;
+                  }
+                  // FO: match by name (LadyHoit) or rank (Midshipwoman/Midshipman)
+                  if (!foMember && (nL.includes('ladyhoit') || rL.includes('midship'))) foMember = m.name;
+                  // CoS: match by name (Spice) or rank (SCPO/Senior Chief)
+                  if (!cosMember && (nL.includes('spice') || rL.includes('scpo') || rL.includes('senior chief'))) cosMember = m.name;
                 });
                 return (
                   <Box key={squad.name}>

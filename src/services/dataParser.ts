@@ -298,21 +298,43 @@ export const parseAllCrewMembers = (rows: Record<string, string>[]): ParsedCrewM
 export const parseLeaderboardEntry = (row: Record<string, string>): ParsedLeaderboardEntry => {
   const rowKeys = Object.keys(row);
 
+  // Log headers once for debugging
+  if (!(parseLeaderboardEntry as any)._logged) {
+    console.log('[Voyage Awards] Row keys:', rowKeys);
+    console.log('[Voyage Awards] Sample row values:', rowKeys.map(k => `${k}=${row[k]}`).join(' | '));
+    (parseLeaderboardEntry as any)._logged = true;
+  }
+
   // Fuzzy header matcher — same approach as parseCrewMember
+  // For count/number fields, validates the result is numeric and falls back to positional if not
   const getVal = (numIndex: number, ...headerNames: string[]): string => {
     // Try numeric index (for array-indexed rows)
     if (row[numIndex] !== undefined) return (row[numIndex] || '').trim();
-    // Try exact header names
+    // Try exact header names (case-sensitive)
     for (const h of headerNames) {
       if (row[h] !== undefined) return (row[h] || '').trim();
     }
-    // Fuzzy match
+    // Try case-insensitive exact match first (before fuzzy)
+    for (const h of headerNames) {
+      const hLower = h.toLowerCase();
+      for (const key of rowKeys) {
+        if (key.toLowerCase() === hLower) {
+          return (row[key] || '').trim();
+        }
+      }
+    }
+    // Fuzzy match — but require minimum 4 char overlap to avoid false positives
     for (const h of headerNames) {
       const search = h.toLowerCase().replace(/[_\s]/g, '');
+      if (search.length < 3) continue; // skip tiny search terms
       for (const key of rowKeys) {
         const keyNorm = key.toLowerCase().replace(/[_\s]/g, '');
-        if (keyNorm === search || keyNorm.includes(search) || search.includes(keyNorm)) {
-          return (row[key] || '').trim();
+        if (keyNorm === search) return (row[key] || '').trim();
+        // Only match if the shorter string is at least 4 chars to avoid false positives
+        if (keyNorm.length >= 4 && search.length >= 4) {
+          if (keyNorm.includes(search) || search.includes(keyNorm)) {
+            return (row[key] || '').trim();
+          }
         }
       }
     }
@@ -321,9 +343,23 @@ export const parseLeaderboardEntry = (row: Record<string, string>): ParsedLeader
     return '';
   };
 
-  const voyageCount = parseInt(getVal(VOYAGE_AWARDS_COLUMNS.TOTAL_VOYAGES, 'Total Voyages', 'TOTAL_VOYAGES', 'Voyages') || '0', 10) || 0;
-  const hostCount = parseInt(getVal(VOYAGE_AWARDS_COLUMNS.HOST_COUNT, 'Host Count', 'HOST_COUNT', 'Hosts', 'Times Hosted') || '0', 10) || 0;
-  const daysInactive = parseInt(getVal(VOYAGE_AWARDS_COLUMNS.DAYS_INACTIVE, 'Days Inactive', 'DAYS_INACTIVE', 'Inactive') || '0', 10) || 0;
+  // For numeric fields, try header match first, but if result isn't a number, use positional fallback
+  const getNumVal = (numIndex: number, ...headerNames: string[]): number => {
+    const headerResult = getVal(numIndex, ...headerNames);
+    const parsed = parseInt(headerResult || '0', 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+    // If header match gave non-numeric, try positional directly
+    if (numIndex < rowKeys.length) {
+      const positional = (row[rowKeys[numIndex]] || '').trim();
+      const posParsed = parseInt(positional || '0', 10);
+      if (!isNaN(posParsed)) return posParsed;
+    }
+    return 0;
+  };
+
+  const voyageCount = getNumVal(VOYAGE_AWARDS_COLUMNS.TOTAL_VOYAGES, 'Total Voyages', 'TOTAL_VOYAGES', 'Voyages', 'Official Voyages', 'Voyages Attended', 'Total Official Voyages', '# Voyages');
+  const hostCount = getNumVal(VOYAGE_AWARDS_COLUMNS.HOST_COUNT, 'Host Count', 'HOST_COUNT', 'Hosts', 'Times Hosted', 'Hosted', '# Hosts');
+  const daysInactive = getNumVal(VOYAGE_AWARDS_COLUMNS.DAYS_INACTIVE, 'Days Inactive', 'DAYS_INACTIVE', 'Inactive', 'Days Since Last Voyage');
 
   return {
     name: getVal(VOYAGE_AWARDS_COLUMNS.NAME, 'Name', 'NAME', 'Sailor'),

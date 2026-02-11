@@ -474,7 +474,7 @@ export const UsersTab = () => {
                                   sx={{
                                     fontWeight: 600,
                                     fontSize: '0.9rem',
-                                    color: sailor.voyageCount > 0 ? '#60A5FA' : '#6b7280',
+                                    color: sailor.voyageCount > 0 ? '#FFFFFF' : '#6b7280',
                                   }}
                                 >
                                   {sailor.voyageCount}
@@ -487,7 +487,7 @@ export const UsersTab = () => {
                                   sx={{
                                     fontWeight: 600,
                                     fontSize: '0.9rem',
-                                    color: sailor.hostCount > 0 ? '#34D399' : '#6b7280',
+                                    color: sailor.hostCount > 0 ? '#FFFFFF' : '#6b7280',
                                   }}
                                 >
                                   {sailor.hostCount}
