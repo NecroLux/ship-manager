@@ -38,6 +38,7 @@ import {
   type AwardCategory,
 } from '../config/AwardsConfig';
 import { isRankAtOrAbove } from '../config/RankCodes';
+import { buildKnownAwardsSet, isKnownAwarded } from '../config/KnownAwards';
 
 // ==================== TYPES ====================
 
@@ -166,6 +167,7 @@ export const AwardsTab = () => {
     const leaderboardData = data.voyageAwards?.rows ? parseAllLeaderboardEntries(data.voyageAwards.rows) : [];
     const enrichedCrew = crew.map((m) => enrichCrewWithLeaderboardData(m, leaderboardData));
     const awardedSet = getAwardedSet();
+    const knownSet = buildKnownAwardsSet();
     const now = new Date();
 
     const results: EligibleAward[] = [];
@@ -220,7 +222,7 @@ export const AwardsTab = () => {
             squad: member.squad,
             responsible: getResponsiblePerson(award.responsibleRank, member.squad, commandStaff),
             currentValue: valueStr,
-            awarded: awardedSet.has(key),
+            awarded: awardedSet.has(key) || isKnownAwarded(knownSet, award.id, member.name),
           });
         }
       });
