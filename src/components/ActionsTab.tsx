@@ -362,12 +362,12 @@ export const ActionsTab = () => {
               value={activeTab} 
               onChange={(_e, newValue) => setActiveTab(newValue as any)}
             >
-              <Tab label={`All Actions (${counts.all})`} value="all" />
-              <Tab label={`CO - Hoit (${counts.co})`} value="co" />
-              <Tab label={`First Officer - LadyHoit (${counts.firstofficer})`} value="firstofficer" />
-              <Tab label={`Chief of Ship - Spice (${counts.cos})`} value="cos" />
-              <Tab label={`Squad Leader 1 - Necro (${counts.squadleader1})`} value="squadleader1" />
-              <Tab label={`Squad Leader 2 - Shade (${counts.squadleader2})`} value="squadleader2" />
+              <Tab label={`All (${counts.all})`} value="all" />
+              <Tab label={`CO (${counts.co})`} value="co" />
+              <Tab label={`FO (${counts.firstofficer})`} value="firstofficer" />
+              <Tab label={`COS (${counts.cos})`} value="cos" />
+              <Tab label={`SL1 (${counts.squadleader1})`} value="squadleader1" />
+              <Tab label={`SL2 (${counts.squadleader2})`} value="squadleader2" />
             </Tabs>
           </Box>
 

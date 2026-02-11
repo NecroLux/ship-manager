@@ -112,21 +112,27 @@ export const OverviewTab = () => {
         }
       }
 
-      // Categorize compliance
-      const complianceNorm = compliance.toLowerCase();
+      // Categorize compliance - check exact compliance value from Gullinbursti
+      const complianceNorm = compliance.toLowerCase().trim();
       let isActive = false;
       let isFlagged = false;
       
-      if (complianceNorm.includes('active') || complianceNorm.includes('duty') || complianceNorm === 'yes' || compliance === '') {
+      // Active status: exact match or contains "active"
+      if (complianceNorm === 'active' || complianceNorm.includes('active') || complianceNorm === 'yes') {
         isActive = true;
         activeCrew++;
-      } else if (complianceNorm.includes('loa')) {
+      } 
+      // LOA statuses: any variation of LOA
+      else if (complianceNorm.startsWith('loa')) {
         loaCrew++;
-      } else if (complianceNorm === 'flagged' || complianceNorm === 'no' || complianceNorm === 'non-compliant' || complianceNorm === 'inactive') {
+      } 
+      // Flagged/Non-compliant: exact matches
+      else if (complianceNorm === 'flagged' || complianceNorm === 'no' || complianceNorm === 'non-compliant' || complianceNorm === 'inactive' || complianceNorm === 'requires action') {
         isFlagged = true;
         flaggedCrew++;
-      } else {
-        // Default to active if unclear
+      }
+      // Empty or unknown = consider as active (crew with no flag)
+      else if (complianceNorm === '') {
         isActive = true;
         activeCrew++;
       }
@@ -338,32 +344,6 @@ export const OverviewTab = () => {
       .slice(0, 5);
   };
 
-  const getRankColor = (rank: string) => {
-    if (!rank) return '#B3B3B3';
-    const rankLower = rank.toLowerCase();
-    
-    if (rankLower.includes('commander') && !rankLower.includes('petty')) {
-      return '#FF5555'; // Bright Red
-    }
-    if (rankLower.includes('midship')) {
-      return '#FF66B2'; // Bright Pink
-    }
-    if (rankLower.includes('scpo') || (rankLower.includes('senior') && rankLower.includes('petty'))) {
-      return '#D946EF'; // Bright Purple
-    }
-    if (rankLower.includes('petty') || rankLower.includes('jr.')) {
-      return '#60A5FA'; // Bright Blue
-    }
-    if (rankLower.includes('able') || rankLower.includes('seaman')) {
-      return '#34D399'; // Bright Green
-    }
-    if (rankLower.includes('sailor')) {
-      return '#60A5FA'; // Bright Blue
-    }
-    
-    return '#B3B3B3';
-  };
-
   const crewAnalysis = analyzeCrewData();
   const actionsCount = getActionsCount();
   const topHosts = getTopHosts();
@@ -373,7 +353,7 @@ export const OverviewTab = () => {
     <Box sx={{ mt: 3 }}>
       {/* Key Metrics Cards */}
       <Stack direction={{ xs: 'column', sm: 'row', md: 'row' }} spacing={2} sx={{ mb: 3 }} useFlexGap>
-        <Card sx={{ flex: 1, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(76, 175, 80, 0.05)' }}>
+        <Card sx={{ flex: 1 }}>
           <CardContent>
             <Stack spacing={1}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -463,7 +443,7 @@ export const OverviewTab = () => {
 
                 <Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2">Requires Attention (LOA)</Typography>
+                    <Typography variant="body2">Requires Attention</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'warning.main' }}>
                       {crewAnalysis.loaCrew}
                     </Typography>
@@ -477,7 +457,7 @@ export const OverviewTab = () => {
 
                 <Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2">Requires Action (Flagged)</Typography>
+                    <Typography variant="body2">Requires Action</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'error.main' }}>
                       {crewAnalysis.flaggedCrew}
                     </Typography>
@@ -514,25 +494,45 @@ export const OverviewTab = () => {
                           <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
                             Command Staff
                           </Typography>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
-                              {squad.members.map((member, idx) => (
-                                <Tooltip key={idx} title={`${member.name}`}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                            {squad.members.map((member, idx) => {
+                              let bgColor = '#6b7280';
+                              let role = 'Staff';
+                              
+                              // Determine role and color based on name
+                              if (member.name.toLowerCase().includes('hoit')) {
+                                bgColor = '#FF5555'; // Red for CO
+                                role = 'CO';
+                              } else if (member.name.toLowerCase().includes('ladyhoit')) {
+                                bgColor = '#FF66B2'; // Pink for FO
+                                role = 'FO';
+                              } else if (member.name.toLowerCase().includes('spice')) {
+                                bgColor = '#D946EF'; // Purple for COS
+                                role = 'COS';
+                              }
+                              
+                              return (
+                                <Tooltip key={idx} title={`Click to view ${member.name} details`}>
                                   <Chip
-                                    label={member.name}
+                                    label={`${member.name} (${role})`}
                                     size="small"
+                                    onClick={() => {
+                                      // Link to user details - can be implemented later
+                                      console.log(`View ${member.name} details`);
+                                    }}
                                     sx={{
-                                      backgroundColor: getRankColor(member.rank),
+                                      backgroundColor: bgColor,
                                       color: 'white',
                                       fontWeight: 'bold',
+                                      cursor: 'pointer',
+                                      '&:hover': {
+                                        opacity: 0.8,
+                                      }
                                     }}
                                   />
                                 </Tooltip>
-                              ))}
-                            </Stack>
-                            <Typography variant="body2" sx={{ fontWeight: 'bold', ml: 1 }}>
-                              {squad.totalCount}
-                            </Typography>
+                              );
+                            })}
                           </Box>
                         </Box>
                       );
