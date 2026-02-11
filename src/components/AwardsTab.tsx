@@ -387,10 +387,10 @@ export const AwardsTab = () => {
           sx={{ '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minWidth: 80 } }}
         >
           <Tab label={`All (${counts.total})`} value="all" />
-          <Tab label={`CO (${counts.co})`} value="co" />
-          <Tab label={`XO (${counts.xo})`} value="xo" />
-          <Tab label={`CoS (${counts.cos})`} value="cos" />
           <Tab label={`SL (${counts.sl})`} value="sl" />
+          <Tab label={`CoS (${counts.cos})`} value="cos" />
+          <Tab label={`FO (${counts.xo})`} value="xo" />
+          <Tab label={`CO (${counts.co})`} value="co" />
           <Tab label={`BOA (${counts.boa})`} value="boa" />
           <Tab label="All Awards Ref" value="ref" />
         </Tabs>
