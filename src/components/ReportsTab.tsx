@@ -230,7 +230,7 @@ export const ReportsTab = () => {
         doc.text('Voyages', colX.voyages, yPosition);
         doc.text('Hosted', colX.hosted, yPosition);
         doc.text('TZ', colX.tz, yPosition);
-        doc.text('Chat', colX.activity, yPosition);
+        doc.text('Discord', colX.activity, yPosition);
         yPosition += 2;
 
         doc.setDrawColor(180);
@@ -267,10 +267,22 @@ export const ReportsTab = () => {
           // Timezone
           doc.text((sailor.timezone || '-').replace(/\s*\(.*?\)/, '').substring(0, 8), colX.tz, yPosition);
 
-          // Chat activity (filled/empty circles)
-          const stars = Math.min(sailor.chatActivity || 0, 5);
-          const starStr = '\u25CF'.repeat(stars) + '\u25CB'.repeat(5 - stars);
-          doc.text(starStr, colX.activity, yPosition);
+          // Discord activity (drawn circles — jsPDF can't render Unicode symbols)
+          const activityCount = Math.min(sailor.chatActivity || 0, 5);
+          const circleRadius = 1.2;
+          const circleSpacing = 3.2;
+          const circleY = yPosition - 1.2; // vertically center with text baseline
+          for (let i = 0; i < 5; i++) {
+            const cx = colX.activity + i * circleSpacing + circleRadius;
+            if (i < activityCount) {
+              doc.setFillColor(60, 60, 60);
+              doc.circle(cx, circleY, circleRadius, 'F');
+            } else {
+              doc.setDrawColor(160);
+              doc.circle(cx, circleY, circleRadius, 'S');
+            }
+          }
+          doc.setDrawColor(0);
 
           yPosition += 4.5;
         });
