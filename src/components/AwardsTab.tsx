@@ -18,10 +18,8 @@ import {
   Tooltip,
   IconButton,
   Collapse,
-  useTheme,
 } from '@mui/material';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -138,7 +136,6 @@ const getSeverityColor = (tier: number): string => {
 
 export const AwardsTab = () => {
   const { data, loading } = useSheetData();
-  const theme = useTheme();
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [awardedTick, setAwardedTick] = useState(0);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -333,8 +330,8 @@ export const AwardsTab = () => {
   return (
     <Box sx={{ mt: 3 }}>
       {/* Header cards */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }} useFlexGap>
-        <Card sx={{ flex: 1, minHeight: 100 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3, justifyContent: 'center' }} useFlexGap>
+        <Card sx={{ minWidth: 200, minHeight: 100 }}>
           <CardContent sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
             <Stack spacing={1}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -342,42 +339,6 @@ export const AwardsTab = () => {
                 <Typography color="textSecondary" variant="body2">Eligible Awards</Typography>
               </Box>
               <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#eab308' }}>{counts.total}</Typography>
-            </Stack>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: 1, minHeight: 100, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)' }}>
-          <CardContent sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
-            <Stack spacing={1}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <MilitaryTechIcon sx={{ color: '#3b82f6' }} />
-                <Typography color="textSecondary" variant="body2">By Responsible</Typography>
-              </Box>
-              <Stack direction="row" spacing={3} alignItems="baseline">
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#60A5FA', lineHeight: 1 }}>{counts.sl1}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL1</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#38BDF8', lineHeight: 1 }}>{counts.sl2}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL2</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#D946EF', lineHeight: 1 }}>{counts.cos}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CoS</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF66B2', lineHeight: 1 }}>{counts.fo}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>FO</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF5555', lineHeight: 1 }}>{counts.co}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CO</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#eab308', lineHeight: 1 }}>{counts.boa}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>BOA</Typography>
-                </Stack>
-              </Stack>
             </Stack>
           </CardContent>
         </Card>

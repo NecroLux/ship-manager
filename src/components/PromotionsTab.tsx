@@ -18,7 +18,6 @@ import {
   Tooltip,
   IconButton,
   LinearProgress,
-  useTheme,
 } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -138,7 +137,6 @@ const getReadinessColor = (pct: number): string => {
 
 export const PromotionsTab = () => {
   const { data, loading } = useSheetData();
-  const theme = useTheme();
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [tick, setTick] = useState(0);
 
@@ -319,8 +317,8 @@ export const PromotionsTab = () => {
   return (
     <Box sx={{ mt: 3 }}>
       {/* Header cards */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }} useFlexGap>
-        <Card sx={{ flex: 1, minHeight: 100 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3, justifyContent: 'center' }} useFlexGap>
+        <Card sx={{ minWidth: 200, minHeight: 100 }}>
           <CardContent sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
             <Stack spacing={1}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -331,7 +329,7 @@ export const PromotionsTab = () => {
             </Stack>
           </CardContent>
         </Card>
-        <Card sx={{ flex: 1, minHeight: 100, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(34,197,94,0.1)' : 'rgba(34,197,94,0.05)' }}>
+        <Card sx={{ minWidth: 200, minHeight: 100 }}>
           <CardContent sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
             <Stack spacing={1}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -350,42 +348,6 @@ export const PromotionsTab = () => {
                 <Stack alignItems="center" spacing={0.5}>
                   <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#ef4444', lineHeight: 1 }}>{readyCounts.early}</Typography>
                   <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>Early</Typography>
-                </Stack>
-              </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: 1, minHeight: 100, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)' }}>
-          <CardContent sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
-            <Stack spacing={1}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ArrowUpwardIcon sx={{ color: '#60A5FA' }} />
-                <Typography color="textSecondary" variant="body2">By Responsible</Typography>
-              </Box>
-              <Stack direction="row" spacing={3} alignItems="baseline">
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#60A5FA', lineHeight: 1 }}>{counts.sl1}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL1</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#38BDF8', lineHeight: 1 }}>{counts.sl2}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL2</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#D946EF', lineHeight: 1 }}>{counts.cos}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CoS</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF66B2', lineHeight: 1 }}>{counts.fo}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>FO</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF5555', lineHeight: 1 }}>{counts.co}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CO</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#eab308', lineHeight: 1 }}>{counts.boa}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>BOA</Typography>
                 </Stack>
               </Stack>
             </Stack>
