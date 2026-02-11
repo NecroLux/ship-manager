@@ -20,6 +20,7 @@ import { UsersTab } from './components/UsersTab';
 import { OverviewTab } from './components/OverviewTab';
 import { ActionsTab } from './components/ActionsTab';
 import { AwardsTab } from './components/AwardsTab';
+import { PromotionsTab } from './components/PromotionsTab';
 import { ReportsTab } from './components/ReportsTab';
 import { LinkedSheetsTab } from './components/LinkedSheetsTab';
 import { SheetProvider } from './context/SheetDataContext';
@@ -93,6 +94,7 @@ function AppContent() {
             <Tab label="Crew" sx={{ flex: 1 }} />
             <Tab label="Actions" sx={{ flex: 1 }} />
             <Tab label="Awards" sx={{ flex: 1 }} />
+            <Tab label="Promotions" sx={{ flex: 1 }} />
             <Tab label="Reports" sx={{ flex: 1 }} />
             <Tab label="Config" sx={{ flex: 1 }} />
           </Tabs>
@@ -118,13 +120,18 @@ function AppContent() {
           <AwardsTab />
         )}
 
-        {/* Reports Tab */}
+        {/* Promotions Tab */}
         {activeTab === 4 && (
+          <PromotionsTab />
+        )}
+
+        {/* Reports Tab */}
+        {activeTab === 5 && (
           <ReportsTab />
         )}
 
         {/* Config Tab */}
-        {activeTab === 5 && (
+        {activeTab === 6 && (
           <LinkedSheetsTab />
         )}
       </Container>

@@ -53,7 +53,7 @@ interface EligibleAward {
   awarded: boolean;
 }
 
-type FilterTab = 'all' | 'voyage' | 'conduct' | 'service' | 'manual';
+type FilterTab = 'all' | 'co' | 'xo' | 'cos' | 'sl' | 'boa' | 'ref';
 
 // ==================== LOCAL STORAGE ====================
 
@@ -112,12 +112,7 @@ const getResponsiblePerson = (
   return responsibleRank;
 };
 
-const categoryToFilter = (cat: AwardCategory): FilterTab => {
-  if (cat === 'voyage-attending' || cat === 'voyage-hosting' || cat === 'voyage-public') return 'voyage';
-  if (cat === 'conduct') return 'conduct';
-  if (cat === 'service-stripes') return 'service';
-  return 'manual';
-};
+// Filtering is now by responsible person, not category
 
 const getSeverityColor = (tier: number): string => {
   if (tier >= 4) return '#dc2626'; // High tier → red
@@ -247,19 +242,37 @@ export const AwardsTab = () => {
     setAwardedTick((t) => t + 1);
   }, []);
 
-  // Filter by tab
+  // Filter by tab (responsible person)
   const filtered = useMemo(() => {
     if (activeTab === 'all') return eligibleAwards;
-    return eligibleAwards.filter((e) => categoryToFilter(e.award.category) === activeTab);
+    if (activeTab === 'ref') return eligibleAwards; // ref tab shows reference, not table
+    // Map tab to responsible person name
+    const matchPerson = (responsible: string): boolean => {
+      const r = responsible.toLowerCase();
+      switch (activeTab) {
+        case 'co': return r.includes('hoit') && !r.includes('lady');
+        case 'xo': return r.includes('ladyhoit') || r.includes('lady');
+        case 'cos': return r.includes('spice');
+        case 'sl': return r.includes('necro') || r.includes('shade');
+        case 'boa': return r.includes('admiralty') || r.includes('fleet');
+        default: return false;
+      }
+    };
+    return eligibleAwards.filter((e) => matchPerson(e.responsible));
   }, [eligibleAwards, activeTab]);
 
-  // Summary counts
+  // Summary counts by responsible person
   const counts = useMemo(() => {
-    const total = eligibleAwards.filter((e) => !e.awarded).length;
-    const voyage = eligibleAwards.filter((e) => !e.awarded && categoryToFilter(e.award.category) === 'voyage').length;
-    const conduct = eligibleAwards.filter((e) => !e.awarded && categoryToFilter(e.award.category) === 'conduct').length;
-    const service = eligibleAwards.filter((e) => !e.awarded && categoryToFilter(e.award.category) === 'service').length;
-    return { total, voyage, conduct, service };
+    const pending = eligibleAwards.filter((e) => !e.awarded);
+    const byPerson = (test: (r: string) => boolean) => pending.filter((e) => test(e.responsible.toLowerCase())).length;
+    return {
+      total: pending.length,
+      co: byPerson((r) => r.includes('hoit') && !r.includes('lady')),
+      xo: byPerson((r) => r.includes('ladyhoit') || r.includes('lady')),
+      cos: byPerson((r) => r.includes('spice')),
+      sl: byPerson((r) => r.includes('necro') || r.includes('shade')),
+      boa: byPerson((r) => r.includes('admiralty') || r.includes('fleet')),
+    };
   }, [eligibleAwards]);
 
   // All awards grouped by category (for the reference section)
@@ -300,20 +313,28 @@ export const AwardsTab = () => {
             <Stack spacing={1}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <MilitaryTechIcon sx={{ color: '#3b82f6' }} />
-                <Typography color="textSecondary" variant="body2">Breakdown</Typography>
+                <Typography color="textSecondary" variant="body2">By Responsible</Typography>
               </Box>
               <Stack direction="row" spacing={3} alignItems="baseline">
                 <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#3b82f6', lineHeight: 1 }}>{counts.voyage}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>Voyage</Typography>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF5555', lineHeight: 1 }}>{counts.co}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CO</Typography>
                 </Stack>
                 <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#22c55e', lineHeight: 1 }}>{counts.conduct}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>Conduct</Typography>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#FF66B2', lineHeight: 1 }}>{counts.xo}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>XO</Typography>
                 </Stack>
                 <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#a855f7', lineHeight: 1 }}>{counts.service}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>Service</Typography>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#D946EF', lineHeight: 1 }}>{counts.cos}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>CoS</Typography>
+                </Stack>
+                <Stack alignItems="center" spacing={0.5}>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#60A5FA', lineHeight: 1 }}>{counts.sl}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>SL</Typography>
+                </Stack>
+                <Stack alignItems="center" spacing={0.5}>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#eab308', lineHeight: 1 }}>{counts.boa}</Typography>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>BOA</Typography>
                 </Stack>
               </Stack>
             </Stack>
@@ -321,7 +342,7 @@ export const AwardsTab = () => {
         </Card>
       </Stack>
 
-      {/* Filter tabs */}
+      {/* Filter tabs — by responsible person */}
       <Box sx={{ mb: 2 }}>
         <Tabs
           value={activeTab}
@@ -331,15 +352,17 @@ export const AwardsTab = () => {
           sx={{ '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minWidth: 80 } }}
         >
           <Tab label={`All (${counts.total})`} value="all" />
-          <Tab label={`Voyage (${counts.voyage})`} value="voyage" />
-          <Tab label={`Conduct (${counts.conduct})`} value="conduct" />
-          <Tab label={`Service (${counts.service})`} value="service" />
-          <Tab label="All Awards Ref" value="manual" />
+          <Tab label={`CO (${counts.co})`} value="co" />
+          <Tab label={`XO (${counts.xo})`} value="xo" />
+          <Tab label={`CoS (${counts.cos})`} value="cos" />
+          <Tab label={`SL (${counts.sl})`} value="sl" />
+          <Tab label={`BOA (${counts.boa})`} value="boa" />
+          <Tab label="All Awards Ref" value="ref" />
         </Tabs>
       </Box>
 
       {/* Main content: eligible list or reference table */}
-      {activeTab !== 'manual' ? (
+      {activeTab !== 'ref' ? (
         <Card>
           <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
             {filtered.length === 0 ? (
