@@ -8,179 +8,148 @@ import {
 import DownloadIcon from '@mui/icons-material/Download';
 import { useState } from 'react';
 import { useSheetData } from '../context/SheetDataContext';
-import { parseAllCrewMembers } from '../services/dataParser';
+import {
+  parseAllCrewMembers,
+  parseAllLeaderboardEntries,
+  enrichCrewWithLeaderboardData,
+  getTopHosts as getTopHostsFromParser,
+  getTopVoyagers as getTopVoyagersFromParser,
+} from '../services/dataParser';
 import jsPDF from 'jspdf';
 
-export function ReportsTab() {
+export const ReportsTab = () => {
   const { data } = useSheetData();
   const [coNotes, setCoNotes] = useState<string>('');
 
-  // Get crew data directly from live sheet data
-  const getCrew = () => {
-    return parseAllCrewMembers(data.gullinbursti?.rows || []);
-  };
-
-  // Extract leaderboards from voyage awards sheet
-  const getLeaderboards = () => {
-    const voyageRows = data.voyageAwards.rows;
-
-    if (!voyageRows || voyageRows.length === 0) {
-      return { topHosts: [] as any[], topVoyagers: [] as any[] };
-    }
-
-    interface VoyageRow {
-      name: string;
-      hostCount: number;
-      voyageCount: number;
-    }
-
-    const crewMap: Record<string, VoyageRow> = {};
-
-    const crewNames = new Set<string>();
-    data.gullinbursti.rows.forEach((row) => {
-      const name = (row[data.gullinbursti.headers[1]] || '').trim();
-      if (name && name !== 'Name') {
-        crewNames.add(name);
-      }
-    });
-
-    voyageRows.forEach((row) => {
-      let matchedName = '';
-      let hostCount = 0;
-      let voyageCount = 0;
-
-      Object.entries(row).forEach(([key, value]) => {
-        const valueStr = (value || '').trim();
-
-        if (!matchedName && crewNames.has(valueStr)) {
-          matchedName = valueStr;
-        }
-
-        const keyLower = key.toLowerCase();
-        if (keyLower.includes('host') && !isNaN(Number(value))) {
-          hostCount = Math.max(hostCount, parseInt(value as string, 10) || 0);
-        }
-
-        if (keyLower.includes('voyage') && !isNaN(Number(value))) {
-          voyageCount = Math.max(voyageCount, parseInt(value as string, 10) || 0);
-        }
-      });
-
-      if (matchedName && (hostCount > 0 || voyageCount > 0)) {
-        if (!crewMap[matchedName]) {
-          crewMap[matchedName] = { name: matchedName, hostCount: 0, voyageCount: 0 };
-        }
-        crewMap[matchedName].hostCount = Math.max(crewMap[matchedName].hostCount, hostCount);
-        crewMap[matchedName].voyageCount = Math.max(crewMap[matchedName].voyageCount, voyageCount);
-      }
-    });
-
-    const crewArray = Object.values(crewMap).filter(c => c.name && c.name !== '-');
-
-    const topHosts = crewArray
-      .filter(c => c.hostCount > 0)
-      .sort((a, b) => b.hostCount - a.hostCount)
-      .slice(0, 5);
-
-    const topVoyagers = crewArray
-      .filter(c => c.voyageCount > 0)
-      .sort((a, b) => b.voyageCount - a.voyageCount)
-      .slice(0, 5);
-
-    return { topHosts, topVoyagers };
-  };
-
-  // Generate PDF report using live data
+  // Generate PDF report using live data — matches Overview & Crew tabs exactly
   const generatePDF = (notes: string = '') => {
     try {
-      const crew = getCrew();
-
+      const crew = parseAllCrewMembers(data.gullinbursti?.rows || []);
       if (!crew || crew.length === 0) {
         alert('No crew data available for the report.');
         return;
       }
 
-      const { topHosts, topVoyagers } = getLeaderboards();
-      const doc = new jsPDF();
+      // Get leaderboard data (same source as Overview tab)
+      const leaderboardData = data.voyageAwards?.rows
+        ? parseAllLeaderboardEntries(data.voyageAwards.rows)
+        : [];
+      const topHosts = leaderboardData.length > 0 ? getTopHostsFromParser(leaderboardData, 10) : [];
+      const topVoyagers = leaderboardData.length > 0 ? getTopVoyagersFromParser(leaderboardData, 10) : [];
 
+      // Enrich crew with voyage/host counts (same as Crew tab)
+      const enrichedCrew = crew.map((m) => enrichCrewWithLeaderboardData(m, leaderboardData));
+
+      // Split into squad groups
+      const commandStaff = enrichedCrew.filter((m) => m.squad === 'Command Staff');
+      const squad1 = enrichedCrew.filter((m) => m.squad !== 'Command Staff' && m.squad !== 'Unassigned' && !m.squad.toLowerCase().includes('shade'));
+      const squad2 = enrichedCrew.filter((m) => m.squad.toLowerCase().includes('shade'));
+      const unassigned = enrichedCrew.filter((m) => m.squad === 'Unassigned');
+
+      // Stats matching Overview tab: compliant = sailingCompliant || loaStatus
+      const totalCrew = crew.length;
+      const compliantCount = enrichedCrew.filter((c) => c.sailingCompliant || c.loaStatus).length;
+      const attentionCount = totalCrew - compliantCount;
+      const complianceRate = totalCrew > 0 ? Math.round((compliantCount / totalCrew) * 100) : 0;
+
+      const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 15;
+      const contentWidth = pageWidth - margin * 2;
       let yPosition = margin;
 
+      // Helper: add new page if not enough space
       const addPageIfNeeded = (spaceNeeded: number) => {
-        if (yPosition + spaceNeeded > pageHeight - 10) {
+        if (yPosition + spaceNeeded > pageHeight - 15) {
           doc.addPage();
           yPosition = margin;
         }
       };
 
-      // ===== HEADER =====
-      doc.setFontSize(18);
+      // Helper: draw a section title
+      const drawSectionTitle = (title: string) => {
+        addPageIfNeeded(20);
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text(title, margin, yPosition);
+        yPosition += 2;
+        doc.setDrawColor(100);
+        doc.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 5;
+      };
+
+      // Helper: draw a stat line
+      const drawStatLine = (label: string, value: string | number) => {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${label}: ${value}`, margin + 5, yPosition);
+        yPosition += 5;
+      };
+
+      // ===== PAGE 1: HEADER =====
+      doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
       doc.text('MONTHLY SHIP REPORT', pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 9;
+      yPosition += 8;
 
-      doc.setFontSize(11);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       const now = new Date();
       const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      doc.text(`USS Gullinbursti - Report for ${monthName}`, pageWidth / 2, yPosition, { align: 'center' });
+      doc.text(`USS Gullinbursti \u2014 ${monthName}`, pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 5;
+      doc.setFontSize(10);
       doc.text(`Report Date: ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 8;
+      yPosition += 6;
 
       doc.setDrawColor(0);
+      doc.setLineWidth(0.5);
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 6;
-
-      // ===== SHIP STATISTICS =====
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('SHIP STATISTICS', margin, yPosition);
-      yPosition += 7;
-
-      const totalCrew = crew.length;
-      const compliantCount = crew.filter(c => c.sailingCompliant).length;
-      const complianceRate = totalCrew > 0 ? Math.round((compliantCount / totalCrew) * 100) : 0;
-      const statText = `Total Members: ${totalCrew}  |  Sailing Compliant: ${compliantCount}  |  Compliance Rate: ${complianceRate}%`;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(statText, margin, yPosition);
+      doc.setLineWidth(0.2);
       yPosition += 8;
 
+      // ===== SHIP STATISTICS (matches Overview cards) =====
+      drawSectionTitle('SHIP STATISTICS');
+
+      drawStatLine('Total Members', totalCrew);
+      drawStatLine('Sailing Compliant (incl. LOA)', compliantCount);
+      drawStatLine('Attention Required', attentionCount);
+      drawStatLine('Compliance Rate', `${complianceRate}%`);
+      yPosition += 3;
+
       // ===== SQUAD BREAKDOWN =====
-      addPageIfNeeded(25);
-      doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
-      doc.text('SQUAD BREAKDOWN', margin, yPosition);
-      yPosition += 6;
+      drawSectionTitle('SQUAD BREAKDOWN');
 
-      const squadBreakdown: Record<string, number> = {};
-      crew.forEach(m => {
-        squadBreakdown[m.squad] = (squadBreakdown[m.squad] || 0) + 1;
-      });
+      const squadGroups = [
+        { label: 'Command Staff', members: commandStaff },
+        { label: squad1.length > 0 ? squad1[0].squad : 'Squad 1', members: squad1 },
+        { label: squad2.length > 0 ? squad2[0].squad : 'Squad 2', members: squad2 },
+      ];
+      if (unassigned.length > 0) {
+        squadGroups.push({ label: 'Unassigned', members: unassigned });
+      }
 
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      Object.entries(squadBreakdown).forEach(([squad, count]) => {
-        doc.text(`${squad}: ${count} members`, margin + 5, yPosition);
+      squadGroups.forEach((sg) => {
+        const sgCompliant = sg.members.filter((m) => m.sailingCompliant || m.loaStatus).length;
+        const sgRate = sg.members.length > 0 ? Math.round((sgCompliant / sg.members.length) * 100) : 0;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${sg.label}: ${sg.members.length} members (${sgRate}% compliant)`, margin + 5, yPosition);
         yPosition += 5;
       });
       yPosition += 3;
 
-      // ===== TOP HOSTS =====
-      addPageIfNeeded(25);
-      doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
-      doc.text('TOP SHIP HOSTS', margin, yPosition);
-      yPosition += 6;
+      // ===== TOP 10 HOSTS (matches Overview) =====
+      drawSectionTitle('TOP 10 SHIP HOSTS');
 
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       if (topHosts.length > 0) {
-        topHosts.forEach((sailor: any, idx: number) => {
-          doc.text(`${idx + 1}. ${sailor.name}: ${sailor.hostCount} voyages hosted`, margin + 5, yPosition);
+        topHosts.forEach((s, idx) => {
+          addPageIfNeeded(5);
+          const numStr = `${idx + 1}.`.padEnd(4);
+          doc.text(`${numStr}${s.name} \u2014 ${s.hostCount} hosted`, margin + 5, yPosition);
           yPosition += 5;
         });
       } else {
@@ -189,86 +158,170 @@ export function ReportsTab() {
       }
       yPosition += 3;
 
-      // ===== TOP VOYAGERS =====
-      addPageIfNeeded(25);
-      doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
-      doc.text('TOP SHIP VOYAGERS', margin, yPosition);
-      yPosition += 6;
+      // ===== TOP 10 VOYAGERS (matches Overview) =====
+      drawSectionTitle('TOP 10 SHIP VOYAGERS');
 
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       if (topVoyagers.length > 0) {
-        topVoyagers.forEach((sailor: any, idx: number) => {
-          doc.text(`${idx + 1}. ${sailor.name}: ${sailor.voyageCount} voyages attended`, margin + 5, yPosition);
+        topVoyagers.forEach((s, idx) => {
+          addPageIfNeeded(5);
+          const numStr = `${idx + 1}.`.padEnd(4);
+          doc.text(`${numStr}${s.name} \u2014 ${s.voyageCount} voyages`, margin + 5, yPosition);
           yPosition += 5;
         });
       } else {
         doc.text('No voyage data available', margin + 5, yPosition);
         yPosition += 5;
       }
-      yPosition += 3;
 
-      // ===== CREW ROSTER =====
+      // ===== CREW ROSTER — SPLIT BY SQUAD =====
+      // Each squad gets its own page with full columns matching the Crew tab
+
+      const drawSquadRoster = (title: string, members: typeof enrichedCrew) => {
+        // Always start a new page for each squad
+        doc.addPage();
+        yPosition = margin;
+
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(title, margin, yPosition);
+        yPosition += 2;
+
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.5);
+        doc.line(margin, yPosition, pageWidth - margin, yPosition);
+        doc.setLineWidth(0.2);
+        yPosition += 5;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${members.length} members`, margin, yPosition);
+        yPosition += 6;
+
+        if (members.length === 0) {
+          doc.text('No members in this group.', margin + 5, yPosition);
+          yPosition += 5;
+          return;
+        }
+
+        // Table header — matches Crew tab columns:
+        // Rank | Name | Status | Sailing | Voyages | Hosted | TZ | Activity
+        const colX = {
+          rank: margin,
+          name: margin + 22,
+          status: margin + 52,
+          sailing: margin + 75,
+          voyages: margin + 95,
+          hosted: margin + 115,
+          tz: margin + 133,
+          activity: margin + 155,
+        };
+
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Rank', colX.rank, yPosition);
+        doc.text('Name', colX.name, yPosition);
+        doc.text('Status', colX.status, yPosition);
+        doc.text('Sailing', colX.sailing, yPosition);
+        doc.text('Voyages', colX.voyages, yPosition);
+        doc.text('Hosted', colX.hosted, yPosition);
+        doc.text('TZ', colX.tz, yPosition);
+        doc.text('Chat', colX.activity, yPosition);
+        yPosition += 2;
+
+        doc.setDrawColor(180);
+        doc.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 4;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+
+        members.forEach((sailor) => {
+          addPageIfNeeded(6);
+
+          // Rank (truncated)
+          doc.text(sailor.rank.substring(0, 12), colX.rank, yPosition);
+
+          // Name
+          doc.text(sailor.name.substring(0, 16), colX.name, yPosition);
+
+          // Status (Active / LOA-1 / LOA-2 / Flagged)
+          const loaRaw = (sailor.complianceStatus || '').trim().toLowerCase();
+          let statusLabel = 'Active';
+          if (loaRaw.includes('loa')) statusLabel = sailor.complianceStatus.toUpperCase().trim();
+          else if (loaRaw === 'flagged' || loaRaw === 'non-compliant' || loaRaw === 'requires action') statusLabel = 'Flagged';
+          doc.text(statusLabel.substring(0, 10), colX.status, yPosition);
+
+          // Sailing compliance
+          const sailingLabel = sailor.loaStatus ? 'Exempt' : (sailor.sailingCompliant ? 'Yes' : 'No');
+          doc.text(sailingLabel, colX.sailing, yPosition);
+
+          // Voyages & Hosted
+          doc.text(String(sailor.voyageCount), colX.voyages, yPosition);
+          doc.text(String(sailor.hostCount), colX.hosted, yPosition);
+
+          // Timezone
+          doc.text((sailor.timezone || '-').substring(0, 8), colX.tz, yPosition);
+
+          // Chat activity (stars as number /5)
+          doc.text(`${sailor.chatActivity}/5`, colX.activity, yPosition);
+
+          yPosition += 4.5;
+        });
+      };
+
+      // Draw each squad on its own page
+      drawSquadRoster('COMMAND STAFF', commandStaff);
+
+      const squad1Label = squad1.length > 0 ? squad1[0].squad.toUpperCase() : 'SQUAD 1';
+      drawSquadRoster(squad1Label, squad1);
+
+      const squad2Label = squad2.length > 0 ? squad2[0].squad.toUpperCase() : 'SQUAD 2';
+      drawSquadRoster(squad2Label, squad2);
+
+      if (unassigned.length > 0) {
+        drawSquadRoster('UNASSIGNED', unassigned);
+      }
+
+      // ===== CO NOTES (final page) =====
       doc.addPage();
       yPosition = margin;
-      doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
-      doc.text('CREW ROSTER', margin, yPosition);
-      yPosition += 6;
 
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Rank', margin, yPosition);
-      doc.text('Name', margin + 20, yPosition);
-      doc.text('Squad', margin + 50, yPosition);
-      doc.text('Status', margin + 85, yPosition);
-      doc.text('Timezone', margin + 110, yPosition);
-      yPosition += 5;
-
-      doc.setDrawColor(200);
-      doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 4;
-
-      doc.setFont('helvetica', 'normal');
-      crew.forEach((sailor) => {
-        addPageIfNeeded(5);
-        doc.text(sailor.rank.substring(0, 8), margin, yPosition);
-        doc.text(sailor.name.substring(0, 15), margin + 20, yPosition);
-        doc.text(sailor.squad.substring(0, 12), margin + 50, yPosition);
-        const status = sailor.loaStatus ? 'LOA' : (sailor.sailingCompliant ? 'Compliant' : 'Non-Compliant');
-        doc.text(status.substring(0, 15), margin + 85, yPosition);
-        doc.text(sailor.timezone.substring(0, 10), margin + 110, yPosition);
-        yPosition += 4;
-      });
-
-      yPosition += 8;
-      addPageIfNeeded(20);
-      doc.setFontSize(13);
+      doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text('COMMANDING OFFICER NOTES', margin, yPosition);
-      yPosition += 6;
+      yPosition += 2;
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.5);
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      doc.setLineWidth(0.2);
+      yPosition += 8;
 
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       const notesText = notes || 'No additional notes provided.';
-      const splitNotes = doc.splitTextToSize(notesText, pageWidth - margin * 2);
+      const splitNotes = doc.splitTextToSize(notesText, contentWidth);
       doc.text(splitNotes, margin, yPosition);
-      yPosition += splitNotes.length * 4 + 5;
+      yPosition += splitNotes.length * 5 + 10;
 
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      // Signature
+      addPageIfNeeded(30);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
       doc.text('LCDR Hoit', margin, yPosition);
-      yPosition += 4;
-      doc.text('Commanding Officer', margin, yPosition);
-      yPosition += 8;
-
-      doc.setFontSize(9);
+      yPosition += 5;
       doc.setFont('helvetica', 'normal');
+      doc.text('Commanding Officer, USS Gullinbursti', margin, yPosition);
+      yPosition += 12;
+
+      // Footer
+      doc.setFontSize(8);
       doc.setTextColor(128);
       doc.text('Generated by USN Ship Manager', margin, yPosition);
       yPosition += 4;
       doc.text(`Report Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
+      doc.setTextColor(0);
 
       const dateStr = new Date().toISOString().split('T')[0];
       doc.save(`USS_Gullinbursti_Report_${dateStr}.pdf`);

@@ -113,8 +113,8 @@ export const OverviewTab = () => {
   };
 
   const leaderboardData = data.voyageAwards?.rows ? parseAllLeaderboardEntries(data.voyageAwards.rows) : [];
-  const topHostsList = leaderboardData.length > 0 ? getTopHostsFromParser(leaderboardData, 5) : [];
-  const topVoyagersList = leaderboardData.length > 0 ? getTopVoyagersFromParser(leaderboardData, 5) : [];
+  const topHostsList = leaderboardData.length > 0 ? getTopHostsFromParser(leaderboardData, 10) : [];
+  const topVoyagersList = leaderboardData.length > 0 ? getTopVoyagersFromParser(leaderboardData, 10) : [];
 
   const topHosts: TopVoyager[] = topHostsList.map((e: any) => ({ name: e.name, rank: e.rank, hosted: e.hostCount, voyages: e.voyageCount }));
   const topVoyages: TopVoyager[] = topVoyagersList.map((e: any) => ({ name: e.name, rank: e.rank, hosted: e.hostCount, voyages: e.voyageCount }));
@@ -186,12 +186,14 @@ export const OverviewTab = () => {
                   else if (nL.includes('spice') || rL.includes('scpo') || rL.includes('senior chief')) cosMember = m.name;
                 });
                 return (
-                  <Box key={squad.name}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Command</Typography>
-                    <Tooltip title={coMember ? 'CO: ' + coMember : 'CO: Role available'}><Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: coMember ? '#FF5555' : '#9CA3AF', cursor: 'pointer' }} /></Tooltip>
-                    <Tooltip title={foMember ? 'FO: ' + foMember : 'FO: Role available'}><Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: foMember ? '#FF66B2' : '#9CA3AF', cursor: 'pointer' }} /></Tooltip>
-                    <Tooltip title={cosMember ? 'COS: ' + cosMember : 'COS: Role available'}><Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: cosMember ? '#D946EF' : '#9CA3AF', cursor: 'pointer' }} /></Tooltip>
-                  </Box></Box>
+                  <Box key={squad.name}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1.5 }}>Command</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Tooltip title={coMember ? 'CO: ' + coMember : 'CO: Role available'}><Box sx={{ width: 30, height: 30, borderRadius: '50%', backgroundColor: coMember ? '#FF5555' : '#9CA3AF', cursor: 'pointer', boxShadow: coMember ? '0 0 8px rgba(255,85,85,0.4)' : 'none' }} /></Tooltip>
+                      <Tooltip title={foMember ? 'FO: ' + foMember : 'FO: Role available'}><Box sx={{ width: 30, height: 30, borderRadius: '50%', backgroundColor: foMember ? '#FF66B2' : '#9CA3AF', cursor: 'pointer', boxShadow: foMember ? '0 0 8px rgba(255,102,178,0.4)' : 'none' }} /></Tooltip>
+                      <Tooltip title={cosMember ? 'COS: ' + cosMember : 'COS: Role available'}><Box sx={{ width: 30, height: 30, borderRadius: '50%', backgroundColor: cosMember ? '#D946EF' : '#9CA3AF', cursor: 'pointer', boxShadow: cosMember ? '0 0 8px rgba(217,70,239,0.4)' : 'none' }} /></Tooltip>
+                    </Box>
+                  </Box>
                 );
               })}
               {crewAnalysis.squadStats.map((squad) => {
@@ -222,7 +224,7 @@ export const OverviewTab = () => {
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }} useFlexGap>
           {topHosts.length > 0 && (
             <Card sx={{ flex: 1 }}><CardContent>
-              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}><TrendingUpIcon color="success" />Top Hosts</Typography>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}><TrendingUpIcon color="success" />Top 10 Hosts</Typography>
               <TableContainer><Table size="small">
                 <TableHead><TableRow sx={{ backgroundColor: 'action.hover' }}>
                   <TableCell sx={{ fontWeight: 'bold' }}>#</TableCell>
@@ -238,7 +240,7 @@ export const OverviewTab = () => {
           )}
           {topVoyages.length > 0 && (
             <Card sx={{ flex: 1 }}><CardContent>
-              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}><TrendingUpIcon color="success" />Top Voyagers</Typography>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}><TrendingUpIcon color="success" />Top 10 Voyagers</Typography>
               <TableContainer><Table size="small">
                 <TableHead><TableRow sx={{ backgroundColor: 'action.hover' }}>
                   <TableCell sx={{ fontWeight: 'bold' }}>#</TableCell>
