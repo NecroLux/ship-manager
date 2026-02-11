@@ -19,9 +19,9 @@ import {
 } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import ErrorIcon from '@mui/icons-material/Error';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import GroupIcon from '@mui/icons-material/Group';
+import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import { useSheetData } from '../context/SheetDataContext';
 
 interface SquadStatsDetailed {
@@ -30,6 +30,7 @@ interface SquadStatsDetailed {
   activeCount: number;
   loa1Count: number;
   loa2Count: number;
+  flaggedCount: number;
   members: Array<{ name: string; rank: string; compliance: string }>;
 }
 
@@ -113,12 +114,21 @@ export const OverviewTab = () => {
 
       // Categorize compliance
       const complianceNorm = compliance.toLowerCase();
-      if (complianceNorm.includes('active') || complianceNorm.includes('duty') || complianceNorm === 'yes') {
+      let isActive = false;
+      let isFlagged = false;
+      
+      if (complianceNorm.includes('active') || complianceNorm.includes('duty') || complianceNorm === 'yes' || compliance === '') {
+        isActive = true;
         activeCrew++;
       } else if (complianceNorm.includes('loa')) {
         loaCrew++;
-      } else if (complianceNorm === 'flagged' || complianceNorm === 'no' || complianceNorm === 'non-compliant') {
+      } else if (complianceNorm === 'flagged' || complianceNorm === 'no' || complianceNorm === 'non-compliant' || complianceNorm === 'inactive') {
+        isFlagged = true;
         flaggedCrew++;
+      } else {
+        // Default to active if unclear
+        isActive = true;
+        activeCrew++;
       }
 
       // Track squad stats
@@ -129,6 +139,7 @@ export const OverviewTab = () => {
           activeCount: 0,
           loa1Count: 0,
           loa2Count: 0,
+          flaggedCount: 0,
           members: [],
         };
       }
@@ -136,12 +147,14 @@ export const OverviewTab = () => {
       squadMap[currentSquad].totalCount++;
       squadMap[currentSquad].members.push({ name, rank, compliance });
 
-      if (complianceNorm.includes('active') || complianceNorm.includes('duty') || complianceNorm === 'yes') {
+      if (isActive) {
         squadMap[currentSquad].activeCount++;
       } else if (complianceNorm === 'loa-1') {
         squadMap[currentSquad].loa1Count++;
       } else if (complianceNorm === 'loa-2') {
         squadMap[currentSquad].loa2Count++;
+      } else if (isFlagged) {
+        squadMap[currentSquad].flaggedCount++;
       }
 
       // Track Command Staff members for split display
@@ -312,6 +325,19 @@ export const OverviewTab = () => {
       .slice(0, 5);
   };
 
+  // Separate top hosts and voyagers
+  const getTopHosts = (): TopVoyager[] => {
+    return getTopVoyagers()
+      .sort((a, b) => b.hosted - a.hosted)
+      .slice(0, 5);
+  };
+
+  const getTopVoyages = (): TopVoyager[] => {
+    return getTopVoyagers()
+      .sort((a, b) => b.voyages - a.voyages)
+      .slice(0, 5);
+  };
+
   const getRankColor = (rank: string) => {
     if (!rank) return '#B3B3B3';
     const rankLower = rank.toLowerCase();
@@ -340,7 +366,8 @@ export const OverviewTab = () => {
 
   const crewAnalysis = analyzeCrewData();
   const actionsCount = getActionsCount();
-  const topVoyagers = getTopVoyagers();
+  const topHosts = getTopHosts();
+  const topVoyages = getTopVoyages();
 
   return (
     <Box sx={{ mt: 3 }}>
@@ -383,16 +410,16 @@ export const OverviewTab = () => {
           </CardContent>
         </Card>
 
-        <Card sx={{ flex: 1, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(244, 67, 54, 0.1)' : 'rgba(244, 67, 54, 0.05)' }}>
+        <Card sx={{ flex: 1, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)' }}>
           <CardContent>
             <Stack spacing={1}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ErrorIcon sx={{ color: 'error.main' }} />
+                <TaskAltIcon sx={{ color: '#3b82f6' }} />
                 <Typography color="textSecondary" variant="body2">
                   Actions Required
                 </Typography>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'error.main' }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#3b82f6' }}>
                 {actionsCount}
               </Typography>
             </Stack>
@@ -484,7 +511,10 @@ export const OverviewTab = () => {
                     if (squad.name === 'Command Staff') {
                       return (
                         <Box key={squad.name}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                            Command Staff
+                          </Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
                               {squad.members.map((member, idx) => (
                                 <Tooltip key={idx} title={`${member.name}`}>
@@ -508,6 +538,8 @@ export const OverviewTab = () => {
                       );
                     }
 
+                    const flaggedPercent = squad.totalCount > 0 ? (squad.flaggedCount / squad.totalCount) * 100 : 0;
+
                     return (
                       <Box key={squad.name}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
@@ -526,7 +558,10 @@ export const OverviewTab = () => {
                             <Box sx={{ width: `${loa1Percent}%`, backgroundColor: '#eab308' }} title={`LOA-1: ${squad.loa1Count}`} />
                           )}
                           {loa2Percent > 0 && (
-                            <Box sx={{ width: `${loa2Percent}%`, backgroundColor: '#ef4444' }} title={`LOA-2: ${squad.loa2Count}`} />
+                            <Box sx={{ width: `${loa2Percent}%`, backgroundColor: '#f97316' }} title={`LOA-2: ${squad.loa2Count}`} />
+                          )}
+                          {flaggedPercent > 0 && (
+                            <Box sx={{ width: `${flaggedPercent}%`, backgroundColor: '#ef4444' }} title={`Non-Compliant: ${squad.flaggedCount}`} />
                           )}
                         </Box>
                       </Box>
@@ -539,52 +574,87 @@ export const OverviewTab = () => {
         </Box>
       </Stack>
 
-      {/* Top Voyagers and Hosts */}
-      {topVoyagers.length > 0 && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <TrendingUpIcon color="success" />
-              Top Voyagers & Hosts
-            </Typography>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Rank</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }} align="right">🏠 Hosted</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }} align="right">⛵ Voyages</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {topVoyagers.map((sailor, idx) => (
-                    <TableRow key={idx} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                      <TableCell>{idx + 1}</TableCell>
-                      <TableCell>{sailor.name}</TableCell>
-                      <TableCell align="right">
-                        <Chip 
-                          label={sailor.hosted}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontWeight: 'bold' }}
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        <Chip 
-                          label={sailor.voyages}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontWeight: 'bold' }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
+      {/* Top Hosted and Top Voyages */}
+      {(topHosts.length > 0 || topVoyages.length > 0) && (
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }} useFlexGap>
+          {/* Top Hosts */}
+          {topHosts.length > 0 && (
+            <Card sx={{ flex: 1 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <TrendingUpIcon color="success" />
+                  Top Hosts 🏠
+                </Typography>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Rank</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {topHosts.map((sailor, idx) => (
+                        <TableRow key={idx} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                          <TableCell>{idx + 1}</TableCell>
+                          <TableCell>{sailor.name}</TableCell>
+                          <TableCell align="right">
+                            <Chip 
+                              label={sailor.hosted}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Top Voyagers */}
+          {topVoyages.length > 0 && (
+            <Card sx={{ flex: 1 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <TrendingUpIcon color="success" />
+                  Top Voyagers ⛵
+                </Typography>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Rank</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {topVoyages.map((sailor, idx) => (
+                        <TableRow key={idx} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                          <TableCell>{idx + 1}</TableCell>
+                          <TableCell>{sailor.name}</TableCell>
+                          <TableCell align="right">
+                            <Chip 
+                              label={sailor.voyages}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          )}
+        </Stack>
       )}
     </Box>
   );
