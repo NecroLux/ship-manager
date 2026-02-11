@@ -90,15 +90,37 @@ const toggleManualCheck = async (key: string): Promise<void> => {
 const getResponsiblePerson = (
   responsibleRank: string,
   squad: string,
+  sailorName: string,
   commandStaff: { co: string | null; xo: string | null; cos: string | null; slsBySquad: Record<string, string> }
 ): string => {
+  // Chain of command for escalation: SL → CoS → XO → CO → BOA
+  const chain = [
+    commandStaff.slsBySquad[squad] || null,
+    commandStaff.cos,
+    commandStaff.xo,
+    commandStaff.co,
+  ].filter(Boolean) as string[];
+
+  const escalate = (person: string): string => {
+    if (person.toLowerCase() !== sailorName.toLowerCase()) return person;
+    // Person can't promote themselves — find next up in chain
+    const idx = chain.findIndex((p) => p.toLowerCase() === person.toLowerCase());
+    for (let i = idx + 1; i < chain.length; i++) {
+      if (chain[i].toLowerCase() !== sailorName.toLowerCase()) return chain[i];
+    }
+    return 'Board of Admiralty';
+  };
+
   switch (responsibleRank) {
     case 'SL': {
       const sl = commandStaff.slsBySquad[squad];
-      return sl || commandStaff.cos || commandStaff.xo || 'Squad Leader';
+      return sl ? escalate(sl) : (commandStaff.cos ? escalate(commandStaff.cos) : 'Squad Leader');
     }
-    case 'CoS': return commandStaff.cos || commandStaff.xo || commandStaff.co || 'Chief of Ship';
-    case 'CO': return commandStaff.co || 'Ship CO';
+    case 'CoS': {
+      const person = commandStaff.cos || commandStaff.xo || commandStaff.co;
+      return person ? escalate(person) : 'Chief of Ship';
+    }
+    case 'CO': return commandStaff.co ? escalate(commandStaff.co) : 'Ship CO';
     case 'BOA': return 'Board of Admiralty';
     case 'Fleet': return 'Fleet Commander';
     default: return responsibleRank;
@@ -210,7 +232,7 @@ export const PromotionsTab = () => {
         rankCode: rank.code,
         squad: member.squad,
         promotionPath,
-        responsible: getResponsiblePerson(promotionPath.responsibleRank, member.squad, commandStaff),
+        responsible: getResponsiblePerson(promotionPath.responsibleRank, member.squad, member.name, commandStaff),
         autoMet: autoResult.met,
         autoTotal: autoResult.total,
         prereqStatus,
@@ -416,7 +438,7 @@ export const PromotionsTab = () => {
                       >
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.sailorName}</Typography>
-                          <Typography variant="caption" color="textSecondary">{c.sailorRank} · {c.squad}</Typography>
+                          <Typography variant="caption" color="textSecondary">{c.sailorRank}</Typography>
                         </TableCell>
                         <TableCell>
                           <Chip

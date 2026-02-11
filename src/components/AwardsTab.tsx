@@ -74,32 +74,52 @@ const toggleAwarded = async (key: string): Promise<Set<string>> => {
 const getResponsiblePerson = (
   responsibleRank: string,
   squad: string,
+  sailorName: string,
   commandStaff: { co: string | null; xo: string | null; cos: string | null; sls: Record<string, string> }
 ): string => {
+  // Chain of command for escalation: SL → CoS → XO → CO → BOA
+  const chain = [
+    commandStaff.sls[squad] || null,
+    commandStaff.cos,
+    commandStaff.xo,
+    commandStaff.co,
+  ].filter(Boolean) as string[];
+
+  const escalate = (person: string): string => {
+    if (person.toLowerCase() !== sailorName.toLowerCase()) return person;
+    // Person can't award themselves — find next up in chain
+    const idx = chain.findIndex((p) => p.toLowerCase() === person.toLowerCase());
+    for (let i = idx + 1; i < chain.length; i++) {
+      if (chain[i].toLowerCase() !== sailorName.toLowerCase()) return chain[i];
+    }
+    return 'Board of Admiralty';
+  };
+
   if (responsibleRank === 'SL/CoS') {
     const sl = commandStaff.sls[squad];
-    if (sl) return sl;
-    if (commandStaff.cos) return commandStaff.cos;
-    if (commandStaff.xo) return commandStaff.xo;
-    return commandStaff.co || 'Ship Command';
+    if (sl) return escalate(sl);
+    if (commandStaff.cos) return escalate(commandStaff.cos);
+    if (commandStaff.xo) return escalate(commandStaff.xo);
+    return commandStaff.co ? escalate(commandStaff.co) : 'Ship Command';
   }
-  if (responsibleRank === 'CO') return commandStaff.co || 'Ship CO';
+  if (responsibleRank === 'CO') return commandStaff.co ? escalate(commandStaff.co) : 'Ship CO';
 
-  // For rank-based: check if our CO/XO/CoS can award
-  // E-6+ → SLs, CoS, XO, CO can all award
-  // E-7+ → CoS, XO, CO
-  // O-1+ → XO, CO
-  // O-4+ → CO (if O-4+)
-  // O-7+ → BOA (not our ship)
   if (responsibleRank === 'O-7' || responsibleRank === 'O-8' || responsibleRank === 'O-9' || responsibleRank === 'O-10' || responsibleRank === 'BOA') {
     return 'Board of Admiralty';
   }
-  if (responsibleRank === 'O-4') return commandStaff.co || 'Ship CO';
-  if (responsibleRank === 'O-1') return commandStaff.xo || commandStaff.co || 'Junior Officer+';
-  if (responsibleRank === 'E-7') return commandStaff.cos || commandStaff.xo || commandStaff.co || 'SNCO+';
+  if (responsibleRank === 'O-4') return commandStaff.co ? escalate(commandStaff.co) : 'Ship CO';
+  if (responsibleRank === 'O-1') {
+    const person = commandStaff.xo || commandStaff.co;
+    return person ? escalate(person) : 'Junior Officer+';
+  }
+  if (responsibleRank === 'E-7') {
+    const person = commandStaff.cos || commandStaff.xo || commandStaff.co;
+    return person ? escalate(person) : 'SNCO+';
+  }
   if (responsibleRank === 'E-6') {
     const sl = commandStaff.sls[squad];
-    return sl || commandStaff.cos || commandStaff.xo || 'NCO+';
+    const person = sl || commandStaff.cos || commandStaff.xo;
+    return person ? escalate(person) : 'NCO+';
   }
 
   // External departments
@@ -213,7 +233,7 @@ export const AwardsTab = () => {
             sailorName: member.name,
             sailorRank: member.rank,
             squad: member.squad,
-            responsible: getResponsiblePerson(award.responsibleRank, member.squad, commandStaff),
+            responsible: getResponsiblePerson(award.responsibleRank, member.squad, member.name, commandStaff),
             currentValue: valueStr,
             awarded: awardedSet.has(key) || isKnownAwarded(knownSet, award.id, member.name),
           });
