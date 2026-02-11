@@ -58,6 +58,7 @@ export interface ParsedLeaderboardEntry {
   role?: string;
   joinDate: string;
   lastVoyageDate: string;
+  lastHostDate: string;
   voyageCount: number;
   hostCount: number;
   daysInactive: number;
@@ -292,34 +293,81 @@ export const parseAllCrewMembers = (rows: Record<string, string>[]): ParsedCrewM
 
 /**
  * Parse leaderboard entry from Time/Voyage Awards sheet
+ * Uses fuzzy header matching since rows are keyed by header names from Google Sheets
  */
 export const parseLeaderboardEntry = (row: Record<string, string>): ParsedLeaderboardEntry => {
-  const voyageCount = parseInt((row[VOYAGE_AWARDS_COLUMNS.TOTAL_VOYAGES] || '0').trim(), 10) || 0;
-  const hostCount = parseInt((row[VOYAGE_AWARDS_COLUMNS.HOST_COUNT] || '0').trim(), 10) || 0;
-  const daysInactive = parseInt((row[VOYAGE_AWARDS_COLUMNS.DAYS_INACTIVE] || '0').trim(), 10) || 0;
+  const rowKeys = Object.keys(row);
+
+  // Fuzzy header matcher — same approach as parseCrewMember
+  const getVal = (numIndex: number, ...headerNames: string[]): string => {
+    // Try numeric index (for array-indexed rows)
+    if (row[numIndex] !== undefined) return (row[numIndex] || '').trim();
+    // Try exact header names
+    for (const h of headerNames) {
+      if (row[h] !== undefined) return (row[h] || '').trim();
+    }
+    // Fuzzy match
+    for (const h of headerNames) {
+      const search = h.toLowerCase().replace(/[_\s]/g, '');
+      for (const key of rowKeys) {
+        const keyNorm = key.toLowerCase().replace(/[_\s]/g, '');
+        if (keyNorm === search || keyNorm.includes(search) || search.includes(keyNorm)) {
+          return (row[key] || '').trim();
+        }
+      }
+    }
+    // Positional fallback
+    if (numIndex < rowKeys.length) return (row[rowKeys[numIndex]] || '').trim();
+    return '';
+  };
+
+  const voyageCount = parseInt(getVal(VOYAGE_AWARDS_COLUMNS.TOTAL_VOYAGES, 'Total Voyages', 'TOTAL_VOYAGES', 'Voyages') || '0', 10) || 0;
+  const hostCount = parseInt(getVal(VOYAGE_AWARDS_COLUMNS.HOST_COUNT, 'Host Count', 'HOST_COUNT', 'Hosts', 'Times Hosted') || '0', 10) || 0;
+  const daysInactive = parseInt(getVal(VOYAGE_AWARDS_COLUMNS.DAYS_INACTIVE, 'Days Inactive', 'DAYS_INACTIVE', 'Inactive') || '0', 10) || 0;
 
   return {
-    name: (row[VOYAGE_AWARDS_COLUMNS.NAME] || '').trim(),
-    rank: (row[VOYAGE_AWARDS_COLUMNS.RANK] || '').trim(),
-    role: (row[VOYAGE_AWARDS_COLUMNS.ROLE] || '').trim(),
-    joinDate: (row[VOYAGE_AWARDS_COLUMNS.JOIN_DATE] || '').trim(),
-    lastVoyageDate: (row[VOYAGE_AWARDS_COLUMNS.LAST_VOYAGE_DATE] || '').trim(),
+    name: getVal(VOYAGE_AWARDS_COLUMNS.NAME, 'Name', 'NAME', 'Sailor'),
+    rank: getVal(VOYAGE_AWARDS_COLUMNS.RANK, 'Rank', 'RANK'),
+    role: getVal(VOYAGE_AWARDS_COLUMNS.ROLE, 'Role', 'ROLE'),
+    joinDate: getVal(VOYAGE_AWARDS_COLUMNS.JOIN_DATE, 'Join Date', 'JOIN_DATE', 'Joined'),
+    lastVoyageDate: getVal(VOYAGE_AWARDS_COLUMNS.LAST_VOYAGE_DATE, 'Last Voyage Date', 'LAST_VOYAGE_DATE', 'Last Voyage', 'Last Official Voyage'),
+    lastHostDate: getVal(VOYAGE_AWARDS_COLUMNS.LAST_HOST_DATE, 'Last Host Date', 'LAST_HOST_DATE', 'Last Host', 'Last Hosted'),
     voyageCount,
     hostCount,
     daysInactive,
-    timezone: (row[VOYAGE_AWARDS_COLUMNS.TIMEZONE] || '').trim(),
-    inGuild: (row[VOYAGE_AWARDS_COLUMNS.IN_GUILD] || '').toLowerCase().includes('yes'),
+    timezone: getVal(VOYAGE_AWARDS_COLUMNS.TIMEZONE, 'Timezone', 'TIMEZONE', 'TZ'),
+    inGuild: getVal(VOYAGE_AWARDS_COLUMNS.IN_GUILD, 'In Guild', 'IN_GUILD').toLowerCase().includes('yes'),
   };
 };
 
 /**
  * Parse all leaderboard entries
+ * Filters out header rows and entries without a name
  */
 export const parseAllLeaderboardEntries = (rows: Record<string, string>[]): ParsedLeaderboardEntry[] => {
   return rows
     .filter((row) => {
-      const name = (row[VOYAGE_AWARDS_COLUMNS.NAME] || '').trim();
-      return name && name.toLowerCase() !== 'name';
+      // Try to find name by any method
+      const rowKeys = Object.keys(row);
+      let name = '';
+      // Try numeric key
+      if (row[VOYAGE_AWARDS_COLUMNS.NAME] !== undefined) {
+        name = (row[VOYAGE_AWARDS_COLUMNS.NAME] || '').trim();
+      } else {
+        // Try header-keyed lookup
+        for (const key of rowKeys) {
+          const kl = key.toLowerCase().replace(/[_\s]/g, '');
+          if (kl === 'name' || kl === 'sailor') {
+            name = (row[key] || '').trim();
+            break;
+          }
+        }
+        // Positional fallback (column B = index 1)
+        if (!name && rowKeys.length > 1) {
+          name = (row[rowKeys[1]] || '').trim();
+        }
+      }
+      return name && name.toLowerCase() !== 'name' && name !== '-';
     })
     .map((row) => parseLeaderboardEntry(row));
 };
@@ -357,12 +405,12 @@ export const parseAllSubclassProgress = (rows: Record<string, string>[]): Parsed
 
 /**
  * Match crew member from Gullinbursti with leaderboard data from Voyage Awards
- * Returns enriched crew member with voyage/host counts
+ * Returns enriched crew member with voyage/host counts and dates for compliance checks
  */
 export const enrichCrewWithLeaderboardData = (
   crewMember: ParsedCrewMember,
   leaderboardData: ParsedLeaderboardEntry[]
-): ParsedCrewMember & { voyageCount: number; hostCount: number; daysInactive: number } => {
+): ParsedCrewMember & { voyageCount: number; hostCount: number; daysInactive: number; lastVoyageDate: string; lastHostDate: string } => {
   const leaderboardEntry = leaderboardData.find((l) => l.name.toLowerCase() === crewMember.name.toLowerCase());
 
   return {
@@ -370,6 +418,8 @@ export const enrichCrewWithLeaderboardData = (
     voyageCount: leaderboardEntry?.voyageCount || 0,
     hostCount: leaderboardEntry?.hostCount || 0,
     daysInactive: leaderboardEntry?.daysInactive || 0,
+    lastVoyageDate: leaderboardEntry?.lastVoyageDate || '',
+    lastHostDate: leaderboardEntry?.lastHostDate || '',
   };
 };
 

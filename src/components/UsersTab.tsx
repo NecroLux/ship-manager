@@ -20,23 +20,50 @@ import { useSheetData } from '../context/SheetDataContext';
 import { parseAllCrewMembers, parseAllLeaderboardEntries, enrichCrewWithLeaderboardData, type ParsedCrewMember } from '../services/dataParser';
 
 // Helper function to get compliance status
-// Compliance = have they sailed in the last month?
+// Compliance = have they sailed / hosted within required timeframes?
 // LOA is completely unrelated to compliance
 const getComplianceStatus = (member: any) => {
-  // If they have sailed (sailingCompliant), they are compliant regardless of LOA
+  // If on LOA, they are exempt from sailing/hosting requirements
+  if (member.loaStatus) {
+    return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
+  }
+
+  // Check for "Requires Action" conditions (more severe):
+  // 1. More than 37 days (1 month + 1 week) since last official voyage
+  // 2. More than 21 days (3 weeks) since an eligible NCO hosted (canHostRank = JPO+)
+  const now = new Date();
+  let requiresAction = false;
+
+  if (member.lastVoyageDate) {
+    const lastVoyage = new Date(member.lastVoyageDate);
+    if (!isNaN(lastVoyage.getTime())) {
+      const daysSinceVoyage = Math.floor((now.getTime() - lastVoyage.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceVoyage > 37) requiresAction = true;
+    }
+  } else if (member.daysInactive > 37) {
+    // Fallback: if no date available, use daysInactive from the sheet
+    requiresAction = true;
+  }
+
+  if (member.canHostRank && member.lastHostDate) {
+    const lastHost = new Date(member.lastHostDate);
+    if (!isNaN(lastHost.getTime())) {
+      const daysSinceHost = Math.floor((now.getTime() - lastHost.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceHost > 21) requiresAction = true;
+    }
+  }
+
+  if (requiresAction) {
+    return { label: 'Requires Action', color: 'error' as const, icon: '!', status: 'action-required' };
+  }
+
+  // If they have sailed (sailingCompliant), they are compliant
   if (member.sailingCompliant) {
     return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
   }
   
-  // If on LOA, they don't need a compliance check - LOA overrides compliance display
-  // LOA people are exempt from sailing requirements
-  if (member.loaStatus) {
-    return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
-  }
-  
-  // Not sailed and not on LOA = attention required
-  // TODO: If it's been more than a few days since contacted, escalate to "Action Required"
-  return { label: 'Attention Required', color: 'warning' as const, icon: '!', status: 'attention-required' };
+  // Not sailed and not on LOA but not yet at action threshold = Requires Attention
+  return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
 };
 
 // Helper function to get status label and color
@@ -168,12 +195,18 @@ export const UsersTab = () => {
       loaReturnDate: member.loaReturnDate,
       voyageCount: enriched.voyageCount,
       hostCount: enriched.hostCount,
+      daysInactive: enriched.daysInactive,
+      lastVoyageDate: enriched.lastVoyageDate,
+      lastHostDate: enriched.lastHostDate,
+      canHostRank: member.canHostRank, // JPO+ can host
     };
   });
 
   const complianceStats = {
     total: sailors.length,
-    compliant: sailors.filter(s => s.sailingCompliant || s.loaStatus).length,
+    compliant: sailors.filter(s => getComplianceStatus(s).status === 'compliant').length,
+    attention: sailors.filter(s => getComplianceStatus(s).status === 'attention-required').length,
+    action: sailors.filter(s => getComplianceStatus(s).status === 'action-required').length,
   };
 
   return (
@@ -183,7 +216,7 @@ export const UsersTab = () => {
         <Box sx={{ display: 'flex', gap: 1, flex: 1 }}>
           {sailors.length > 0 && (
             <>
-              <Card sx={{ flex: 1, minWidth: 100 }}>
+              <Card sx={{ flex: 1, minWidth: 80 }}>
                 <CardContent sx={{ textAlign: 'center', py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
                   <Typography color="textSecondary" variant="caption" sx={{ mb: 0.5, display: 'block' }}>
                     Total Crew
@@ -193,23 +226,33 @@ export const UsersTab = () => {
                   </Typography>
                 </CardContent>
               </Card>
-              <Card sx={{ flex: 1, minWidth: 100 }}>
+              <Card sx={{ flex: 1, minWidth: 80 }}>
                 <CardContent sx={{ textAlign: 'center', py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
                   <Typography color="textSecondary" variant="caption" sx={{ mb: 0.5, display: 'block' }}>
-                    In Compliance
+                    Compliant
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#10b981' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#22c55e' }}>
                     {complianceStats.compliant}
                   </Typography>
                 </CardContent>
               </Card>
-              <Card sx={{ flex: 1, minWidth: 100 }}>
+              <Card sx={{ flex: 1, minWidth: 80 }}>
                 <CardContent sx={{ textAlign: 'center', py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
                   <Typography color="textSecondary" variant="caption" sx={{ mb: 0.5, display: 'block' }}>
-                    Flagged
+                    Attention
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#eab308' }}>
+                    {complianceStats.attention}
+                  </Typography>
+                </CardContent>
+              </Card>
+              <Card sx={{ flex: 1, minWidth: 80 }}>
+                <CardContent sx={{ textAlign: 'center', py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
+                  <Typography color="textSecondary" variant="caption" sx={{ mb: 0.5, display: 'block' }}>
+                    Action Req.
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#ef4444' }}>
-                    {sailors.length - complianceStats.compliant}
+                    {complianceStats.action}
                   </Typography>
                 </CardContent>
               </Card>
