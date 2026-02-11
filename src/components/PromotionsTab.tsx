@@ -364,32 +364,6 @@ export const PromotionsTab = () => {
 
   return (
     <Box sx={{ mt: 3 }}>
-      {/* Progress bar */}
-      {(() => {
-        const promoted = candidates.filter((c) => c.promoted).length;
-        const total = candidates.length;
-        const pct = total > 0 ? Math.round((promoted / total) * 100) : 0;
-        const color = pct === 100 ? '#22c55e' : pct >= 50 ? '#eab308' : '#ef4444';
-        return (
-          <Box sx={{ mb: 2 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.5 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Promotions Progress</Typography>
-              <Typography variant="caption" sx={{ fontWeight: 600, color }}>{promoted} / {total} ({pct}%)</Typography>
-            </Stack>
-            <LinearProgress
-              variant="determinate"
-              value={pct}
-              sx={{
-                height: 8,
-                borderRadius: 1,
-                backgroundColor: 'action.disabledBackground',
-                '& .MuiLinearProgress-bar': { backgroundColor: color },
-              }}
-            />
-          </Box>
-        );
-      })()}
-
       {/* Filter tabs — by responsible person */}
       <Box sx={{ mb: 2 }}>
         <Tabs

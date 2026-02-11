@@ -309,6 +309,17 @@ export const AwardsTab = () => {
     };
   }, [eligibleAwards]);
 
+  // Per-sailor readiness: what % of their eligible awards have been awarded
+  const sailorReadiness = useMemo(() => {
+    const map: Record<string, { awarded: number; total: number }> = {};
+    eligibleAwards.forEach((e) => {
+      if (!map[e.sailorName]) map[e.sailorName] = { awarded: 0, total: 0 };
+      map[e.sailorName].total++;
+      if (e.awarded) map[e.sailorName].awarded++;
+    });
+    return map;
+  }, [eligibleAwards]);
+
   // All awards grouped by category (for the reference section)
   const allAwardsByCategory = useMemo(() => {
     const map: Partial<Record<AwardCategory, AwardDefinition[]>> = {};
@@ -329,32 +340,6 @@ export const AwardsTab = () => {
 
   return (
     <Box sx={{ mt: 3 }}>
-      {/* Progress bar */}
-      {(() => {
-        const awarded = eligibleAwards.filter((e) => e.awarded).length;
-        const total = eligibleAwards.length;
-        const pct = total > 0 ? Math.round((awarded / total) * 100) : 0;
-        const color = pct === 100 ? '#22c55e' : pct >= 50 ? '#eab308' : '#ef4444';
-        return (
-          <Box sx={{ mb: 2 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.5 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Awards Progress</Typography>
-              <Typography variant="caption" sx={{ fontWeight: 600, color }}>{awarded} / {total} ({pct}%)</Typography>
-            </Stack>
-            <LinearProgress
-              variant="determinate"
-              value={pct}
-              sx={{
-                height: 8,
-                borderRadius: 1,
-                backgroundColor: 'action.disabledBackground',
-                '& .MuiLinearProgress-bar': { backgroundColor: color },
-              }}
-            />
-          </Box>
-        );
-      })()}
-
       {/* Filter tabs — by responsible person */}
       <Box sx={{ mb: 2 }}>
         <Tabs
@@ -390,6 +375,7 @@ export const AwardsTab = () => {
                     <TableRow sx={{ backgroundColor: 'action.hover' }}>
                       <TableCell sx={{ fontWeight: 'bold' }}>Award</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Readiness</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Squad</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Data</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Awarded By</TableCell>
@@ -423,6 +409,30 @@ export const AwardsTab = () => {
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>{e.sailorName}</Typography>
                           <Typography variant="caption" color="textSecondary">{e.sailorRank}</Typography>
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 100 }}>
+                          {(() => {
+                            const sr = sailorReadiness[e.sailorName] || { awarded: 0, total: 1 };
+                            const pct = Math.round((sr.awarded / sr.total) * 100);
+                            const color = pct >= 100 ? '#22c55e' : pct >= 66 ? '#eab308' : pct >= 33 ? '#f97316' : '#ef4444';
+                            return (
+                              <Stack spacing={0.5}>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color }}>
+                                  {sr.awarded}/{sr.total} ({pct}%)
+                                </Typography>
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={pct}
+                                  sx={{
+                                    height: 6,
+                                    borderRadius: 1,
+                                    backgroundColor: 'action.disabledBackground',
+                                    '& .MuiLinearProgress-bar': { backgroundColor: color },
+                                  }}
+                                />
+                              </Stack>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell><Typography variant="body2">{e.squad}</Typography></TableCell>
                         <TableCell><Typography variant="body2" sx={{ color: '#22c55e', fontWeight: 500 }}>{e.currentValue}</Typography></TableCell>
