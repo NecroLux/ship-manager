@@ -116,7 +116,7 @@ export const ReportsTab = () => {
       drawStatLine('Sailing Compliant (incl. LOA)', compliantCount);
       drawStatLine('Attention Required', attentionCount);
       drawStatLine('Compliance Rate', `${complianceRate}%`);
-      yPosition += 3;
+      yPosition += 8;
 
       // ===== SQUAD BREAKDOWN =====
       drawSectionTitle('SQUAD BREAKDOWN');
@@ -138,7 +138,7 @@ export const ReportsTab = () => {
         doc.text(`${sg.label}: ${sg.members.length} members (${sgRate}% compliant)`, margin + 5, yPosition);
         yPosition += 5;
       });
-      yPosition += 3;
+      yPosition += 8;
 
       // ===== TOP 10 HOSTS (matches Overview) =====
       drawSectionTitle('TOP 10 SHIP HOSTS');
@@ -156,7 +156,7 @@ export const ReportsTab = () => {
         doc.text('No hosting data available', margin + 5, yPosition);
         yPosition += 5;
       }
-      yPosition += 3;
+      yPosition += 8;
 
       // ===== TOP 10 VOYAGERS (matches Overview) =====
       drawSectionTitle('TOP 10 SHIP VOYAGERS');
