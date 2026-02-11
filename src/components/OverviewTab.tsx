@@ -388,7 +388,7 @@ export const OverviewTab = () => {
                   Compliance Rate
                 </Typography>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', color: complianceColor }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#ffffff' }}>
                 {crewAnalysis.compliancePercentage}%
               </Typography>
               <LinearProgress 
