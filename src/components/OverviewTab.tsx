@@ -310,7 +310,7 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
                 <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
               </TableRow></TableHead>
               <TableBody>{topVoyages.map((s, i) => (
-                <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{i === 0 ? '👑 ' : ''}{s.name}</TableCell>
+                <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{s.name}{i === 0 ? ' 👑' : ''}</TableCell>
                 <TableCell align="right"><Chip label={s.voyages} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} /></TableCell></TableRow>
               ))}</TableBody>
             </Table></TableContainer>
@@ -329,7 +329,7 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
                 <TableCell sx={{ fontWeight: 'bold' }} align="right">Count</TableCell>
               </TableRow></TableHead>
               <TableBody>{topHosts.map((s, i) => (
-                <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{i === 0 ? '👑 ' : ''}{s.name}</TableCell>
+                <TableRow key={i}><TableCell>{i + 1}</TableCell><TableCell>{s.name}{i === 0 ? ' 👑' : ''}</TableCell>
                 <TableCell align="right"><Chip label={s.hosted} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} /></TableCell></TableRow>
               ))}</TableBody>
             </Table></TableContainer>
