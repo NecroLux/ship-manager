@@ -492,112 +492,119 @@ export const OverviewTab = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2 }}>
-                Squad Distribution
+                Ship Composition
               </Typography>
               <Stack spacing={2}>
                 {crewAnalysis.squadStats.length === 0 ? (
                   <Typography color="textSecondary">No squad data available</Typography>
                 ) : (
-                  crewAnalysis.squadStats.map((squad) => {
-                    const activePercent = squad.totalCount > 0 ? (squad.activeCount / squad.totalCount) * 100 : 0;
-                    const loa1Percent = squad.totalCount > 0 ? (squad.loa1Count / squad.totalCount) * 100 : 0;
-                    const loa2Percent = squad.totalCount > 0 ? (squad.loa2Count / squad.totalCount) * 100 : 0;
-                    
-                    if (squad.name === 'Command Staff') {
-                      // Find command staff members
-                      let coMember = null;
-                      let foMember = null;
-                      let cosMember = null;
-                      
-                      squad.members.forEach((member) => {
-                        if (member.name.toLowerCase().includes('hoit') && !member.name.toLowerCase().includes('lady')) {
-                          coMember = member.name;
-                        } else if (member.name.toLowerCase().includes('ladyhoit')) {
-                          foMember = member.name;
-                        } else if (member.name.toLowerCase().includes('spice')) {
-                          cosMember = member.name;
-                        }
-                      });
+                  <>
+                    {/* Render Command Staff first */}
+                    {crewAnalysis.squadStats.map((squad) => {
+                      if (squad.name === 'Command Staff') {
+                        let coMember = null;
+                        let foMember = null;
+                        let cosMember = null;
+                        
+                        squad.members.forEach((member) => {
+                          if (member.name.toLowerCase().includes('hoit') && !member.name.toLowerCase().includes('lady')) {
+                            coMember = member.name;
+                          } else if (member.name.toLowerCase().includes('ladyhoit')) {
+                            foMember = member.name;
+                          } else if (member.name.toLowerCase().includes('spice')) {
+                            cosMember = member.name;
+                          }
+                        });
+
+                        return (
+                          <Box key={squad.name}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                Command
+                              </Typography>
+                              
+                              {/* CO (Red) */}
+                              <Tooltip title={coMember ? `CO: ${coMember}` : 'CO: Role available'}>
+                                <Box
+                                  sx={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '50%',
+                                    backgroundColor: coMember ? '#FF5555' : '#9CA3AF',
+                                    cursor: 'pointer',
+                                  }}
+                                />
+                              </Tooltip>
+
+                              {/* FO (Pink) */}
+                              <Tooltip title={foMember ? `FO: ${foMember}` : 'FO: Role available'}>
+                                <Box
+                                  sx={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '50%',
+                                    backgroundColor: foMember ? '#FF66B2' : '#9CA3AF',
+                                    cursor: 'pointer',
+                                  }}
+                                />
+                              </Tooltip>
+
+                              {/* COS (Purple) */}
+                              <Tooltip title={cosMember ? `COS: ${cosMember}` : 'COS: Role available'}>
+                                <Box
+                                  sx={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '50%',
+                                    backgroundColor: cosMember ? '#D946EF' : '#9CA3AF',
+                                    cursor: 'pointer',
+                                  }}
+                                />
+                              </Tooltip>
+                            </Box>
+                          </Box>
+                        );
+                      }
+                      return null;
+                    })}
+
+                    {/* Render other squads (Necro and Shade) */}
+                    {crewAnalysis.squadStats.map((squad) => {
+                      if (squad.name === 'Command Staff') return null;
+
+                      const activePercent = squad.totalCount > 0 ? (squad.activeCount / squad.totalCount) * 100 : 0;
+                      const loa1Percent = squad.totalCount > 0 ? (squad.loa1Count / squad.totalCount) * 100 : 0;
+                      const loa2Percent = squad.totalCount > 0 ? (squad.loa2Count / squad.totalCount) * 100 : 0;
+                      const flaggedPercent = squad.totalCount > 0 ? (squad.flaggedCount / squad.totalCount) * 100 : 0;
 
                       return (
                         <Box key={squad.name}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                              Command
+                              {squad.name}
                             </Typography>
-                            
-                            {/* CO (Red) */}
-                            <Tooltip title={coMember ? `CO: ${coMember}` : 'CO: Role available'}>
-                              <Box
-                                sx={{
-                                  width: 12,
-                                  height: 12,
-                                  borderRadius: '50%',
-                                  backgroundColor: coMember ? '#FF5555' : '#9CA3AF',
-                                  cursor: 'pointer',
-                                }}
-                              />
-                            </Tooltip>
-
-                            {/* FO (Pink) */}
-                            <Tooltip title={foMember ? `FO: ${foMember}` : 'FO: Role available'}>
-                              <Box
-                                sx={{
-                                  width: 12,
-                                  height: 12,
-                                  borderRadius: '50%',
-                                  backgroundColor: foMember ? '#FF66B2' : '#9CA3AF',
-                                  cursor: 'pointer',
-                                }}
-                              />
-                            </Tooltip>
-
-                            {/* COS (Purple) */}
-                            <Tooltip title={cosMember ? `COS: ${cosMember}` : 'COS: Role available'}>
-                              <Box
-                                sx={{
-                                  width: 12,
-                                  height: 12,
-                                  borderRadius: '50%',
-                                  backgroundColor: cosMember ? '#D946EF' : '#9CA3AF',
-                                  cursor: 'pointer',
-                                }}
-                              />
-                            </Tooltip>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                              {squad.totalCount}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', height: 8, borderRadius: 1, overflow: 'hidden', backgroundColor: 'action.disabledBackground' }}>
+                            {activePercent > 0 && (
+                              <Box sx={{ width: `${activePercent}%`, backgroundColor: '#22c55e' }} title={`Active: ${squad.activeCount}`} />
+                            )}
+                            {loa1Percent > 0 && (
+                              <Box sx={{ width: `${loa1Percent}%`, backgroundColor: '#eab308' }} title={`LOA-1: ${squad.loa1Count}`} />
+                            )}
+                            {loa2Percent > 0 && (
+                              <Box sx={{ width: `${loa2Percent}%`, backgroundColor: '#f97316' }} title={`LOA-2: ${squad.loa2Count}`} />
+                            )}
+                            {flaggedPercent > 0 && (
+                              <Box sx={{ width: `${flaggedPercent}%`, backgroundColor: '#ef4444' }} title={`Non-Compliant: ${squad.flaggedCount}`} />
+                            )}
                           </Box>
                         </Box>
                       );
-                    }
-
-                    const flaggedPercent = squad.totalCount > 0 ? (squad.flaggedCount / squad.totalCount) * 100 : 0;
-
-                    return (
-                      <Box key={squad.name}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                            {squad.name}
-                          </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                            {squad.totalCount}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', height: 8, borderRadius: 1, overflow: 'hidden', backgroundColor: 'action.disabledBackground' }}>
-                          {activePercent > 0 && (
-                            <Box sx={{ width: `${activePercent}%`, backgroundColor: '#22c55e' }} title={`Active: ${squad.activeCount}`} />
-                          )}
-                          {loa1Percent > 0 && (
-                            <Box sx={{ width: `${loa1Percent}%`, backgroundColor: '#eab308' }} title={`LOA-1: ${squad.loa1Count}`} />
-                          )}
-                          {loa2Percent > 0 && (
-                            <Box sx={{ width: `${loa2Percent}%`, backgroundColor: '#f97316' }} title={`LOA-2: ${squad.loa2Count}`} />
-                          )}
-                          {flaggedPercent > 0 && (
-                            <Box sx={{ width: `${flaggedPercent}%`, backgroundColor: '#ef4444' }} title={`Non-Compliant: ${squad.flaggedCount}`} />
-                          )}
-                        </Box>
-                      </Box>
-                    );
-                  })
+                    })}
+                  </>
                 )}
               </Stack>
             </CardContent>
