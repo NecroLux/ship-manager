@@ -102,13 +102,38 @@ const getRankColor = (rank: string) => {
 };
 
 export const UsersTab = () => {
-  const { data, loading, refreshData } = useSheetData();
+  const { data, loading, refreshData, error } = useSheetData();
   const theme = useTheme();
 
   if (loading) {
     return (
       <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ mt: 3 }}>
+        <Typography color="error" variant="body1" sx={{ mb: 2 }}>
+          ❌ {error}
+        </Typography>
+        <Typography color="textSecondary" variant="body2" sx={{ mb: 2 }}>
+          The backend service may not be running. Check:
+        </Typography>
+        <ul style={{ color: theme.palette.text.secondary }}>
+          <li>Is the Render backend deployed and running?</li>
+          <li>Open browser DevTools (F12) → Console tab for detailed errors</li>
+          <li>Try clicking the Refresh button below</li>
+        </ul>
+        <Button 
+          variant="contained" 
+          onClick={() => refreshData()}
+          sx={{ mt: 2 }}
+        >
+          Retry Loading Data
+        </Button>
       </Box>
     );
   }
