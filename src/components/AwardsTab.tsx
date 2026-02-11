@@ -18,8 +18,8 @@ import {
   Tooltip,
   IconButton,
   Collapse,
+  LinearProgress,
 } from '@mui/material';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -329,20 +329,31 @@ export const AwardsTab = () => {
 
   return (
     <Box sx={{ mt: 3 }}>
-      {/* Header cards */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3, justifyContent: 'center' }} useFlexGap>
-        <Card sx={{ minWidth: 200, minHeight: 100 }}>
-          <CardContent sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
-            <Stack spacing={1}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <EmojiEventsIcon sx={{ color: '#eab308' }} />
-                <Typography color="textSecondary" variant="body2">Eligible Awards</Typography>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#eab308' }}>{counts.total}</Typography>
+      {/* Progress bar */}
+      {(() => {
+        const awarded = eligibleAwards.filter((e) => e.awarded).length;
+        const total = eligibleAwards.length;
+        const pct = total > 0 ? Math.round((awarded / total) * 100) : 0;
+        const color = pct === 100 ? '#22c55e' : pct >= 50 ? '#eab308' : '#ef4444';
+        return (
+          <Box sx={{ mb: 2 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.5 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>Awards Progress</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 600, color }}>{awarded} / {total} ({pct}%)</Typography>
             </Stack>
-          </CardContent>
-        </Card>
-      </Stack>
+            <LinearProgress
+              variant="determinate"
+              value={pct}
+              sx={{
+                height: 8,
+                borderRadius: 1,
+                backgroundColor: 'action.disabledBackground',
+                '& .MuiLinearProgress-bar': { backgroundColor: color },
+              }}
+            />
+          </Box>
+        );
+      })()}
 
       {/* Filter tabs — by responsible person */}
       <Box sx={{ mb: 2 }}>

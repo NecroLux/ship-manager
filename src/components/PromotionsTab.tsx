@@ -19,7 +19,6 @@ import {
   IconButton,
   LinearProgress,
 } from '@mui/material';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { useSheetData } from '../context/SheetDataContext';
@@ -296,16 +295,6 @@ export const PromotionsTab = () => {
     };
   }, [candidates]);
 
-  // Readiness summary
-  const readyCounts = useMemo(() => {
-    const pending = candidates.filter((c) => !c.promoted);
-    return {
-      ready: pending.filter((c) => c.readiness === 100).length,
-      close: pending.filter((c) => c.readiness >= 50 && c.readiness < 100).length,
-      early: pending.filter((c) => c.readiness < 50).length,
-    };
-  }, [candidates]);
-
   if (loading) {
     return (
       <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
@@ -316,44 +305,31 @@ export const PromotionsTab = () => {
 
   return (
     <Box sx={{ mt: 3 }}>
-      {/* Header cards */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3, justifyContent: 'center' }} useFlexGap>
-        <Card sx={{ minWidth: 200, minHeight: 100 }}>
-          <CardContent sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
-            <Stack spacing={1}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ArrowUpwardIcon sx={{ color: '#3b82f6' }} />
-                <Typography color="textSecondary" variant="body2">Promotion Candidates</Typography>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{counts.total}</Typography>
+      {/* Progress bar */}
+      {(() => {
+        const promoted = candidates.filter((c) => c.promoted).length;
+        const total = candidates.length;
+        const pct = total > 0 ? Math.round((promoted / total) * 100) : 0;
+        const color = pct === 100 ? '#22c55e' : pct >= 50 ? '#eab308' : '#ef4444';
+        return (
+          <Box sx={{ mb: 2 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.5 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>Promotions Progress</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 600, color }}>{promoted} / {total} ({pct}%)</Typography>
             </Stack>
-          </CardContent>
-        </Card>
-        <Card sx={{ minWidth: 200, minHeight: 100 }}>
-          <CardContent sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
-            <Stack spacing={1}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ArrowUpwardIcon sx={{ color: '#22c55e' }} />
-                <Typography color="textSecondary" variant="body2">Readiness</Typography>
-              </Box>
-              <Stack direction="row" spacing={3} alignItems="baseline">
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#22c55e', lineHeight: 1 }}>{readyCounts.ready}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>Ready</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#eab308', lineHeight: 1 }}>{readyCounts.close}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>Close</Typography>
-                </Stack>
-                <Stack alignItems="center" spacing={0.5}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#ef4444', lineHeight: 1 }}>{readyCounts.early}</Typography>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>Early</Typography>
-                </Stack>
-              </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
-      </Stack>
+            <LinearProgress
+              variant="determinate"
+              value={pct}
+              sx={{
+                height: 8,
+                borderRadius: 1,
+                backgroundColor: 'action.disabledBackground',
+                '& .MuiLinearProgress-bar': { backgroundColor: color },
+              }}
+            />
+          </Box>
+        );
+      })()}
 
       {/* Filter tabs — by responsible person */}
       <Box sx={{ mb: 2 }}>

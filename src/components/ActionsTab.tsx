@@ -3,8 +3,6 @@ import {
   Paper,
   Typography,
   CircularProgress,
-  Card,
-  CardContent,
   Stack,
   Chip,
   Table,
@@ -407,45 +405,42 @@ export const ActionsTab = () => {
   return (
     <Box sx={{ mt: 3 }}>
       {/* Header with Tabs */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          {/* Priority Tabs with Refresh + Add Buttons */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <Tabs 
-              value={activeTab} 
-              onChange={(_e, newValue) => setActiveTab(newValue as any)}
-              sx={{ flex: 1 }}
-            >
-              <Tab label={`All (${counts.all})`} value="all" />
-              <Tab label={`CO (${counts.co})`} value="co" />
-              <Tab label={`FO (${counts.firstofficer})`} value="firstofficer" />
-              <Tab label={`CoS (${counts.cos})`} value="cos" />
-              <Tab label={`SL1 (${counts.squadleader1})`} value="squadleader1" />
-              <Tab label={`SL2 (${counts.squadleader2})`} value="squadleader2" />
-            </Tabs>
-            <Stack direction="row" spacing={1} sx={{ ml: 2, flexShrink: 0 }}>
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={() => setAddDialogOpen(true)}
-                color="primary"
-              >
-                Add
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<RefreshIcon />}
-                onClick={refreshData}
-                disabled={loading}
-              >
-                Refresh
-              </Button>
-            </Stack>
-          </Box>
-        </CardContent>
-      </Card>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={(_e, newValue) => setActiveTab(newValue as any)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ flex: 1, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minWidth: 80 } }}
+        >
+          <Tab label={`All (${counts.all})`} value="all" />
+          <Tab label={`SL1 (${counts.squadleader1})`} value="squadleader1" />
+          <Tab label={`SL2 (${counts.squadleader2})`} value="squadleader2" />
+          <Tab label={`CoS (${counts.cos})`} value="cos" />
+          <Tab label={`FO (${counts.firstofficer})`} value="firstofficer" />
+          <Tab label={`CO (${counts.co})`} value="co" />
+        </Tabs>
+        <Stack direction="row" spacing={1} sx={{ ml: 2, flexShrink: 0 }}>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => setAddDialogOpen(true)}
+            color="primary"
+          >
+            Add
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<RefreshIcon />}
+            onClick={refreshData}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+        </Stack>
+      </Box>
 
       {/* Actions Table - Single table, sorted by priority */}
       {filteredActions.length === 0 ? (
