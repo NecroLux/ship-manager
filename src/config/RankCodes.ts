@@ -96,8 +96,8 @@ export const resolveRank = (rawRank: string): RankDefinition | undefined => {
   if (r.includes('midship') || r === 'midn') return RANKS.find((rk) => rk.code === 'O-1');
   if (r === 'scpo' || r.includes('senior chief')) return RANKS.find((rk) => rk.code === 'E-8');
   if (r === 'cpo' || (r.includes('chief petty') && !r.includes('senior'))) return RANKS.find((rk) => rk.code === 'E-7');
-  if (r === 'po' || (r.includes('petty officer') && !r.includes('junior') && !r.includes('chief') && !r.includes('senior'))) return RANKS.find((rk) => rk.code === 'E-6');
-  if (r === 'jpo' || r.includes('junior petty') || r.includes('jr. petty') || r.includes('jr petty')) return RANKS.find((rk) => rk.code === 'E-4');
+  if (r === 'jpo' || r.includes('junior petty') || r.includes('jr. petty') || r.includes('jr petty') || r.includes('jr.petty') || (r.includes('jr') && r.includes('petty'))) return RANKS.find((rk) => rk.code === 'E-4');
+  if (r === 'po' || (r.includes('petty officer') && !r.includes('junior') && !r.includes('jr') && !r.includes('chief') && !r.includes('senior'))) return RANKS.find((rk) => rk.code === 'E-6');
   if (r.includes('able seaman') || r.includes('able seawoman') || r === 'as') return RANKS.find((rk) => rk.code === 'E-3');
   if (r.includes('seaman') && !r.includes('able') && !r.includes('apprentice')) return RANKS.find((rk) => rk.code === 'E-2');
   if (r.includes('recruit')) return RANKS.find((rk) => rk.code === 'E-1');

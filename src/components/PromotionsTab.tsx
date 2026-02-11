@@ -95,10 +95,14 @@ const toggleManualCheck = (key: string): void => {
 
 const getResponsiblePerson = (
   responsibleRank: string,
-  commandStaff: { co: string | null; xo: string | null; cos: string | null; sls: string[] }
+  squad: string,
+  commandStaff: { co: string | null; xo: string | null; cos: string | null; slsBySquad: Record<string, string> }
 ): string => {
   switch (responsibleRank) {
-    case 'SL': return commandStaff.sls.length > 0 ? commandStaff.sls.join(' / ') : 'Squad Leader';
+    case 'SL': {
+      const sl = commandStaff.slsBySquad[squad];
+      return sl || commandStaff.cos || commandStaff.xo || 'Squad Leader';
+    }
     case 'CoS': return commandStaff.cos || commandStaff.xo || commandStaff.co || 'Chief of Ship';
     case 'CO': return commandStaff.co || 'Ship CO';
     case 'BOA': return 'Board of Admiralty';
@@ -124,8 +128,8 @@ export const PromotionsTab = () => {
 
   // Parse command staff
   const commandStaff = useMemo(() => {
-    const result: { co: string | null; xo: string | null; cos: string | null; sls: string[] } = {
-      co: null, xo: null, cos: null, sls: [],
+    const result: { co: string | null; xo: string | null; cos: string | null; slsBySquad: Record<string, string> } = {
+      co: null, xo: null, cos: null, slsBySquad: {},
     };
     if (!data.gullinbursti || data.gullinbursti.rows.length === 0) return result;
     const crew = parseAllCrewMembers(data.gullinbursti.rows);
@@ -136,7 +140,7 @@ export const PromotionsTab = () => {
       if (!result.xo && (nL.includes('ladyhoit') || rL.includes('midship'))) result.xo = m.name;
       if (!result.cos && (nL.includes('spice') || rL.includes('scpo') || rL.includes('senior chief'))) result.cos = m.name;
     });
-    // SLs
+    // SLs — map per squad
     const squads = new Set(crew.map((m) => m.squad).filter((s) => s !== 'Command Staff' && s !== 'Unassigned'));
     squads.forEach((sq) => {
       const sqMembers = crew.filter((m) => m.squad === sq);
@@ -144,7 +148,7 @@ export const PromotionsTab = () => {
         const rL = m.rank.toLowerCase();
         return rL.includes('chief petty') || rL.includes('petty officer') || rL.includes('cpo') || rL.includes('scpo');
       });
-      if (sl && !result.sls.includes(sl.name)) result.sls.push(sl.name);
+      if (sl) result.slsBySquad[sq] = sl.name;
     });
     return result;
   }, [data.gullinbursti]);
@@ -212,7 +216,7 @@ export const PromotionsTab = () => {
         rankCode: rank.code,
         squad: member.squad,
         promotionPath,
-        responsible: getResponsiblePerson(promotionPath.responsibleRank, commandStaff),
+        responsible: getResponsiblePerson(promotionPath.responsibleRank, member.squad, commandStaff),
         autoMet: autoResult.met,
         autoTotal: autoResult.total,
         prereqStatus,
