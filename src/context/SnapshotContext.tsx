@@ -125,21 +125,24 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
         squadBreakdown,
       };
 
-      // Send to backend API
+      // Send to backend API - try backend first, fallback to localStorage
       const backendUrl = typeof window !== 'undefined' 
-        ? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:5000'
-            : 'https://ship-manager.onrender.com')
+        ? (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://ship-manager.onrender.com')
         : 'https://ship-manager.onrender.com';
 
-      const response = await fetch(`${backendUrl}/api/snapshots`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(snapshot),
-      });
+      try {
+        const response = await fetch(`${backendUrl}/api/snapshots`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(snapshot),
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to save snapshot to backend');
+        if (!response.ok) {
+          throw new Error('Backend returned error');
+        }
+      } catch (backendErr) {
+        console.warn('Backend unavailable, saving to localStorage:', backendErr);
+        // Continue with localStorage fallback
       }
 
       // Update local state
@@ -147,6 +150,13 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       );
       setSnapshots(updatedSnapshots);
+
+      // Save to localStorage as backup
+      try {
+        localStorage.setItem('crew-snapshots', JSON.stringify(updatedSnapshots));
+      } catch (e) {
+        console.warn('Failed to save to localStorage:', e);
+      }
 
       return snapshot;
     } catch (err) {
@@ -162,11 +172,9 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
       setLoading(true);
       setError(null);
 
-      // Load from backend API
+      // Load from backend API (always use Render in production)
       const backendUrl = typeof window !== 'undefined'
-        ? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:5000'
-            : 'https://ship-manager.onrender.com')
+        ? (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://ship-manager.onrender.com')
         : 'https://ship-manager.onrender.com';
 
       const response = await fetch(`${backendUrl}/api/snapshots`);
@@ -179,8 +187,19 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
       setSnapshots(snapshots || []);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to load snapshots';
-      setError(errorMsg);
-      console.error('Error loading snapshots:', err);
+      console.warn('Backend unavailable, falling back to localStorage:', errorMsg);
+      
+      // Fallback to localStorage if backend is down
+      try {
+        const stored = localStorage.getItem('crew-snapshots');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setSnapshots(parsed);
+        }
+      } catch (fallbackErr) {
+        console.error('Also failed to load from localStorage:', fallbackErr);
+        setError(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -194,24 +213,34 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Delete a snapshot
   const deleteSnapshot = async (date: string) => {
     try {
-      // Delete from backend API
+      // Delete from backend API - try backend first, fallback to localStorage
       const backendUrl = typeof window !== 'undefined'
-        ? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:5000'
-            : 'https://ship-manager.onrender.com')
+        ? (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://ship-manager.onrender.com')
         : 'https://ship-manager.onrender.com';
 
-      const response = await fetch(`${backendUrl}/api/snapshots/${date}`, {
-        method: 'DELETE',
-      });
+      try {
+        const response = await fetch(`${backendUrl}/api/snapshots/${date}`, {
+          method: 'DELETE',
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to delete snapshot from backend');
+        if (!response.ok) {
+          throw new Error('Backend returned error');
+        }
+      } catch (backendErr) {
+        console.warn('Backend unavailable, deleting from localStorage:', backendErr);
+        // Continue with localStorage fallback
       }
 
       // Update local state
       const updated = snapshots.filter((s) => s.date !== date);
       setSnapshots(updated);
+
+      // Update localStorage
+      try {
+        localStorage.setItem('crew-snapshots', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to update localStorage:', e);
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to delete snapshot';
       setError(errorMsg);
