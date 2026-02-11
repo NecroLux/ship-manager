@@ -362,7 +362,7 @@ export const parseLeaderboardEntry = (row: Record<string, string>): ParsedLeader
   const daysInactive = getNumVal(VOYAGE_AWARDS_COLUMNS.DAYS_INACTIVE, 'Days Inactive', 'DAYS_INACTIVE', 'Inactive', 'Days Since Last Voyage');
 
   return {
-    name: getVal(VOYAGE_AWARDS_COLUMNS.NAME, 'Name', 'NAME', 'Sailor'),
+    name: getVal(VOYAGE_AWARDS_COLUMNS.NAME, 'Name', 'NAME', 'Sailor').replace(/\[.*?\]\s*/g, '').trim(),
     rank: getVal(VOYAGE_AWARDS_COLUMNS.RANK, 'Rank', 'RANK'),
     role: getVal(VOYAGE_AWARDS_COLUMNS.ROLE, 'Role', 'ROLE'),
     joinDate: getVal(VOYAGE_AWARDS_COLUMNS.JOIN_DATE, 'Join Date', 'JOIN_DATE', 'Joined'),
