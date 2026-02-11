@@ -52,6 +52,8 @@ interface PromotionCandidate {
   voyages: number;
   hosted: number;
   serviceMonths: number;
+  /** Days the sailor has held their current rank (-1 if unknown) */
+  timeInRankDays: number;
   /** Readiness percentage (auto-detect only) */
   readiness: number;
   /** Manually marked as promoted */
@@ -62,10 +64,14 @@ type FilterTab = 'all' | 'co' | 'fo' | 'cos' | 'sl1' | 'sl2' | 'boa';
 
 // ==================== SHARED STATE ====================
 
-import { getStateSet, toggleInSet, getStateRecord, toggleInRecord } from '../services/sharedState';
+import { getStateSet, toggleInSet, getStateRecord, toggleInRecord, getState, setState } from '../services/sharedState';
 
 const STORAGE_KEY = 'promoted-sailors';
 const MANUAL_CHECK_KEY = 'promotion-manual-checks';
+const PROMOTION_HISTORY_KEY = 'promotion-history';
+
+/** Shape: { "SailorName": { "E-3": "2026-01-20T...", "E-4": "2026-02-01T..." } } */
+type PromotionHistory = Record<string, Record<string, string>>;
 
 const getPromotedSet = (): Set<string> => {
   return getStateSet(STORAGE_KEY);
@@ -81,6 +87,44 @@ const getManualChecks = (): Record<string, boolean> => {
 
 const toggleManualCheck = async (key: string): Promise<void> => {
   await toggleInRecord(MANUAL_CHECK_KEY, key);
+};
+
+// ==================== PROMOTION HISTORY ====================
+
+const getPromotionHistory = (): PromotionHistory => {
+  return getState<PromotionHistory>(PROMOTION_HISTORY_KEY, {});
+};
+
+/** Record that a sailor was promoted to a rank right now. */
+const recordPromotion = async (sailorName: string, toRank: string): Promise<void> => {
+  const history = getPromotionHistory();
+  if (!history[sailorName]) history[sailorName] = {};
+  history[sailorName][toRank] = new Date().toISOString();
+  await setState(PROMOTION_HISTORY_KEY, history);
+};
+
+/** Remove a promotion record (when un-promoting). */
+const removePromotionRecord = async (sailorName: string, toRank: string): Promise<void> => {
+  const history = getPromotionHistory();
+  if (history[sailorName]) {
+    delete history[sailorName][toRank];
+    if (Object.keys(history[sailorName]).length === 0) delete history[sailorName];
+    await setState(PROMOTION_HISTORY_KEY, history);
+  }
+};
+
+/**
+ * Get the number of days a sailor has held their current rank.
+ * Returns -1 if no promotion-history entry exists for that rank.
+ */
+const getDaysInRank = (sailorName: string, currentRank: string): number => {
+  const history = getPromotionHistory();
+  const sailorHistory = history[sailorName];
+  if (!sailorHistory || !sailorHistory[currentRank]) return -1;
+  const promotedDate = new Date(sailorHistory[currentRank]);
+  if (isNaN(promotedDate.getTime())) return -1;
+  const now = new Date();
+  return Math.floor((now.getTime() - promotedDate.getTime()) / (1000 * 60 * 60 * 24));
 };
 
 // ==================== HELPERS ====================
@@ -203,7 +247,10 @@ export const PromotionsTab = () => {
         }
       }
 
-      const autoResult = checkAutoPrereqs(promotionPath, voyages, hosted, member.chatActivity || 0, serviceMonths);
+      // Calculate time-in-rank from promotion history
+      const timeInRank = getDaysInRank(member.name, promotionPath.fromRank);
+
+      const autoResult = checkAutoPrereqs(promotionPath, voyages, hosted, member.chatActivity || 0, serviceMonths, timeInRank);
 
       // Build full prerequisite status including manual checks
       const prereqStatus: Record<string, boolean | undefined> = {};
@@ -236,6 +283,7 @@ export const PromotionsTab = () => {
         voyages,
         hosted,
         serviceMonths,
+        timeInRankDays: timeInRank,
         readiness,
         promoted: promotedSet.has(key),
       });
@@ -252,7 +300,18 @@ export const PromotionsTab = () => {
 
   const handleTogglePromoted = useCallback(async (candidate: PromotionCandidate) => {
     const key = `${candidate.promotionPath.fromRank}-${candidate.promotionPath.toRank}::${candidate.sailorName}`;
+    const wasPromoted = getPromotedSet().has(key);
     await togglePromoted(key);
+
+    // Record or remove promotion timestamp
+    if (!wasPromoted) {
+      // Promoting: record when they reached the new rank
+      await recordPromotion(candidate.sailorName, candidate.promotionPath.toRank);
+    } else {
+      // Un-promoting: remove the record
+      await removePromotionRecord(candidate.sailorName, candidate.promotionPath.toRank);
+    }
+
     setTick((t) => t + 1);
   }, []);
 
@@ -448,6 +507,7 @@ export const PromotionsTab = () => {
                                       {!isManual && p.threshold?.voyages ? ` (${c.voyages}/${p.threshold.voyages})` : ''}
                                       {!isManual && p.threshold?.hosted ? ` (${c.hosted}/${p.threshold.hosted})` : ''}
                                       {!isManual && p.threshold?.serviceMonths ? ` (${c.serviceMonths}/${p.threshold.serviceMonths}mo)` : ''}
+                                      {!isManual && p.threshold?.timeInRankDays ? ` (${c.timeInRankDays >= 0 ? `${c.timeInRankDays}d` : '?'}/${p.threshold.timeInRankDays}d)` : ''}
                                     </Typography>
                                   </Tooltip>
                                 </Box>

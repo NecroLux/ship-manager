@@ -18,6 +18,8 @@ export interface PromotionPrerequisite {
     hosted?: number;
     chatActivityMin?: number; // 0-5 scale
     serviceMonths?: number;
+    /** Days the sailor must have held their CURRENT rank (uses promotion-history) */
+    timeInRankDays?: number;
   };
 }
 
@@ -68,7 +70,7 @@ export const PROMOTION_PATHS: PromotionPath[] = [
     prerequisites: [
       { id: 'e6-hosted', label: '10 hosted voyages', autoDetect: true, threshold: { hosted: 10 } },
       { id: 'e6-spd', label: 'Join an SPD or be a Squad Leader', autoDetect: false },
-      { id: 'e6-time', label: 'E-4 for 2 weeks', autoDetect: false },
+      { id: 'e6-time', label: 'E-4 for 2 weeks', autoDetect: true, threshold: { timeInRankDays: 14 } },
     ],
   },
   {
@@ -91,7 +93,7 @@ export const PROMOTION_PATHS: PromotionPath[] = [
     prerequisites: [
       { id: 'e8-service', label: '4 months service stripes', autoDetect: true, threshold: { serviceMonths: 4 } },
       { id: 'e8-conduct', label: 'Honorable Conduct Medal', autoDetect: false },
-      { id: 'e8-time', label: '1 month as E-6 or E-7', autoDetect: false },
+      { id: 'e8-time', label: '1 month as E-6 or E-7', autoDetect: true, threshold: { timeInRankDays: 30 } },
     ],
   },
   {
@@ -114,7 +116,7 @@ export const PROMOTION_PATHS: PromotionPath[] = [
     responsibleRank: 'CO',
     prerequisites: [
       { id: 'o3-ocs', label: 'OCS completed', autoDetect: false },
-      { id: 'o3-time', label: '2 weeks as O-1', autoDetect: false },
+      { id: 'o3-time', label: '2 weeks as O-1', autoDetect: true, threshold: { timeInRankDays: 14 } },
     ],
   },
   {
@@ -133,7 +135,7 @@ export const PROMOTION_PATHS: PromotionPath[] = [
     label: 'Lieutenant Commander → Commander',
     responsibleRank: 'Fleet',
     prerequisites: [
-      { id: 'o5-time', label: '4 weeks as O-4', autoDetect: false },
+      { id: 'o5-time', label: '4 weeks as O-4', autoDetect: true, threshold: { timeInRankDays: 28 } },
       { id: 'o5-recruit', label: 'Recruit and maintain 4 external members on ship', autoDetect: false },
       { id: 'o5-coc', label: 'Functional Chain of Command on ship', autoDetect: false },
     ],
@@ -144,7 +146,7 @@ export const PROMOTION_PATHS: PromotionPath[] = [
     label: 'Commander → Captain',
     responsibleRank: 'Fleet',
     prerequisites: [
-      { id: 'o6-time', label: 'O-5 for 3 months', autoDetect: false },
+      { id: 'o6-time', label: 'O-5 for 3 months', autoDetect: true, threshold: { timeInRankDays: 90 } },
       { id: 'o6-maritime', label: 'Maritime Service Medal', autoDetect: true, threshold: { hosted: 50 } },
       { id: 'o6-coc', label: 'Full Chain of Command (CoS optional)', autoDetect: false },
     ],
@@ -162,6 +164,7 @@ export const getPromotionPathForRank = (rankCode: string): PromotionPath | undef
 
 /**
  * Check how many auto-detectable prerequisites are met.
+ * @param timeInRankDays — days the sailor has held their current rank (from promotion-history), or -1 if unknown
  */
 export const checkAutoPrereqs = (
   path: PromotionPath,
@@ -169,6 +172,7 @@ export const checkAutoPrereqs = (
   hosted: number,
   chatActivity: number,
   serviceMonths: number,
+  timeInRankDays: number = -1,
 ): { met: number; total: number; details: Record<string, boolean> } => {
   const details: Record<string, boolean> = {};
   let met = 0;
@@ -181,6 +185,10 @@ export const checkAutoPrereqs = (
       if (p.threshold.hosted !== undefined && hosted < p.threshold.hosted) passed = false;
       if (p.threshold.chatActivityMin !== undefined && chatActivity < p.threshold.chatActivityMin) passed = false;
       if (p.threshold.serviceMonths !== undefined && serviceMonths < p.threshold.serviceMonths) passed = false;
+      if (p.threshold.timeInRankDays !== undefined) {
+        // -1 means no promotion-history entry → not met (can still be manually checked)
+        if (timeInRankDays < 0 || timeInRankDays < p.threshold.timeInRankDays) passed = false;
+      }
     }
     details[p.id] = passed;
     if (passed) met++;
