@@ -270,7 +270,7 @@ export const UsersTab = () => {
               <Card sx={{ flex: 1, minWidth: 80 }}>
                 <CardContent sx={{ textAlign: 'center', py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
                   <Typography color="textSecondary" variant="caption" sx={{ mb: 0.5, display: 'block' }}>
-                    Action Req.
+                    Action
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#ef4444' }}>
                     {complianceStats.action}

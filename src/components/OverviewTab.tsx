@@ -145,8 +145,8 @@ export const OverviewTab = () => {
         </Stack></CardContent></Card>
       </Stack>
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }} useFlexGap>
-        <Box sx={{ flex: 1 }}><Card><CardContent>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3, alignItems: 'stretch' }} useFlexGap>
+        <Box sx={{ flex: 1, display: 'flex' }}><Card sx={{ flex: 1 }}><CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">Compliance Breakdown</Typography>
             <Button size="small" variant="outlined" startIcon={<RefreshIcon />} onClick={refreshData}>Refresh</Button>
@@ -167,7 +167,7 @@ export const OverviewTab = () => {
           </Stack>
         </CardContent></Card></Box>
 
-        <Box sx={{ flex: 1 }}><Card><CardContent>
+        <Box sx={{ flex: 1, display: 'flex' }}><Card sx={{ flex: 1 }}><CardContent>
           <Typography variant="h6" sx={{ mb: 2 }}>Ship Composition</Typography>
           <Stack spacing={2}>
             {crewAnalysis.squadStats.length === 0 ? (
@@ -193,8 +193,7 @@ export const OverviewTab = () => {
                 });
                 return (
                   <Box key={squad.name}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1.5 }}>Command</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3, mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 2 }}>
                       {/* CO */}
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title={coMember ? 'Commanding Officer' : 'CO: Role available'}>
