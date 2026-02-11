@@ -172,12 +172,21 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
           <LinearProgress variant="determinate" value={crewAnalysis.compliancePercentage} sx={{ height: 6, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: complianceColor } }} />
         </Stack></CardContent></Card>
 
-        <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)', cursor: onNavigateToActions ? 'pointer' : 'default', '&:hover': onNavigateToActions ? { boxShadow: 4 } : {} }} onClick={onNavigateToActions}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1.5}>
+        <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)', cursor: onNavigateToActions ? 'pointer' : 'default', '&:hover': onNavigateToActions ? { boxShadow: 4 } : {} }} onClick={onNavigateToActions}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}><Stack spacing={1.5}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><TaskAltIcon sx={{ color: '#3b82f6' }} /><Typography color="textSecondary" variant="body2">Actions</Typography></Box>
-          <Stack direction="row" spacing={3} alignItems="baseline">
-            <Tooltip title="High Priority"><Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#dc2626', lineHeight: 1 }}>{actionsCounts.high}</Typography></Tooltip>
-            <Tooltip title="Medium Priority"><Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#f97316', lineHeight: 1 }}>{actionsCounts.medium}</Typography></Tooltip>
-            <Tooltip title="Low Priority"><Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#eab308', lineHeight: 1 }}>{actionsCounts.low}</Typography></Tooltip>
+          <Stack direction="row" spacing={3} alignItems="center" sx={{ flex: 1 }}>
+            <Stack alignItems="center" spacing={0.5}>
+              <Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#dc2626', lineHeight: 1 }}>{actionsCounts.high}</Typography>
+              <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>High</Typography>
+            </Stack>
+            <Stack alignItems="center" spacing={0.5}>
+              <Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#f97316', lineHeight: 1 }}>{actionsCounts.medium}</Typography>
+              <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>Medium</Typography>
+            </Stack>
+            <Stack alignItems="center" spacing={0.5}>
+              <Typography sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#eab308', lineHeight: 1 }}>{actionsCounts.low}</Typography>
+              <Typography variant="caption" sx={{ color: '#fff', fontWeight: 500 }}>Low</Typography>
+            </Stack>
           </Stack>
         </Stack></CardContent></Card>
       </Stack>
