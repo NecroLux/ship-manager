@@ -136,18 +136,20 @@ const saveCompletedTask = (taskId: string) => {
   localStorage.setItem('sl-recurring-tasks', JSON.stringify(completed));
 };
 
-// Check if a recurring task is currently due (not completed within its cadence window)
-const isTaskDue = (task: RecurringTask): boolean => {
+// Check if a recurring task is currently due for a specific squad
+const isTaskDueForSquad = (task: RecurringTask, squad: string): boolean => {
   const completed = getCompletedTasks();
-  const lastCompleted = completed[task.id];
+  const key = `${task.id}-${squad}`;
+  const lastCompleted = completed[key];
   if (!lastCompleted) return true;
   return Date.now() - lastCompleted >= CADENCE_MS[task.cadence];
 };
 
-// Get time remaining until task is due again (for display)
-const getNextDue = (task: RecurringTask): string => {
+// Get time remaining until task is due again (for display, per-squad)
+const getNextDueForSquad = (task: RecurringTask, squad: string): string => {
   const completed = getCompletedTasks();
-  const lastCompleted = completed[task.id];
+  const key = `${task.id}-${squad}`;
+  const lastCompleted = completed[key];
   if (!lastCompleted) return 'Now';
   const nextDue = lastCompleted + CADENCE_MS[task.cadence];
   const remaining = nextDue - Date.now();
@@ -169,11 +171,6 @@ export const ActionsTab = () => {
 
   // New action form state
   const [newAction, setNewAction] = useState({ description: '', severity: 'medium' as 'high' | 'medium' | 'low', sailor: '', responsible: 'Necro', cadence: '' as '' | 'daily' | 'weekly' | 'fortnightly' });
-
-  const handleCompleteRecurring = useCallback((taskId: string) => {
-    saveCompletedTask(taskId);
-    setRecurringTick((t) => t + 1);
-  }, []);
 
   const handleAddAction = useCallback(() => {
     if (!newAction.description.trim()) return;
@@ -288,16 +285,16 @@ export const ActionsTab = () => {
     });
 
     // === STEP 4: Recurring Squad Leader tasks ===
-    // Only show tasks that are currently due (not completed within their cadence)
+    // Only show tasks that are currently due per squad (not completed within their cadence)
     RECURRING_SL_TASKS.forEach((task) => {
-      if (isTaskDue(task)) {
-        // Add one per squad
-        const squads = enrichedCrew.reduce((acc, m) => {
-          if (m.squad !== 'Command Staff' && m.squad !== 'Unassigned' && !acc.includes(m.squad)) acc.push(m.squad);
-          return acc;
-        }, [] as string[]);
+      // Add one per squad, checking due status per squad
+      const squads = enrichedCrew.reduce((acc, m) => {
+        if (m.squad !== 'Command Staff' && m.squad !== 'Unassigned' && !acc.includes(m.squad)) acc.push(m.squad);
+        return acc;
+      }, [] as string[]);
 
-        squads.forEach((squad) => {
+      squads.forEach((squad) => {
+        if (isTaskDueForSquad(task, squad)) {
           actions.push({
             id: `${task.id}-${squad}`,
             type: 'recurring-sl',
@@ -306,12 +303,12 @@ export const ActionsTab = () => {
             squad,
             responsible: getSquadLeaderName(squad),
             description: `${task.description}`,
-            details: `${task.details}\n\nCadence: ${CADENCE_LABELS[task.cadence]} · Next due: ${getNextDue(task)}`,
+            details: `${task.details}\n\nCadence: ${CADENCE_LABELS[task.cadence]} · Next due: ${getNextDueForSquad(task, squad)}`,
             isRecurring: true,
             cadence: task.cadence,
           });
-        });
-      }
+        }
+      });
     });
 
     // === STEP 5: Manual actions from localStorage ===
@@ -526,8 +523,8 @@ export const ActionsTab = () => {
                                 size="small"
                                 checked={false}
                                 onChange={() => {
-                                  const taskId = RECURRING_SL_TASKS.find(t => action.id.startsWith(t.id))?.id;
-                                  if (taskId) handleCompleteRecurring(taskId);
+                                  saveCompletedTask(action.id);
+                                  setRecurringTick((t) => t + 1);
                                 }}
                                 sx={{ color: '#22c55e', '&.Mui-checked': { color: '#22c55e' }, p: 0.5 }}
                               />

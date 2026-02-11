@@ -162,12 +162,12 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
     <Box sx={{ mt: 3 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }} useFlexGap>
         <Card sx={{ flex: 1, minHeight: 120 }}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><GroupIcon sx={{ color: 'success.main' }} /><Typography color="textSecondary" variant="body2">Total Crew</Typography></Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><GroupIcon sx={{ color: 'success.main' }} /><Typography color="textSecondary" variant="body2">Sailors</Typography></Box>
           <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{crewAnalysis.totalCrew}</Typography>
         </Stack></CardContent></Card>
 
         <Card sx={{ flex: 1, minHeight: 120, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(76,175,80,0.1)' : 'rgba(76,175,80,0.05)' }}><CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Stack spacing={1}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CheckCircleIcon sx={{ color: complianceColor }} /><Typography color="textSecondary" variant="body2">Sailing Compliance</Typography></Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CheckCircleIcon sx={{ color: complianceColor }} /><Typography color="textSecondary" variant="body2">Compliance</Typography></Box>
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#fff' }}>{crewAnalysis.compliancePercentage}%</Typography>
           <LinearProgress variant="determinate" value={crewAnalysis.compliancePercentage} sx={{ height: 6, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: complianceColor } }} />
         </Stack></CardContent></Card>
@@ -236,28 +236,28 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title={coMember ? 'Commanding Officer' : 'CO: Role available'}>
                           <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: coMember ? '#FF5555' : '#9CA3AF', cursor: 'pointer', boxShadow: coMember ? '0 0 8px rgba(255,85,85,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.7rem', lineHeight: 1 }}>CO</Typography>
+                            <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.85rem', lineHeight: 1 }}>CO</Typography>
                           </Box>
                         </Tooltip>
-                        <Typography variant="caption" sx={{ fontWeight: 500, color: coMember ? '#FF5555' : '#9CA3AF' }}>{coMember || '—'}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: '#fff' }}>{coMember || '—'}</Typography>
                       </Box>
                       {/* FO */}
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title={foMember ? 'First Officer' : 'FO: Role available'}>
                           <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: foMember ? '#FF66B2' : '#9CA3AF', cursor: 'pointer', boxShadow: foMember ? '0 0 8px rgba(255,102,178,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.7rem', lineHeight: 1 }}>FO</Typography>
+                            <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.85rem', lineHeight: 1 }}>FO</Typography>
                           </Box>
                         </Tooltip>
-                        <Typography variant="caption" sx={{ fontWeight: 500, color: foMember ? '#FF66B2' : '#9CA3AF' }}>{foMember || '—'}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: '#fff' }}>{foMember || '—'}</Typography>
                       </Box>
                       {/* CoS */}
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title={cosMember ? 'Chief of Ship' : 'CoS: Role available'}>
                           <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: cosMember ? '#D946EF' : '#9CA3AF', cursor: 'pointer', boxShadow: cosMember ? '0 0 8px rgba(217,70,239,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.65rem', lineHeight: 1 }}>CoS</Typography>
+                            <Typography sx={{ color: '#fff', fontWeight: 'bold', fontSize: '0.8rem', lineHeight: 1 }}>CoS</Typography>
                           </Box>
                         </Tooltip>
-                        <Typography variant="caption" sx={{ fontWeight: 500, color: cosMember ? '#D946EF' : '#9CA3AF' }}>{cosMember || '—'}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: '#fff' }}>{cosMember || '—'}</Typography>
                       </Box>
                     </Box>
                   </Box>
