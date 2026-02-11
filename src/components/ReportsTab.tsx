@@ -264,8 +264,7 @@ export const ReportsTab = () => {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       Object.entries(snapshot.squadBreakdown).forEach(([squad, count]) => {
-        const percentage = snapshot.totalCrew > 0 ? Math.round((count / snapshot.totalCrew) * 100) : 0;
-        doc.text(`${squad}: ${count} members (${percentage}%)`, margin + 5, yPosition);
+        doc.text(`${squad}: ${count} members`, margin + 5, yPosition);
         yPosition += 5;
       });
       yPosition += 3;
@@ -311,7 +310,8 @@ export const ReportsTab = () => {
       yPosition += 3;
 
       // ===== CREW ROSTER =====
-      addPageIfNeeded(30);
+      doc.addPage();
+      yPosition = margin;
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.text('CREW ROSTER', margin, yPosition);
@@ -348,6 +348,7 @@ export const ReportsTab = () => {
       yPosition += 3;
 
       // ===== CO NOTES =====
+      yPosition += 5;
       addPageIfNeeded(20);
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
@@ -360,6 +361,14 @@ export const ReportsTab = () => {
       const splitNotes = doc.splitTextToSize(notesText, pageWidth - margin * 2);
       doc.text(splitNotes, margin, yPosition);
       yPosition += splitNotes.length * 4 + 5;
+
+      // CO Signature
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('LCDR Hoit', margin, yPosition);
+      yPosition += 4;
+      doc.text('Commanding Officer', margin, yPosition);
+      yPosition += 8;
 
       // ===== FOOTER =====
       doc.setFontSize(9);

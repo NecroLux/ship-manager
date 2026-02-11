@@ -147,18 +147,16 @@ export const LinkedSheetsTab = () => {
                     </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        {sheetKey !== 'role-coin' && (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="primary"
-                            startIcon={<UpdateIcon />}
-                            onClick={() => handleRangeUpdate(sheetKey as any)}
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Update
-                          </Button>
-                        )}
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          startIcon={<UpdateIcon />}
+                          onClick={() => handleRangeUpdate(sheetKey as any)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Update
+                        </Button>
                         <Button
                           size="small"
                           variant="outlined"
