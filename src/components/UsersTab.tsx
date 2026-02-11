@@ -24,8 +24,8 @@ import { parseAllCrewMembers, parseAllLeaderboardEntries, enrichCrewWithLeaderbo
 // LOA is completely unrelated to compliance
 //
 // Thresholds:
-//   Voyage: 37 days (1 month + 1 week) → Requires Action at 37+, Requires Attention at 35-36
-//   Hosting (JPO+): 21 days (3 weeks) → Requires Action at 21+, Requires Attention at 19-20
+//   Voyage:  Compliant < 25 days | Attention 28+ days | Action 30+ days
+//   Hosting (JPO+): Compliant < 10 days | Attention 12+ days | Action 14+ days
 const getComplianceStatus = (member: any) => {
   // If on LOA, they are exempt from sailing/hosting requirements
   if (member.loaStatus) {
@@ -41,12 +41,12 @@ const getComplianceStatus = (member: any) => {
     const lastVoyage = new Date(member.lastVoyageDate);
     if (!isNaN(lastVoyage.getTime())) {
       const daysSinceVoyage = Math.floor((now.getTime() - lastVoyage.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSinceVoyage >= 37) requiresAction = true;
-      else if (daysSinceVoyage >= 35) requiresAttention = true;
+      if (daysSinceVoyage >= 30) requiresAction = true;
+      else if (daysSinceVoyage >= 28) requiresAttention = true;
     }
-  } else if (member.daysInactive >= 37) {
+  } else if (member.daysInactive >= 30) {
     requiresAction = true;
-  } else if (member.daysInactive >= 35) {
+  } else if (member.daysInactive >= 28) {
     requiresAttention = true;
   }
 
@@ -55,8 +55,8 @@ const getComplianceStatus = (member: any) => {
     const lastHost = new Date(member.lastHostDate);
     if (!isNaN(lastHost.getTime())) {
       const daysSinceHost = Math.floor((now.getTime() - lastHost.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSinceHost >= 21) requiresAction = true;
-      else if (daysSinceHost >= 19) requiresAttention = true;
+      if (daysSinceHost >= 14) requiresAction = true;
+      else if (daysSinceHost >= 12) requiresAttention = true;
     }
   }
 
