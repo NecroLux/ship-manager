@@ -345,22 +345,12 @@ export const ActionsTab = () => {
       {/* Header with Tabs */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={refreshData}
-              disabled={loading}
-            >
-              Refresh
-            </Button>
-          </Box>
-
-          {/* Priority Tabs */}
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          {/* Priority Tabs with Refresh Button */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider', mb: 3 }}>
             <Tabs 
               value={activeTab} 
               onChange={(_e, newValue) => setActiveTab(newValue as any)}
+              sx={{ flex: 1 }}
             >
               <Tab label={`All (${counts.all})`} value="all" />
               <Tab label={`CO (${counts.co})`} value="co" />
@@ -369,43 +359,17 @@ export const ActionsTab = () => {
               <Tab label={`SL1 (${counts.squadleader1})`} value="squadleader1" />
               <Tab label={`SL2 (${counts.squadleader2})`} value="squadleader2" />
             </Tabs>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<RefreshIcon />}
+              onClick={refreshData}
+              disabled={loading}
+              sx={{ ml: 2, flexShrink: 0 }}
+            >
+              Refresh
+            </Button>
           </Box>
-
-          {/* Summary Stats */}
-          <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-            <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
-              <Typography variant="caption" color="textSecondary">
-                CO (Hoit)
-              </Typography>
-              <Typography variant="h6" sx={{ color: '#d32f2f' }}>
-                {counts.co}
-              </Typography>
-            </Paper>
-            <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
-              <Typography variant="caption" color="textSecondary">
-                First Officer (LadyHoit)
-              </Typography>
-              <Typography variant="h6" sx={{ color: '#f57c00' }}>
-                {counts.firstofficer}
-              </Typography>
-            </Paper>
-            <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
-              <Typography variant="caption" color="textSecondary">
-                Chief of Ship (Spice)
-              </Typography>
-              <Typography variant="h6" sx={{ color: '#1976d2' }}>
-                {counts.cos}
-              </Typography>
-            </Paper>
-            <Paper sx={{ p: 2, flex: 1, backgroundColor: 'action.hover' }}>
-              <Typography variant="caption" color="textSecondary">
-                Squad Leaders
-              </Typography>
-              <Typography variant="h6" sx={{ color: '#7c3aed' }}>
-                {counts.squadleader1 + counts.squadleader2}
-              </Typography>
-            </Paper>
-          </Stack>
         </CardContent>
       </Card>
 
