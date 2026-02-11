@@ -209,10 +209,107 @@ app.post('/api/sheets/metadata', async (req: Request, res: Response) => {
   }
 });
 
+// ==================== SNAPSHOT STORAGE ====================
+// Store snapshots in data directory for persistence across deployments
+
+const DATA_DIR = path.resolve(__dirname, '..', 'data');
+const SNAPSHOTS_FILE = path.resolve(DATA_DIR, 'snapshots.json');
+
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Helper to load snapshots from file
+const loadSnapshots = (): any[] => {
+  try {
+    if (fs.existsSync(SNAPSHOTS_FILE)) {
+      const data = fs.readFileSync(SNAPSHOTS_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('Error loading snapshots:', err);
+  }
+  return [];
+};
+
+// Helper to save snapshots to file
+const saveSnapshots = (snapshots: any[]): void => {
+  try {
+    fs.writeFileSync(SNAPSHOTS_FILE, JSON.stringify(snapshots, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error saving snapshots:', err);
+    throw new Error('Failed to save snapshots');
+  }
+};
+
+// GET /api/snapshots - Get all snapshots
+app.get('/api/snapshots', (req: Request, res: Response) => {
+  try {
+    const snapshots = loadSnapshots();
+    res.json(snapshots);
+  } catch (error) {
+    console.error('Error getting snapshots:', error);
+    res.status(500).json({ error: 'Failed to get snapshots' });
+  }
+});
+
+// POST /api/snapshots - Create a new snapshot
+app.post('/api/snapshots', (req: Request, res: Response) => {
+  try {
+    const snapshot = req.body;
+
+    if (!snapshot.date || !snapshot.month) {
+      return res.status(400).json({ error: 'Missing date or month' });
+    }
+
+    const snapshots = loadSnapshots();
+
+    // Remove snapshot if already exists for this date
+    const filtered = snapshots.filter((s: any) => s.date !== snapshot.date);
+
+    // Add new snapshot and sort by date (newest first)
+    const updated = [snapshot, ...filtered].sort((a: any, b: any) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+
+    saveSnapshots(updated);
+
+    res.json({ success: true, snapshot });
+  } catch (error) {
+    console.error('Error creating snapshot:', error);
+    res.status(500).json({ error: 'Failed to create snapshot' });
+  }
+});
+
+// DELETE /api/snapshots/:date - Delete a snapshot
+app.delete('/api/snapshots/:date', (req: Request, res: Response) => {
+  try {
+    const { date } = req.params;
+    const snapshots = loadSnapshots();
+
+    const filtered = snapshots.filter((s: any) => s.date !== date);
+
+    if (filtered.length === snapshots.length) {
+      return res.status(404).json({ error: 'Snapshot not found' });
+    }
+
+    saveSnapshots(filtered);
+
+    res.json({ success: true, message: `Deleted snapshot for ${date}` });
+  } catch (error) {
+    console.error('Error deleting snapshot:', error);
+    res.status(500).json({ error: 'Failed to delete snapshot' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`🚀 Backend server running at http://localhost:${port}`);
   console.log('Available endpoints:');
   console.log('  POST /api/sheets/read - Read a single sheet');
   console.log('  POST /api/sheets/batch-read - Read multiple sheets');
   console.log('  POST /api/sheets/metadata - Get spreadsheet metadata');
+  console.log('  GET /api/snapshots - List all snapshots');
+  console.log('  POST /api/snapshots - Create a snapshot');
+  console.log('  DELETE /api/snapshots/:date - Delete a snapshot');
 });

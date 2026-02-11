@@ -109,7 +109,8 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
         if (
           complianceLower.includes('active') ||
           complianceLower.includes('duty') ||
-          complianceLower === 'within regulations'
+          complianceLower === 'within regulations' ||
+          complianceLower === 'compliant'
         ) {
           complianceCount++;
         }
@@ -124,19 +125,28 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
         squadBreakdown,
       };
 
-      // In a real implementation, this would save to Google Sheets
-      // For now, just store in memory and localStorage
+      // Send to backend API
+      const backendUrl = typeof window !== 'undefined' 
+        ? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5000'
+            : 'https://ship-manager.onrender.com')
+        : 'https://ship-manager.onrender.com';
+
+      const response = await fetch(`${backendUrl}/api/snapshots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(snapshot),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save snapshot to backend');
+      }
+
+      // Update local state
       const updatedSnapshots = [snapshot, ...snapshots].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       );
       setSnapshots(updatedSnapshots);
-
-      // Save to localStorage for persistence
-      try {
-        localStorage.setItem('crew-snapshots', JSON.stringify(updatedSnapshots));
-      } catch (e) {
-        console.warn('Failed to save snapshots to localStorage:', e);
-      }
 
       return snapshot;
     } catch (err) {
@@ -146,21 +156,31 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
-  // Load snapshots from storage
+  // Load snapshots from backend storage
   const loadSnapshots = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Load from localStorage for now
-      const stored = localStorage.getItem('crew-snapshots');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setSnapshots(parsed);
+      // Load from backend API
+      const backendUrl = typeof window !== 'undefined'
+        ? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5000'
+            : 'https://ship-manager.onrender.com')
+        : 'https://ship-manager.onrender.com';
+
+      const response = await fetch(`${backendUrl}/api/snapshots`);
+
+      if (!response.ok) {
+        throw new Error('Failed to load snapshots from backend');
       }
+
+      const snapshots = await response.json();
+      setSnapshots(snapshots || []);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to load snapshots';
       setError(errorMsg);
+      console.error('Error loading snapshots:', err);
     } finally {
       setLoading(false);
     }
@@ -174,14 +194,24 @@ export const SnapshotProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Delete a snapshot
   const deleteSnapshot = async (date: string) => {
     try {
+      // Delete from backend API
+      const backendUrl = typeof window !== 'undefined'
+        ? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5000'
+            : 'https://ship-manager.onrender.com')
+        : 'https://ship-manager.onrender.com';
+
+      const response = await fetch(`${backendUrl}/api/snapshots/${date}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete snapshot from backend');
+      }
+
+      // Update local state
       const updated = snapshots.filter((s) => s.date !== date);
       setSnapshots(updated);
-
-      try {
-        localStorage.setItem('crew-snapshots', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to update localStorage:', e);
-      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to delete snapshot';
       setError(errorMsg);
