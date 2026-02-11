@@ -67,7 +67,7 @@ const getResponsibleStaff = (actionType: string, squad: string): string => {
 
 export const ActionsTab = () => {
   const { data, loading, refreshData } = useSheetData();
-  const [activeTab, setActiveTab] = useState<'all' | 'command' | 'firstofficer' | 'squadleader'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'co' | 'firstofficer' | 'cos' | 'squadleader1' | 'squadleader2'>('all');
   const [selectedAction, setSelectedAction] = useState<ActionItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 

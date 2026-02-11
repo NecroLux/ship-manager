@@ -1,6 +1,5 @@
 import {
   Box,
-  Paper,
   Typography,
   CircularProgress,
   Card,
@@ -16,34 +15,29 @@ import {
   Button,
   LinearProgress,
   useTheme,
+  Tooltip,
 } from '@mui/material';
-import WarningIcon from '@mui/icons-material/Warning';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ErrorIcon from '@mui/icons-material/Error';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import GroupIcon from '@mui/icons-material/Group';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { useSheetData } from '../context/SheetDataContext';
 
-interface ActionItem {
-  sailor: string;
-  actionType: 'attention' | 'promotion' | 'activity' | 'award';
-  details: string;
-  priority: 'high' | 'medium' | 'low';
-}
-
-interface ComplianceStats {
-  compliant: number;
-  attention: number;
-  action: number;
-  unknown: number;
-}
-
-interface SquadStats {
+interface SquadStatsDetailed {
   name: string;
-  count: number;
-  compliance: number;
+  totalCount: number;
+  activeCount: number;
+  loa1Count: number;
+  loa2Count: number;
+  members: Array<{ name: string; rank: string; compliance: string }>;
+}
+
+interface TopVoyager {
+  name: string;
+  rank: string;
+  hosted: number;
+  voyages: number;
 }
 
 export const OverviewTab = () => {
@@ -58,28 +52,31 @@ export const OverviewTab = () => {
     );
   }
 
-  // Analyze crew data comprehensively
+  // Comprehensive crew analysis
   const analyzeCrewData = () => {
     if (!data.gullinbursti || data.gullinbursti.rows.length === 0) {
       return {
         totalCrew: 0,
-        complianceStats: { compliant: 0, attention: 0, action: 0, unknown: 0 },
-        squadStats: [],
-        topPerformers: [],
-        actionItems: [],
+        activeCrew: 0,
+        loaCrew: 0,
+        flaggedCrew: 0,
         compliancePercentage: 0,
+        squadStats: [] as SquadStatsDetailed[],
+        commandStaffMembers: [] as Array<{ name: string; rank: string }>,
       };
     }
 
     const gullinRows = data.gullinbursti.rows;
     const headers = data.gullinbursti.headers;
-    const complianceStats: ComplianceStats = { compliant: 0, attention: 0, action: 0, unknown: 0 };
-    const squadMap: Record<string, { count: number; compliance: number }> = {};
-    const topPerformers: Array<{ name: string; stars: number; squad: string }> = [];
-    const actionItems: ActionItem[] = [];
     
-    let currentSquad = 'Command Staff';
     let totalCrew = 0;
+    let activeCrew = 0;
+    let loaCrew = 0;
+    let flaggedCrew = 0;
+    
+    const squadMap: Record<string, SquadStatsDetailed> = {};
+    const commandStaffMembers: Array<{ name: string; rank: string }> = [];
+    let currentSquad = 'Command Staff';
 
     gullinRows.forEach((row) => {
       const rank = (row[headers[0]] || '').trim();
@@ -117,25 +114,92 @@ export const OverviewTab = () => {
       // Categorize compliance
       const complianceNorm = compliance.toLowerCase();
       if (complianceNorm.includes('active') || complianceNorm.includes('duty') || complianceNorm === 'yes') {
-        complianceStats.compliant++;
-      } else if (complianceNorm.includes('loa') || complianceNorm.includes('warning')) {
-        complianceStats.attention++;
+        activeCrew++;
+      } else if (complianceNorm.includes('loa')) {
+        loaCrew++;
       } else if (complianceNorm === 'flagged' || complianceNorm === 'no' || complianceNorm === 'non-compliant') {
-        complianceStats.action++;
-      } else {
-        complianceStats.unknown++;
+        flaggedCrew++;
       }
 
       // Track squad stats
       if (!squadMap[currentSquad]) {
-        squadMap[currentSquad] = { count: 0, compliance: 0 };
-      }
-      squadMap[currentSquad].count++;
-      if (complianceStats.compliant > 0) {
-        squadMap[currentSquad].compliance++;
+        squadMap[currentSquad] = {
+          name: currentSquad,
+          totalCount: 0,
+          activeCount: 0,
+          loa1Count: 0,
+          loa2Count: 0,
+          members: [],
+        };
       }
 
-      // Extract stars
+      squadMap[currentSquad].totalCount++;
+      squadMap[currentSquad].members.push({ name, rank, compliance });
+
+      if (complianceNorm.includes('active') || complianceNorm.includes('duty') || complianceNorm === 'yes') {
+        squadMap[currentSquad].activeCount++;
+      } else if (complianceNorm === 'loa-1') {
+        squadMap[currentSquad].loa1Count++;
+      } else if (complianceNorm === 'loa-2') {
+        squadMap[currentSquad].loa2Count++;
+      }
+
+      // Track Command Staff members for split display
+      if (currentSquad === 'Command Staff') {
+        commandStaffMembers.push({ name, rank });
+      }
+    });
+
+    const squadStats = Object.values(squadMap);
+    const compliancePercentage = totalCrew > 0 ? Math.round((activeCrew / totalCrew) * 100) : 0;
+
+    return {
+      totalCrew,
+      activeCrew,
+      loaCrew,
+      flaggedCrew,
+      compliancePercentage,
+      squadStats,
+      commandStaffMembers,
+    };
+  };
+
+  // Get actions count from the same logic as ActionsTab
+  const getActionsCount = () => {
+    if (!data.gullinbursti || data.gullinbursti.rows.length === 0) return 0;
+
+    let actionCount = 0;
+    const headers = data.gullinbursti.headers;
+    let currentSquad = 'Command Staff';
+
+    data.gullinbursti.rows.forEach((row) => {
+      const rank = (row[headers[0]] || '').trim();
+      const name = (row[headers[1]] || '').trim();
+      
+      if ((rank === 'Rank' || rank.toLowerCase() === 'rank') && 
+          (name === 'Name' || name.toLowerCase() === 'name')) {
+        return;
+      }
+
+      if (!rank && !name) return;
+
+      if (rank && !name) {
+        currentSquad = rank;
+        return;
+      }
+
+      if (!rank || !name) return;
+
+      // Get compliance status
+      let compliance = '';
+      for (let i = 0; i < headers.length; i++) {
+        if (headers[i].toLowerCase().includes('compliance')) {
+          compliance = (row[headers[i]] || '').trim();
+          break;
+        }
+      }
+
+      // Get stars
       let starsRaw = '';
       for (let i = 0; i < headers.length; i++) {
         const headerLower = headers[i].toLowerCase();
@@ -144,74 +208,143 @@ export const OverviewTab = () => {
           break;
         }
       }
-      const starCount = (starsRaw.match(/★/g) || []).length;
-      if (starCount > 0) {
-        topPerformers.push({ name, stars: starCount, squad: currentSquad });
+      const stars = (starsRaw.match(/[★*]/g) || []).length;
+
+      // Count actions
+      const complianceLower = compliance.toLowerCase().trim();
+      const isOnLeave = complianceLower.includes('loa') || 
+                        complianceLower.includes('leave') || 
+                        complianceLower.includes('off-duty');
+      
+      // No chat activity action
+      if (stars === 0 && !isOnLeave) {
+        actionCount++;
       }
 
-      // Flag sailors with issues
-      if (complianceStats.action > 0 && complianceNorm === 'flagged') {
-        actionItems.push({
-          sailor: name,
-          actionType: 'attention',
-          details: `Compliance Status: ${compliance}`,
-          priority: 'high',
-        });
+      // Compliance issue action
+      const shouldFlag = 
+        complianceLower === 'inactive' || 
+        complianceLower === 'flagged' || 
+        complianceLower === 'no' ||
+        complianceLower === 'non-compliant' ||
+        complianceLower === 'requires action';
+      
+      if (shouldFlag) {
+        actionCount++;
       }
     });
 
-    const squadStats: SquadStats[] = Object.entries(squadMap).map(([name, stats]) => ({
-      name,
-      count: stats.count,
-      compliance: stats.compliance,
-    }));
-
-    topPerformers.sort((a, b) => b.stars - a.stars);
-
-    return {
-      totalCrew,
-      complianceStats,
-      squadStats,
-      topPerformers: topPerformers.slice(0, 5),
-      actionItems: actionItems.slice(0, 10),
-      compliancePercentage: totalCrew > 0 ? Math.round((complianceStats.compliant / totalCrew) * 100) : 0,
-    };
+    return actionCount;
   };
 
-  // Analyze voyage awards data
-  const analyzeAwards = () => {
-    if (!data.voyageAwards || data.voyageAwards.rows.length === 0) {
-      return { totalAwards: 0, topAwardWinners: [] };
+  // Get top hosts and voyagers from voyage awards sheet
+  const getTopVoyagers = (): TopVoyager[] => {
+    if (!data.voyageAwards || !data.gullinbursti) {
+      return [];
     }
 
-    const rows = data.voyageAwards.rows;
-    const awardMap: Record<string, number> = {};
+    const voyageRows = data.voyageAwards.rows;
+    const crewNames = new Set<string>();
+    const crewRanks: Record<string, string> = {};
 
-    rows.forEach((row) => {
-      Object.entries(row).forEach(([key, value]) => {
-        const keyLower = key.toLowerCase();
-        if ((keyLower.includes('award') || keyLower.includes('medal')) && value && value !== '-') {
-          const name = row['Name'] || row['Sailor'] || '';
-          if (name) {
-            awardMap[name] = (awardMap[name] || 0) + 1;
-          }
-        }
-      });
+    // Build crew name and rank map
+    let currentSquad = 'Command Staff';
+    data.gullinbursti.rows.forEach((row) => {
+      const rank = (row[data.gullinbursti.headers[0]] || '').trim();
+      const name = (row[data.gullinbursti.headers[1]] || '').trim();
+
+      if ((rank === 'Rank' || rank.toLowerCase() === 'rank') && 
+          (name === 'Name' || name.toLowerCase() === 'name')) {
+        return;
+      }
+
+      if (!rank && !name) return;
+
+      if (rank && !name) {
+        currentSquad = rank;
+        return;
+      }
+
+      if (!rank || !name) return;
+
+      crewNames.add(name);
+      crewRanks[name] = rank;
     });
 
-    const topAwardWinners = Object.entries(awardMap)
-      .map(([name, count]) => ({ name, awards: count }))
-      .sort((a, b) => b.awards - a.awards)
-      .slice(0, 5);
+    const voyagerMap: Record<string, { hosted: number; voyages: number }> = {};
 
-    return {
-      totalAwards: Object.values(awardMap).reduce((a, b) => a + b, 0),
-      topAwardWinners,
-    };
+    voyageRows.forEach((row) => {
+      let matchedName = '';
+      let hostCount = 0;
+      let voyageCount = 0;
+
+      // Find the name in this row
+      Object.entries(row).forEach(([key, value]) => {
+        const valueStr = (value || '').trim();
+        
+        if (!matchedName && crewNames.has(valueStr)) {
+          matchedName = valueStr;
+        }
+
+        const keyLower = key.toLowerCase();
+        if (keyLower.includes('host') && !isNaN(Number(value))) {
+          hostCount = Math.max(hostCount, parseInt(value as string, 10) || 0);
+        }
+        
+        if (keyLower.includes('voyage') && !isNaN(Number(value))) {
+          voyageCount = Math.max(voyageCount, parseInt(value as string, 10) || 0);
+        }
+      });
+
+      if (matchedName && (hostCount > 0 || voyageCount > 0)) {
+        if (!voyagerMap[matchedName]) {
+          voyagerMap[matchedName] = { hosted: 0, voyages: 0 };
+        }
+        voyagerMap[matchedName].hosted = Math.max(voyagerMap[matchedName].hosted, hostCount);
+        voyagerMap[matchedName].voyages = Math.max(voyagerMap[matchedName].voyages, voyageCount);
+      }
+    });
+
+    return Object.entries(voyagerMap)
+      .map(([name, stats]) => ({
+        name,
+        rank: crewRanks[name] || 'Unknown',
+        hosted: stats.hosted,
+        voyages: stats.voyages,
+      }))
+      .sort((a, b) => (b.hosted + b.voyages) - (a.hosted + a.voyages))
+      .slice(0, 5);
+  };
+
+  const getRankColor = (rank: string) => {
+    if (!rank) return '#B3B3B3';
+    const rankLower = rank.toLowerCase();
+    
+    if (rankLower.includes('commander') && !rankLower.includes('petty')) {
+      return '#FF5555'; // Bright Red
+    }
+    if (rankLower.includes('midship')) {
+      return '#FF66B2'; // Bright Pink
+    }
+    if (rankLower.includes('scpo') || (rankLower.includes('senior') && rankLower.includes('petty'))) {
+      return '#D946EF'; // Bright Purple
+    }
+    if (rankLower.includes('petty') || rankLower.includes('jr.')) {
+      return '#60A5FA'; // Bright Blue
+    }
+    if (rankLower.includes('able') || rankLower.includes('seaman')) {
+      return '#34D399'; // Bright Green
+    }
+    if (rankLower.includes('sailor')) {
+      return '#60A5FA'; // Bright Blue
+    }
+    
+    return '#B3B3B3';
   };
 
   const crewAnalysis = analyzeCrewData();
-  const awardAnalysis = analyzeAwards();
+  const actionsCount = getActionsCount();
+  const topVoyagers = getTopVoyagers();
 
   return (
     <Box sx={{ mt: 3 }}>
@@ -260,27 +393,11 @@ export const OverviewTab = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <ErrorIcon sx={{ color: 'error.main' }} />
                 <Typography color="textSecondary" variant="body2">
-                  Require Action
+                  Actions Required
                 </Typography>
               </Box>
               <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'error.main' }}>
-                {crewAnalysis.complianceStats.action}
-              </Typography>
-            </Stack>
-          </CardContent>
-        </Card>
-
-        <Card sx={{ flex: 1, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 193, 7, 0.1)' : 'rgba(255, 193, 7, 0.05)' }}>
-          <CardContent>
-            <Stack spacing={1}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <EmojiEventsIcon sx={{ color: 'warning.main' }} />
-                <Typography color="textSecondary" variant="body2">
-                  Total Awards
-                </Typography>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                {awardAnalysis.totalAwards}
+                {actionsCount}
               </Typography>
             </Stack>
           </CardContent>
@@ -311,12 +428,12 @@ export const OverviewTab = () => {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2">Active / Compliant</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                      {crewAnalysis.complianceStats.compliant}
+                      {crewAnalysis.activeCrew}
                     </Typography>
                   </Box>
                   <LinearProgress 
                     variant="determinate" 
-                    value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.complianceStats.compliant / crewAnalysis.totalCrew) * 100 : 0}
+                    value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.activeCrew / crewAnalysis.totalCrew) * 100 : 0}
                     sx={{ height: 8, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: 'success.main' } }}
                   />
                 </Box>
@@ -325,12 +442,12 @@ export const OverviewTab = () => {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2">Requires Attention (LOA)</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'warning.main' }}>
-                      {crewAnalysis.complianceStats.attention}
+                      {crewAnalysis.loaCrew}
                     </Typography>
                   </Box>
                   <LinearProgress 
                     variant="determinate" 
-                    value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.complianceStats.attention / crewAnalysis.totalCrew) * 100 : 0}
+                    value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.loaCrew / crewAnalysis.totalCrew) * 100 : 0}
                     sx={{ height: 8, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: 'warning.main' } }}
                   />
                 </Box>
@@ -339,12 +456,12 @@ export const OverviewTab = () => {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2">Requires Action (Flagged)</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'error.main' }}>
-                      {crewAnalysis.complianceStats.action}
+                      {crewAnalysis.flaggedCrew}
                     </Typography>
                   </Box>
                   <LinearProgress 
                     variant="determinate" 
-                    value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.complianceStats.action / crewAnalysis.totalCrew) * 100 : 0}
+                    value={crewAnalysis.totalCrew > 0 ? (crewAnalysis.flaggedCrew / crewAnalysis.totalCrew) * 100 : 0}
                     sx={{ height: 8, borderRadius: 1, backgroundColor: 'action.disabledBackground', '& .MuiLinearProgress-bar': { backgroundColor: 'error.main' } }}
                   />
                 </Box>
@@ -359,25 +476,66 @@ export const OverviewTab = () => {
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Squad Distribution
               </Typography>
-              <Stack spacing={1}>
+              <Stack spacing={2}>
                 {crewAnalysis.squadStats.length === 0 ? (
                   <Typography color="textSecondary">No squad data available</Typography>
                 ) : (
-                  crewAnalysis.squadStats.map((squad) => (
-                    <Box key={squad.name}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                        <Typography variant="body2">{squad.name}</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {squad.count}
-                        </Typography>
+                  crewAnalysis.squadStats.map((squad) => {
+                    const activePercent = squad.totalCount > 0 ? (squad.activeCount / squad.totalCount) * 100 : 0;
+                    const loa1Percent = squad.totalCount > 0 ? (squad.loa1Count / squad.totalCount) * 100 : 0;
+                    const loa2Percent = squad.totalCount > 0 ? (squad.loa2Count / squad.totalCount) * 100 : 0;
+                    
+                    if (squad.name === 'Command Staff') {
+                      return (
+                        <Box key={squad.name}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                            <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
+                              {squad.members.map((member, idx) => (
+                                <Tooltip key={idx} title={`${member.name}`}>
+                                  <Chip
+                                    label={member.name}
+                                    size="small"
+                                    sx={{
+                                      backgroundColor: getRankColor(member.rank),
+                                      color: 'white',
+                                      fontWeight: 'bold',
+                                    }}
+                                  />
+                                </Tooltip>
+                              ))}
+                            </Stack>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold', ml: 1 }}>
+                              {squad.totalCount}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      );
+                    }
+
+                    return (
+                      <Box key={squad.name}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                            {squad.name}
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                            {squad.totalCount}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', height: 8, borderRadius: 1, overflow: 'hidden', backgroundColor: 'action.disabledBackground' }}>
+                          {activePercent > 0 && (
+                            <Box sx={{ width: `${activePercent}%`, backgroundColor: '#22c55e' }} title={`Active: ${squad.activeCount}`} />
+                          )}
+                          {loa1Percent > 0 && (
+                            <Box sx={{ width: `${loa1Percent}%`, backgroundColor: '#eab308' }} title={`LOA-1: ${squad.loa1Count}`} />
+                          )}
+                          {loa2Percent > 0 && (
+                            <Box sx={{ width: `${loa2Percent}%`, backgroundColor: '#ef4444' }} title={`LOA-2: ${squad.loa2Count}`} />
+                          )}
+                        </Box>
                       </Box>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={crewAnalysis.totalCrew > 0 ? (squad.count / crewAnalysis.totalCrew) * 100 : 0}
-                        sx={{ height: 6, borderRadius: 1 }}
-                      />
-                    </Box>
-                  ))
+                    );
+                  })
                 )}
               </Stack>
             </CardContent>
@@ -385,13 +543,13 @@ export const OverviewTab = () => {
         </Box>
       </Stack>
 
-      {/* Top Performers */}
-      {crewAnalysis.topPerformers.length > 0 && (
+      {/* Top Voyagers and Hosts */}
+      {topVoyagers.length > 0 && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <TrendingUpIcon color="success" />
-              Top Performers (Chat Activity)
+              Top Voyagers & Hosts
             </Typography>
             <TableContainer>
               <Table size="small">
@@ -399,19 +557,26 @@ export const OverviewTab = () => {
                   <TableRow sx={{ backgroundColor: 'action.hover' }}>
                     <TableCell sx={{ fontWeight: 'bold' }}>Rank</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Squad</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }} align="right">⭐ Activity</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }} align="right">🏠 Hosted</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }} align="right">⛵ Voyages</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {crewAnalysis.topPerformers.map((sailor, idx) => (
+                  {topVoyagers.map((sailor, idx) => (
                     <TableRow key={idx} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                       <TableCell>{idx + 1}</TableCell>
                       <TableCell>{sailor.name}</TableCell>
-                      <TableCell>{sailor.squad}</TableCell>
                       <TableCell align="right">
                         <Chip 
-                          label={`${sailor.stars} ${sailor.stars === 1 ? 'star' : 'stars'}`}
+                          label={sailor.hosted}
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontWeight: 'bold' }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Chip 
+                          label={sailor.voyages}
                           size="small"
                           variant="outlined"
                           sx={{ fontWeight: 'bold' }}
@@ -422,78 +587,6 @@ export const OverviewTab = () => {
                 </TableBody>
               </Table>
             </TableContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Top Award Winners */}
-      {awardAnalysis.topAwardWinners.length > 0 && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <EmojiEventsIcon sx={{ color: 'warning.main' }} />
-              Top Award Recipients
-            </Typography>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Rank</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }} align="right">Awards</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {awardAnalysis.topAwardWinners.map((sailor, idx) => (
-                    <TableRow key={idx} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                      <TableCell>{idx + 1}</TableCell>
-                      <TableCell>{sailor.name}</TableCell>
-                      <TableCell align="right">
-                        <Chip 
-                          label={sailor.awards}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontWeight: 'bold' }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Action Items */}
-      {crewAnalysis.actionItems.length > 0 && (
-        <Card>
-          <CardContent>
-            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <WarningIcon color="error" />
-              Immediate Action Required
-            </Typography>
-            <Stack spacing={1}>
-              {crewAnalysis.actionItems.map((item, idx) => (
-                <Paper key={idx} sx={{ p: 2, backgroundColor: 'error.light' }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                        {item.sailor}
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        {item.details}
-                      </Typography>
-                    </Box>
-                    <Chip 
-                      label="HIGH" 
-                      size="small" 
-                      sx={{ backgroundColor: 'error.main', color: 'white' }} 
-                    />
-                  </Stack>
-                </Paper>
-              ))}
-            </Stack>
           </CardContent>
         </Card>
       )}
