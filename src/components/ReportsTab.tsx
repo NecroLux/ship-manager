@@ -265,7 +265,7 @@ export const ReportsTab = () => {
           doc.text(String(sailor.hostCount), colX.hosted, yPosition);
 
           // Timezone
-          doc.text((sailor.timezone || '-').substring(0, 8), colX.tz, yPosition);
+          doc.text((sailor.timezone || '-').replace(/\s*\(.*?\)/, '').substring(0, 8), colX.tz, yPosition);
 
           // Chat activity (stars as number /5)
           doc.text(`${sailor.chatActivity}/5`, colX.activity, yPosition);

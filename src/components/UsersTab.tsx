@@ -489,7 +489,7 @@ export const UsersTab = () => {
 
                               {/* Timezone */}
                               <TableCell sx={{ fontSize: '0.9rem', py: 1.5 }}>
-                                {sailor.timezone !== '-' ? `${sailor.timezone}` : '-'}
+                                {sailor.timezone !== '-' ? sailor.timezone.replace(/\s*\(.*?\)/, '') : '-'}
                               </TableCell>
 
                               {/* Activity Stars */}
