@@ -153,17 +153,31 @@ export const UsersTab = () => {
   const crew = parseAllCrewMembers(data.gullinbursti.rows);
 
   // Transform parsed crew into display format
-  const sailors = crew.map((member: ParsedCrewMember) => ({
-    rank: member.rank,
-    name: member.name,
-    squad: member.squad,
-    discordNickname: member.discordUsername,
-    compliance: member.complianceStatus,
-    timezone: member.timezone,
-    stars: member.chatActivity.toString(),
-    loaReturnDate: member.loaReturnDate,
-    loaStatus: member.loaStatus,
-  }));
+  const sailors = crew.map((member: ParsedCrewMember) => {
+    // Determine compliance: check if voyage/host requirements are met
+    // sailingCompliant and hostingCompliant are already booleans from the sheet
+    // If LOA, show LOA status; otherwise show compliance result
+    let complianceDisplay: string;
+    if (member.loaStatus && member.complianceStatus) {
+      // If on LOA, show the LOA status
+      complianceDisplay = member.complianceStatus;
+    } else {
+      // Check voyage/host requirements met
+      complianceDisplay = (member.sailingCompliant && member.hostingCompliant) ? 'Compliant' : 'Requires Attention';
+    }
+
+    return {
+      rank: member.rank,
+      name: member.name,
+      squad: member.squad,
+      discordNickname: member.discordUsername,
+      compliance: complianceDisplay,
+      timezone: member.timezone,
+      stars: member.chatActivity.toString(),
+      loaReturnDate: member.loaReturnDate,
+      loaStatus: member.loaStatus,
+    };
+  });
 
   const complianceStats = {
     total: sailors.length,

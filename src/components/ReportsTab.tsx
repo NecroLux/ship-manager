@@ -58,14 +58,25 @@ export const ReportsTab = () => {
   // Convert crew data to snapshot format using centralized parser
   const getCurrentCrewAsSnapshot = (): CrewSnapshot[] => {
     const crew = parseAllCrewMembers(data.gullinbursti?.rows || []);
-    return crew.map((member) => ({
-      rank: member.rank,
-      name: member.name,
-      squad: member.squad,
-      compliance: member.loaStatus ? 'LOA' : member.sailingCompliant && member.hostingCompliant ? 'Compliant' : 'Requires Attention',
-      timezone: member.timezone,
-      stars: member.chatActivity.toString(),
-    }));
+    return crew.map((member) => {
+      // Compliance based on voyage/host requirements met
+      // LOA overrides compliance
+      let compliance: string;
+      if (member.loaStatus && member.complianceStatus) {
+        compliance = member.complianceStatus; // Show LOA status
+      } else {
+        compliance = (member.sailingCompliant && member.hostingCompliant) ? 'Compliant' : 'Requires Attention';
+      }
+
+      return {
+        rank: member.rank,
+        name: member.name,
+        squad: member.squad,
+        compliance,
+        timezone: member.timezone,
+        stars: member.chatActivity.toString(),
+      };
+    });
   };
 
   // Handle creating a new snapshot
