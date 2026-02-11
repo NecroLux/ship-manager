@@ -155,9 +155,9 @@ export const SheetProvider = ({ children }: { children: ReactNode }) => {
 
       // Fetch all sheets in parallel with current ranges
       const [voyageAwardsData, gullinburstiData, roleCoinData] = await Promise.all([
-        fetchSheetData(VOYAGE_AWARDS_SPREADSHEET_ID, ranges.voyageAwards, true),
+        fetchSheetData(VOYAGE_AWARDS_SPREADSHEET_ID, ranges.voyageAwards, false),
         fetchSheetData(GULLINBURSTI_SPREADSHEET_ID, ranges.gullinbursti, false),
-        fetchSheetData(ROLE_COIN_SPREADSHEET_ID, ranges.roleCoin, true),
+        fetchSheetData(ROLE_COIN_SPREADSHEET_ID, ranges.roleCoin, false),
       ]);
 
       setData({

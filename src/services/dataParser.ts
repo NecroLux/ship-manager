@@ -381,7 +381,7 @@ export const parseLeaderboardEntry = (row: Record<string, string>): ParsedLeader
  * Filters out header rows and entries without a name
  */
 export const parseAllLeaderboardEntries = (rows: Record<string, string>[]): ParsedLeaderboardEntry[] => {
-  return rows
+  const parsed = rows
     .filter((row) => {
       // Try to find name by any method
       const rowKeys = Object.keys(row);
@@ -403,9 +403,16 @@ export const parseAllLeaderboardEntries = (rows: Record<string, string>[]): Pars
           name = (row[rowKeys[1]] || '').trim();
         }
       }
+      // Strip bracket tags before checking
+      name = name.replace(/\[.*?\]\s*/g, '').trim();
       return name && name.toLowerCase() !== 'name' && name !== '-';
     })
     .map((row) => parseLeaderboardEntry(row));
+  
+  // Log parsed leaderboard summary for debugging
+  console.log(`[Voyage Awards] Parsed ${parsed.length} leaderboard entries:`, parsed.map(e => `${e.name}(v:${e.voyageCount},h:${e.hostCount})`).join(', '));
+  
+  return parsed;
 };
 
 /**
@@ -440,6 +447,13 @@ export const parseAllSubclassProgress = (rows: Record<string, string>[]): Parsed
 };
 
 /**
+ * Normalize a name for matching — strip bracket tags like [LOA-1], trim whitespace
+ */
+const normalizeName = (name: string): string => {
+  return name.replace(/\[.*?\]\s*/g, '').trim().toLowerCase();
+};
+
+/**
  * Match crew member from Gullinbursti with leaderboard data from Voyage Awards
  * Returns enriched crew member with voyage/host counts and dates for compliance checks
  */
@@ -447,7 +461,23 @@ export const enrichCrewWithLeaderboardData = (
   crewMember: ParsedCrewMember,
   leaderboardData: ParsedLeaderboardEntry[]
 ): ParsedCrewMember & { voyageCount: number; hostCount: number; daysInactive: number; lastVoyageDate: string; lastHostDate: string } => {
-  const leaderboardEntry = leaderboardData.find((l) => l.name.toLowerCase() === crewMember.name.toLowerCase());
+  const crewNameNorm = normalizeName(crewMember.name);
+  
+  // Try exact match first, then fuzzy (startsWith / includes)
+  let leaderboardEntry = leaderboardData.find((l) => normalizeName(l.name) === crewNameNorm);
+  if (!leaderboardEntry && crewNameNorm.length >= 3) {
+    leaderboardEntry = leaderboardData.find((l) => {
+      const lName = normalizeName(l.name);
+      return lName.startsWith(crewNameNorm) || crewNameNorm.startsWith(lName);
+    });
+  }
+
+  // Diagnostic: log match results
+  if (!leaderboardEntry) {
+    console.warn(`[Enrichment] No match for "${crewMember.name}" (normalized: "${crewNameNorm}"). Available names:`, leaderboardData.map(l => l.name).join(', '));
+  } else {
+    console.log(`[Enrichment] Matched "${crewMember.name}" → "${leaderboardEntry.name}" (voyages: ${leaderboardEntry.voyageCount}, hosts: ${leaderboardEntry.hostCount}, daysInactive: ${leaderboardEntry.daysInactive})`);
+  }
 
   return {
     ...crewMember,

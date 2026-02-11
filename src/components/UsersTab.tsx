@@ -23,20 +23,35 @@ import { parseAllCrewMembers, parseAllLeaderboardEntries, enrichCrewWithLeaderbo
 // Compliance = have they sailed / hosted within required timeframes?
 // LOA is completely unrelated to compliance
 //
-// Thresholds:
+// Thresholds (based on Time/Voyage Awards data):
 //   Voyage:  Compliant < 25 days | Attention 28+ days | Action 30+ days
 //   Hosting (JPO+): Compliant < 10 days | Attention 12+ days | Action 14+ days
+//
+// If no Time/Voyage Awards data exists for a member, fall back to Gullinbursti's
+// sailingCompliant field as the source of truth.
 const getComplianceStatus = (member: any) => {
   // If on LOA, they are exempt from sailing/hosting requirements
   if (member.loaStatus) {
     return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
   }
 
+  // If we have NO leaderboard data for this member (no voyages, no hosts, no dates),
+  // fall back to Gullinbursti's sailingCompliant as the source of truth
+  const hasLeaderboardData = member.lastVoyageDate || member.daysInactive > 0 || member.voyageCount > 0 || member.hostCount > 0;
+  
+  if (!hasLeaderboardData) {
+    if (member.sailingCompliant) {
+      return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
+    }
+    // No data and not compliant per Gullinbursti — attention, not action
+    return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
+  }
+
   const now = new Date();
   let requiresAction = false;
   let requiresAttention = false;
 
-  // Check voyage threshold
+  // Check voyage threshold using lastVoyageDate or daysInactive
   if (member.lastVoyageDate) {
     const lastVoyage = new Date(member.lastVoyageDate);
     if (!isNaN(lastVoyage.getTime())) {
@@ -68,13 +83,8 @@ const getComplianceStatus = (member: any) => {
     return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
   }
 
-  // If they have sailed (sailingCompliant), they are compliant
-  if (member.sailingCompliant) {
-    return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
-  }
-  
-  // Not sailed and not on LOA but not yet near any threshold = Requires Attention
-  return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
+  // Has leaderboard data and within all thresholds
+  return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
 };
 
 // Helper function to get status label and color
