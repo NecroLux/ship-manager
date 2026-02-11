@@ -103,16 +103,31 @@ export interface GeneratedAction {
  * Parse a single crew member from Gullinbursti sheet
  */
 export const parseCrewMember = (row: Record<string, string>): ParsedCrewMember => {
-  const rank = (row[GULLINBURSTI_COLUMNS.RANK] || '').trim();
-  const name = (row[GULLINBURSTI_COLUMNS.NAME] || '').trim();
+  // Helper to get value by numeric index OR header name
+  const getRowValue = (numIndex: number, ...headerNames: string[]): string => {
+    // Try numeric index first
+    if (row[numIndex] !== undefined) {
+      return row[numIndex] || '';
+    }
+    // Try header names
+    for (const headerName of headerNames) {
+      if (row[headerName] !== undefined) {
+        return row[headerName] || '';
+      }
+    }
+    return '';
+  };
+
+  const rank = getRowValue(GULLINBURSTI_COLUMNS.RANK, 'Rank', 'RANK', 'rank').trim();
+  const name = getRowValue(GULLINBURSTI_COLUMNS.NAME, 'Name', 'NAME', 'name').trim();
 
   // Extract compliance booleans
-  const sailingCompliant = (row[GULLINBURSTI_COLUMNS.SAILING_COMPLIANCE] || '').toLowerCase().includes('yes');
-  const hostingCompliant = (row[GULLINBURSTI_COLUMNS.HOSTING_COMPLIANCE] || '').toLowerCase().includes('yes');
+  const sailingCompliant = getRowValue(GULLINBURSTI_COLUMNS.SAILING_COMPLIANCE, 'Sailing Compliance', 'SAILING_COMPLIANCE').toLowerCase().includes('yes');
+  const hostingCompliant = getRowValue(GULLINBURSTI_COLUMNS.HOSTING_COMPLIANCE, 'Hosting Compliance', 'HOSTING_COMPLIANCE').toLowerCase().includes('yes');
 
   // Parse chat activity (could be stars ★, number, or text)
   let chatActivity = 0;
-  const activityRaw = (row[GULLINBURSTI_COLUMNS.CHAT_ACTIVITY] || '').trim();
+  const activityRaw = getRowValue(GULLINBURSTI_COLUMNS.CHAT_ACTIVITY, 'Chat Activity', 'CHAT_ACTIVITY').trim();
   const starCount = (activityRaw.match(/[★*]/g) || []).length;
   if (starCount > 0) {
     chatActivity = starCount;
@@ -124,36 +139,36 @@ export const parseCrewMember = (row: Record<string, string>): ParsedCrewMember =
   }
 
   // Extract birthday (MM/DD only, no year)
-  const birthday = (row[GULLINBURSTI_COLUMNS.BIRTHDAY] || '').trim();
+  const birthday = getRowValue(GULLINBURSTI_COLUMNS.BIRTHDAY, 'Birthday', 'BIRTHDAY').trim();
 
   // Squad extraction: try header search, fallback to column 3
-  let squad = (row[GULLINBURSTI_COLUMNS.SQUAD_LEADER_COMMENTS] || '').trim().split('\n')[0] || 'Unassigned';
+  let squad = getRowValue(GULLINBURSTI_COLUMNS.SQUAD_LEADER_COMMENTS, 'Squad Leader Comments', 'SQUAD_LEADER_COMMENTS').trim().split('\n')[0] || 'Unassigned';
   // Note: In actual implementation, we'd scan through headers to find squad column
 
   return {
     rank,
     name,
-    discordUsername: (row[GULLINBURSTI_COLUMNS.DISCORD_USERNAME] || '').trim(),
-    discordId: (row[GULLINBURSTI_COLUMNS.DISCORD_ID] || '').trim(),
+    discordUsername: getRowValue(GULLINBURSTI_COLUMNS.DISCORD_USERNAME, 'Discord Username', 'DISCORD_USERNAME').trim(),
+    discordId: getRowValue(GULLINBURSTI_COLUMNS.DISCORD_ID, 'Discord ID', 'DISCORD_ID').trim(),
     squad,
-    timezone: (row[GULLINBURSTI_COLUMNS.TIMEZONE] || '').trim() || 'Unknown',
-    inGuild: (row[GULLINBURSTI_COLUMNS.IN_GUILD_INDICATOR] || '').toLowerCase().includes('yes'),
-    xboxGamertag: (row[GULLINBURSTI_COLUMNS.GAMERTAG_XBOX] || '').trim() || undefined,
+    timezone: getRowValue(GULLINBURSTI_COLUMNS.TIMEZONE, 'Timezone', 'TIMEZONE').trim() || 'Unknown',
+    inGuild: getRowValue(GULLINBURSTI_COLUMNS.IN_GUILD_INDICATOR, 'In Guild', 'IN_GUILD_INDICATOR').toLowerCase().includes('yes'),
+    xboxGamertag: getRowValue(GULLINBURSTI_COLUMNS.GAMERTAG_XBOX, 'Xbox Gamertag', 'GAMERTAG_XBOX').trim() || undefined,
     loaStatus: isOnLOA(row),
-    loaReturnDate: (row[GULLINBURSTI_COLUMNS.LOA_RETURN_DATE] || '').trim() || undefined,
+    loaReturnDate: getRowValue(GULLINBURSTI_COLUMNS.LOA_RETURN_DATE, 'LOA Return Date', 'LOA_RETURN_DATE').trim() || undefined,
     chatActivity,
     sailingCompliant,
     hostingCompliant,
     canHostRank: canHost(rank),
     mustSailRank: mustSail(rank),
-    squadLeaderComments: (row[GULLINBURSTI_COLUMNS.SQUAD_LEADER_COMMENTS] || '').trim() || undefined,
-    cosNotes: (row[GULLINBURSTI_COLUMNS.COS_NOTES] || '').trim() || undefined,
+    squadLeaderComments: getRowValue(GULLINBURSTI_COLUMNS.SQUAD_LEADER_COMMENTS, 'Squad Leader Comments', 'SQUAD_LEADER_COMMENTS').trim() || undefined,
+    cosNotes: getRowValue(GULLINBURSTI_COLUMNS.COS_NOTES, 'COS Notes', 'COS_NOTES').trim() || undefined,
     birthday: birthday || undefined,
-    spd: (row[GULLINBURSTI_COLUMNS.SPD_INDICATOR] || '').toLowerCase().includes('yes') ? 'Yes' : undefined,
-    spdName: (row[GULLINBURSTI_COLUMNS.SPD_NAME] || '').trim() || undefined,
-    serviceStripe: (row[GULLINBURSTI_COLUMNS.SERVICE_STRIPE] || '').toLowerCase().includes('yes'),
-    serviceStripeCorrect: (row[GULLINBURSTI_COLUMNS.SERVICE_STRIPE_CORRECT] || '').toLowerCase().includes('yes'),
-    promotionEligible: (row[GULLINBURSTI_COLUMNS.PROMOTION_ELIGIBLE] || '').toLowerCase().includes('yes'),
+    spd: getRowValue(GULLINBURSTI_COLUMNS.SPD_INDICATOR, 'SPD Indicator', 'SPD_INDICATOR').toLowerCase().includes('yes') ? 'Yes' : undefined,
+    spdName: getRowValue(GULLINBURSTI_COLUMNS.SPD_NAME, 'SPD Name', 'SPD_NAME').trim() || undefined,
+    serviceStripe: getRowValue(GULLINBURSTI_COLUMNS.SERVICE_STRIPE, 'Service Stripe', 'SERVICE_STRIPE').toLowerCase().includes('yes'),
+    serviceStripeCorrect: getRowValue(GULLINBURSTI_COLUMNS.SERVICE_STRIPE_CORRECT, 'Service Stripe Correct', 'SERVICE_STRIPE_CORRECT').toLowerCase().includes('yes'),
+    promotionEligible: getRowValue(GULLINBURSTI_COLUMNS.PROMOTION_ELIGIBLE, 'Promotion Eligible', 'PROMOTION_ELIGIBLE').toLowerCase().includes('yes'),
   };
 };
 
@@ -163,9 +178,27 @@ export const parseCrewMember = (row: Record<string, string>): ParsedCrewMember =
 export const parseAllCrewMembers = (rows: Record<string, string>[]): ParsedCrewMember[] => {
   return rows
     .filter((row) => {
+      // Get values by either numeric index or header name
+      const getRank = () => {
+        // Try numeric index first
+        if (row[GULLINBURSTI_COLUMNS.RANK] !== undefined) {
+          return (row[GULLINBURSTI_COLUMNS.RANK] || '').trim();
+        }
+        // Fallback to common header names
+        return (row['Rank'] || row['RANK'] || row['rank'] || '').trim();
+      };
+      
+      const getName = () => {
+        if (row[GULLINBURSTI_COLUMNS.NAME] !== undefined) {
+          return (row[GULLINBURSTI_COLUMNS.NAME] || '').trim();
+        }
+        return (row['Name'] || row['NAME'] || row['name'] || '').trim();
+      };
+
+      const rank = getRank();
+      const name = getName();
+      
       // Skip empty rows and header rows
-      const rank = (row[GULLINBURSTI_COLUMNS.RANK] || '').trim();
-      const name = (row[GULLINBURSTI_COLUMNS.NAME] || '').trim();
       if (!rank || !name) return false;
       if (rank.toLowerCase() === 'rank' && name.toLowerCase() === 'name') return false;
       return true;

@@ -20,7 +20,7 @@ import { UsersTab } from './components/UsersTab';
 import { OverviewTab } from './components/OverviewTab';
 import { ActionsTab } from './components/ActionsTab';
 import { ReportsTab } from './components/ReportsTab';
-import { ConfigTab } from './components/ConfigTab';
+import { LinkedSheetsTab } from './components/LinkedSheetsTab';
 import { SheetProvider } from './context/SheetDataContext';
 import { SnapshotProvider } from './context/SnapshotContext';
 import { VERSION_SHORT } from './version';
@@ -119,7 +119,7 @@ function AppContent() {
 
         {/* Config Tab */}
         {activeTab === 4 && (
-          <ConfigTab />
+          <LinkedSheetsTab />
         )}
       </Container>
     </ThemeProvider>
