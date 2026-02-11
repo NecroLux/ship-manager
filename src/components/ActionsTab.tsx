@@ -30,7 +30,7 @@ import { useState, useMemo } from 'react';
 interface ActionItem {
   id: string;
   type: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: 'high' | 'medium' | 'low' | 'recurring';
   sailor: string;
   squad: string;
   responsible: string; // Who should handle this (squad leader, COS, etc.)
@@ -196,20 +196,29 @@ export const ActionsTab = () => {
         
         if (shouldFlag) {
           let complianceType = '';
+          let priority: 'high' | 'medium' | 'low' | 'recurring' = 'high';
+          
           if (complianceLower === 'inactive') {
             complianceType = 'Inactive';
+            priority = 'medium'; // Requires attention
           } else if (complianceLower === 'flagged') {
             complianceType = 'Flagged';
+            priority = 'high'; // Requires action
           } else if (complianceLower === 'no') {
             complianceType = 'Non-Compliant';
+            priority = 'high'; // Requires action
+          } else if (complianceLower === 'requires action') {
+            complianceType = 'Requires Action';
+            priority = 'high'; // Requires action
           } else {
             complianceType = compliance;
+            priority = 'medium';
           }
 
           actions.push({
             id: String(actionId++),
             type: 'compliance-issue',
-            severity: 'high',
+            severity: priority,
             sailor: name,
             squad: assignedSquad,
             responsible: getResponsibleStaff('compliance-issue', assignedSquad),
@@ -241,10 +250,11 @@ export const ActionsTab = () => {
       const hostingLower = hostingStatus.toLowerCase();
 
       if (sailingLower.includes('requires') || sailingLower.includes('attention')) {
+        const priority = sailingLower.includes('requires action') ? 'high' : 'medium';
         actions.push({
           id: String(actionId++),
           type: 'sailing-issue',
-          severity: 'high',
+          severity: priority,
           sailor: name,
           squad: assignedSquad,
           responsible: getResponsibleStaff('sailing-issue', assignedSquad),
@@ -254,10 +264,11 @@ export const ActionsTab = () => {
       }
 
       if (hostingLower.includes('requires') || hostingLower.includes('attention')) {
+        const priority = hostingLower.includes('requires action') ? 'high' : 'medium';
         actions.push({
           id: String(actionId++),
           type: 'hosting-issue',
-          severity: 'high',
+          severity: priority,
           sailor: name,
           squad: assignedSquad,
           responsible: getResponsibleStaff('hosting-issue', assignedSquad),
@@ -268,10 +279,10 @@ export const ActionsTab = () => {
     });
 
   // Total actions detected: actions.length
-    // Sort by severity (high > medium > low)
+    // Sort by priority (high > medium > low > recurring)
     actions.sort((a, b) => {
-      const severityOrder = { high: 0, medium: 1, low: 2 };
-      return severityOrder[a.severity] - severityOrder[b.severity];
+      const severityOrder = { high: 0, medium: 1, low: 2, recurring: 3 };
+      return severityOrder[a.severity as keyof typeof severityOrder] - severityOrder[b.severity as keyof typeof severityOrder];
     });
     return actions;
   }, [data.gullinbursti]);
@@ -317,11 +328,13 @@ export const ActionsTab = () => {
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'high':
-        return <ErrorIcon sx={{ color: '#d32f2f' }} />;
+        return <ErrorIcon sx={{ color: '#dc2626' }} />;
       case 'medium':
-        return <WarningIcon sx={{ color: '#f57c00' }} />;
+        return <WarningIcon sx={{ color: '#eab308' }} />;
       case 'low':
-        return <WarningIcon sx={{ color: '#1976d2' }} />;
+        return <WarningIcon sx={{ color: '#3b82f6' }} />;
+      case 'recurring':
+        return <WarningIcon sx={{ color: '#3b82f6' }} />;
       default:
         return null;
     }
