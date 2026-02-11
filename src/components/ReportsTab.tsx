@@ -11,7 +11,7 @@ import { useSheetData } from '../context/SheetDataContext';
 import { parseAllCrewMembers } from '../services/dataParser';
 import jsPDF from 'jspdf';
 
-export const ReportsTab = () => {
+export function ReportsTab() {
   const { data } = useSheetData();
   const [coNotes, setCoNotes] = useState<string>('');
 

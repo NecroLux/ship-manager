@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSheetData } from '../context/SheetDataContext';
-import { parseAllCrewMembers, type ParsedCrewMember } from '../services/dataParser';
+import { parseAllCrewMembers, parseAllLeaderboardEntries, enrichCrewWithLeaderboardData, type ParsedCrewMember } from '../services/dataParser';
 
 // Helper function to get compliance status
 // Compliance = have they sailed in the last month?
@@ -148,8 +148,12 @@ export const UsersTab = () => {
   // Parse crew members using centralized data parser
   const crew = parseAllCrewMembers(data.gullinbursti.rows);
 
-  // Transform parsed crew into display format
+  // Parse leaderboard data from Voyage Awards sheet for voyage/host counts
+  const leaderboardData = data.voyageAwards?.rows ? parseAllLeaderboardEntries(data.voyageAwards.rows) : [];
+
+  // Transform parsed crew into display format, enriched with voyage/host counts
   const sailors = crew.map((member: ParsedCrewMember) => {
+    const enriched = enrichCrewWithLeaderboardData(member, leaderboardData);
     return {
       rank: member.rank,
       name: member.name,
@@ -162,6 +166,8 @@ export const UsersTab = () => {
       stars: member.chatActivity.toString(),
       chatActivity: member.chatActivity,
       loaReturnDate: member.loaReturnDate,
+      voyageCount: enriched.voyageCount,
+      hostCount: enriched.hostCount,
     };
   });
 
@@ -281,7 +287,7 @@ export const UsersTab = () => {
                             }
                           }}
                         >
-                          <TableCell colSpan={6} sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1rem', color: '#FFFFFF', backgroundColor: 'transparent' }}>
+                          <TableCell colSpan={8} sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1rem', color: '#FFFFFF', backgroundColor: 'transparent' }}>
                             {squad}
                           </TableCell>
                         </TableRow>
@@ -297,11 +303,13 @@ export const UsersTab = () => {
                           }}
                         >
                           <TableCell sx={{ width: '12%' }}>Rank</TableCell>
-                          <TableCell sx={{ width: '18%' }}>Name</TableCell>
-                          <TableCell sx={{ width: '13%' }}>Status</TableCell>
-                          <TableCell sx={{ width: '13%', textAlign: 'center' }}>Compliance</TableCell>
-                          <TableCell sx={{ width: '16%' }}>Timezone</TableCell>
-                          <TableCell sx={{ width: '15%', textAlign: 'center' }}>Activity</TableCell>
+                          <TableCell sx={{ width: '15%' }}>Name</TableCell>
+                          <TableCell sx={{ width: '10%' }}>Status</TableCell>
+                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Compliance</TableCell>
+                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Voyages</TableCell>
+                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Hosted</TableCell>
+                          <TableCell sx={{ width: '13%' }}>Timezone</TableCell>
+                          <TableCell sx={{ width: '12%', textAlign: 'center' }}>Activity</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -404,6 +412,32 @@ export const UsersTab = () => {
                                     {complianceStatus.icon}
                                   </Box>
                                 </Box>
+                              </TableCell>
+
+                              {/* Voyages */}
+                              <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
+                                <Typography
+                                  sx={{
+                                    fontWeight: 600,
+                                    fontSize: '0.9rem',
+                                    color: sailor.voyageCount > 0 ? '#60A5FA' : '#6b7280',
+                                  }}
+                                >
+                                  {sailor.voyageCount}
+                                </Typography>
+                              </TableCell>
+
+                              {/* Hosted */}
+                              <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
+                                <Typography
+                                  sx={{
+                                    fontWeight: 600,
+                                    fontSize: '0.9rem',
+                                    color: sailor.hostCount > 0 ? '#34D399' : '#6b7280',
+                                  }}
+                                >
+                                  {sailor.hostCount}
+                                </Typography>
                               </TableCell>
 
                               {/* Timezone */}
