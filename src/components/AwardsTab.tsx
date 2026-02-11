@@ -239,6 +239,26 @@ export const AwardsTab = () => {
           });
         }
       });
+
+      // Also inject confirmed non-auto-detect awards from KnownAwards
+      // (conduct, combat, representation, etc. that are manually awarded)
+      const nonAutoAwards = AWARDS.filter((a) => !a.autoDetect);
+      nonAutoAwards.forEach((award) => {
+        const isKnown = isKnownAwarded(knownSet, award.id, member.name);
+        const key = `${award.id}::${member.name}`;
+        const isManuallyAwarded = awardedSet.has(key);
+        if (isKnown || isManuallyAwarded) {
+          results.push({
+            award,
+            sailorName: member.name,
+            sailorRank: member.rank,
+            squad: member.squad,
+            responsible: getResponsiblePerson(award.responsibleRank, member.squad, member.name, commandStaff),
+            currentValue: 'Confirmed',
+            awarded: true,
+          });
+        }
+      });
     });
 
     // Sort: unawarded first, then by tier (highest first), then by name
