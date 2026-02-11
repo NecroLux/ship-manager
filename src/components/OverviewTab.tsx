@@ -337,6 +337,16 @@ export const OverviewTab = () => {
   const topHosts = getTopHosts();
   const topVoyages = getTopVoyages();
 
+  // Get compliance color based on percentage
+  const getComplianceColor = (percentage: number) => {
+    if (percentage > 75) return '#22c55e'; // Green
+    if (percentage >= 50) return '#eab308'; // Yellow
+    if (percentage >= 25) return '#f97316'; // Orange
+    return '#ef4444'; // Red
+  };
+
+  const complianceColor = getComplianceColor(crewAnalysis.compliancePercentage);
+
   return (
     <Box sx={{ mt: 3 }}>
       {/* Key Metrics Cards */}
@@ -361,18 +371,23 @@ export const OverviewTab = () => {
           <CardContent>
             <Stack spacing={1}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CheckCircleIcon sx={{ color: 'success.main' }} />
+                <CheckCircleIcon sx={{ color: complianceColor }} />
                 <Typography color="textSecondary" variant="body2">
                   Compliance Rate
                 </Typography>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: complianceColor }}>
                 {crewAnalysis.compliancePercentage}%
               </Typography>
               <LinearProgress 
                 variant="determinate" 
                 value={crewAnalysis.compliancePercentage}
-                sx={{ height: 6, borderRadius: 1, backgroundColor: 'action.disabledBackground' }}
+                sx={{ 
+                  height: 6, 
+                  borderRadius: 1, 
+                  backgroundColor: 'action.disabledBackground',
+                  '& .MuiLinearProgress-bar': { backgroundColor: complianceColor }
+                }}
               />
             </Stack>
           </CardContent>
