@@ -25,7 +25,13 @@ import ErrorIcon from '@mui/icons-material/Error';
 import WarningIcon from '@mui/icons-material/Warning';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSheetData } from '../context/SheetDataContext';
-import { parseAllCrewMembers, parseStaffComments, getResponsibleStaff as getResponsibleStaffFromParser } from '../services/dataParser';
+import {
+  parseAllCrewMembers,
+  parseAllLeaderboardEntries,
+  enrichCrewWithLeaderboardData,
+  parseStaffComments,
+  getResponsibleStaff as getResponsibleStaffFromParser,
+} from '../services/dataParser';
 import { useState, useMemo } from 'react';
 
 interface ActionItem {
@@ -39,243 +45,123 @@ interface ActionItem {
   details: string;
 }
 
-// Determine who should handle each action based on type and criteria
-const getResponsibleStaff = (actionType: string, squad: string): string => {
-  return getResponsibleStaffFromParser(actionType, squad);
-};
-
 export const ActionsTab = () => {
   const { data, loading, refreshData } = useSheetData();
   const [activeTab, setActiveTab] = useState<'all' | 'co' | 'firstofficer' | 'cos' | 'squadleader1' | 'squadleader2'>('all');
   const [selectedAction, setSelectedAction] = useState<ActionItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  // Detect crew actions based on naval rules
+  // Detect crew actions using the same enriched data pipeline as Crew tab
   const detectedActions = useMemo(() => {
     if (!data.gullinbursti || data.gullinbursti.rows.length === 0) return [];
 
     const actions: ActionItem[] = [];
     let actionId = 0;
-    const headers = data.gullinbursti.headers;
 
-  // Action detection debug logs removed for production
+    // === STEP 1: Parse crew from Gullinbursti (source of truth) ===
+    const crew = parseAllCrewMembers(data.gullinbursti.rows);
 
-    let currentSquad = 'Command Staff'; // Start with Command Staff as default
+    // === STEP 2: Parse leaderboard data from Voyage Awards ===
+    const leaderboardData = data.voyageAwards?.rows
+      ? parseAllLeaderboardEntries(data.voyageAwards.rows)
+      : [];
 
-  data.gullinbursti.rows.forEach((row) => {
-      // Extract crew data from row using headers
-      const rank = (row[headers[0]] || '').trim();
-      const name = (row[headers[1]] || '').trim();
-      
-      // Try to find squad column by header name, fallback to index 3
-      let squadFromRow = '';
-      for (let i = 0; i < headers.length; i++) {
-        if (headers[i].toLowerCase().includes('squad')) {
-          squadFromRow = (row[headers[i]] || '').trim();
-          break;
-        }
-      }
-      
-      // If no squad column found by name, try index 3 but validate it's not a boolean
-      if (!squadFromRow && row[headers[3]]) {
-        const val = (row[headers[3]] || '').trim();
-        if (val && val.toLowerCase() !== 'true' && val.toLowerCase() !== 'false') {
-          squadFromRow = val;
-        }
-      }
+    // === STEP 3: Enrich crew with leaderboard data (same as Crew tab) ===
+    const enrichedCrew = crew.map((m) => enrichCrewWithLeaderboardData(m, leaderboardData));
 
-      // Find compliance column
-      let compliance = '';
-      for (let i = 0; i < headers.length; i++) {
-        if (headers[i].toLowerCase().includes('compliance')) {
-          compliance = (row[headers[i]] || '').trim();
-          break;
-        }
-      }
-      
-      // Find chat activity/stars column
-      let starsRaw = '';
-      for (let i = 0; i < headers.length; i++) {
-        const headerLower = headers[i].toLowerCase();
-        if (headerLower.includes('chat') || headerLower.includes('activity') || headerLower.includes('star')) {
-          starsRaw = (row[headers[i]] || '').trim();
-          break;
-        }
-      }
-      
-      // Skip column header row
-      if ((rank === 'Rank' || rank.toLowerCase() === 'rank') && 
-          (name === 'Name' || name.toLowerCase() === 'name')) {
-        return;
-      }
+    const now = new Date();
 
-      // Skip completely empty rows
-      if (!rank && !name) return;
+    enrichedCrew.forEach((member) => {
+      // Skip LOA members — they are exempt from all requirements
+      if (member.loaStatus) return;
 
-      // Check if this is a squad header row (rank has value but name is empty)
-      if (rank && !name) {
-        currentSquad = rank;
-        return;
-      }
+      // --- SAILING COMPLIANCE (Gullinbursti = source of truth) ---
+      if (!member.sailingCompliant) {
+        // Not compliant — determine severity from leaderboard thresholds
+        let severity: 'high' | 'medium' = 'medium'; // default = Attention
+        let daysDetail = '';
 
-      // Skip rows without both rank and name
-      if (!rank || !name) return;
-
-      // Use squad from row if available, otherwise use currentSquad
-      const assignedSquad = squadFromRow || currentSquad;
-
-      // Parse stars - count actual stars (★ characters)
-      let stars = 0;
-      if (starsRaw) {
-        // Count star characters (★ or *)
-        const starCount = (starsRaw.match(/[★*]/g) || []).length;
-        // If that doesn't work, try to extract a number
-        if (starCount === 0) {
-          const starMatch = starsRaw.match(/\d+/);
-          if (starMatch) {
-            stars = parseInt(starMatch[0], 10);
+        if (member.lastVoyageDate) {
+          const lastVoyage = new Date(member.lastVoyageDate);
+          if (!isNaN(lastVoyage.getTime())) {
+            const days = Math.floor((now.getTime() - lastVoyage.getTime()) / (1000 * 60 * 60 * 24));
+            if (days >= 30) severity = 'high';
+            daysDetail = ` (${days} days since last voyage)`;
           }
-        } else {
-          stars = starCount;
+        } else if (member.daysInactive >= 30) {
+          severity = 'high';
+          daysDetail = ` (${member.daysInactive} days inactive)`;
+        } else if (member.daysInactive > 0) {
+          daysDetail = ` (${member.daysInactive} days inactive)`;
         }
+
+        actions.push({
+          id: String(actionId++),
+          type: 'sailing-noncompliant',
+          severity,
+          sailor: member.name,
+          squad: member.squad,
+          responsible: getResponsibleStaffFromParser('sailing-issue', member.squad),
+          description: severity === 'high' ? 'Sailing: Requires Action' : 'Sailing: Requires Attention',
+          details: `${member.name} is not within sailing regulations${daysDetail}. Review and encourage participation.`,
+        });
       }
 
-      // per-row debug logging removed
+      // --- HOSTING COMPLIANCE (JPO+ only) ---
+      if (member.canHostRank && !member.hostingCompliant) {
+        let severity: 'high' | 'medium' = 'medium';
+        let daysDetail = '';
 
-      // ONLY flag "No Chat Activity" if stars = 0 AND compliance is not on LOA/Leave
-      // This prevents false positives for people on legitimate leave
-      const complianceLower = compliance.toLowerCase().trim();
-      const isOnLeave = complianceLower.includes('loa') || 
-                        complianceLower.includes('leave') || 
-                        complianceLower.includes('off-duty');
-      
-      if (stars === 0 && !isOnLeave) {
+        if (member.lastHostDate) {
+          const lastHost = new Date(member.lastHostDate);
+          if (!isNaN(lastHost.getTime())) {
+            const days = Math.floor((now.getTime() - lastHost.getTime()) / (1000 * 60 * 60 * 24));
+            if (days >= 14) severity = 'high';
+            daysDetail = ` (${days} days since last host)`;
+          }
+        }
+
+        actions.push({
+          id: String(actionId++),
+          type: 'hosting-noncompliant',
+          severity,
+          sailor: member.name,
+          squad: member.squad,
+          responsible: getResponsibleStaffFromParser('hosting-issue', member.squad),
+          description: severity === 'high' ? 'Hosting: Requires Action' : 'Hosting: Requires Attention',
+          details: `${member.name} (${member.rank}) is eligible to host but not within hosting regulations${daysDetail}.`,
+        });
+      }
+
+      // --- NO CHAT ACTIVITY ---
+      if (member.chatActivity === 0) {
         actions.push({
           id: String(actionId++),
           type: 'no-chat-activity',
           severity: 'low',
-          sailor: name,
-          squad: assignedSquad,
-          responsible: getResponsibleStaff('no-chat-activity', assignedSquad),
+          sailor: member.name,
+          squad: member.squad,
+          responsible: getResponsibleStaffFromParser('no-chat-activity', member.squad),
           description: 'No Chat Activity',
-          details: `${name} has not participated in chat. Encourage participation in squad channels.`,
+          details: `${member.name} has no recorded chat activity. Encourage participation in squad channels.`,
         });
       }
+    });
 
-      // COMPLIANCE_ISSUE - Only flag serious compliance issues
-      // Don't flag: Empty cells, "Active", or temporary LOA statuses
-      if (compliance) {
-        // Only flag specific problematic statuses
-        const shouldFlag = 
-          complianceLower === 'inactive' || 
-          complianceLower === 'flagged' || 
-          complianceLower === 'no' ||
-          complianceLower === 'non-compliant' ||
-          complianceLower === 'requires action';
-        
-        if (shouldFlag) {
-          let complianceType = '';
-          let priority: 'high' | 'medium' | 'low' | 'recurring' = 'high';
-          
-          if (complianceLower === 'inactive') {
-            complianceType = 'Inactive';
-            priority = 'medium'; // Requires attention
-          } else if (complianceLower === 'flagged') {
-            complianceType = 'Flagged';
-            priority = 'high'; // Requires action
-          } else if (complianceLower === 'no') {
-            complianceType = 'Non-Compliant';
-            priority = 'high'; // Requires action
-          } else if (complianceLower === 'requires action') {
-            complianceType = 'Requires Action';
-            priority = 'high'; // Requires action
-          } else {
-            complianceType = compliance;
-            priority = 'medium';
-          }
-
-          actions.push({
-            id: String(actionId++),
-            type: 'compliance-issue',
-            severity: priority,
-            sailor: name,
-            squad: assignedSquad,
-            responsible: getResponsibleStaff('compliance-issue', assignedSquad),
-            description: `Compliance: ${complianceType}`,
-            details: `${name} is marked as ${complianceType}. Review status and take appropriate action.`,
-          });
-        }
-      }
-
-      // SAILING/HOSTING ISSUES - Check if they should be sailing/hosting but aren't
-      // Look for "Requires attention" or similar indicators in Sailing and Hosting columns
-      // These are typically columns after the stars column
-      let sailingStatus = '';
-      let hostingStatus = '';
-      
-      // Search through row for Sailing and Hosting columns
-      Object.entries(row).forEach(([colKey, colValue]) => {
-        const keyLower = colKey.toLowerCase();
-        if (keyLower.includes('sailing') || keyLower.includes('voyage')) {
-          sailingStatus = (colValue || '').trim();
-        }
-        if (keyLower.includes('hosting') || keyLower.includes('host')) {
-          hostingStatus = (colValue || '').trim();
-        }
+    // === STEP 4: Parse staff comments for keyword-based actions ===
+    const commentActions = parseStaffComments(crew, actionId);
+    commentActions.forEach((action) => {
+      actions.push({
+        id: action.id,
+        type: action.type,
+        severity: action.severity as 'high' | 'medium' | 'low' | 'recurring',
+        sailor: action.sailor,
+        squad: action.squad,
+        responsible: action.responsible,
+        description: action.description,
+        details: action.details + (action.deadline ? `\n\nDeadline: ${action.deadline}` : ''),
       });
-
-      // Flag if sailing or hosting "Requires attention"
-      const sailingLower = sailingStatus.toLowerCase();
-      const hostingLower = hostingStatus.toLowerCase();
-
-      if (sailingLower.includes('requires') || sailingLower.includes('attention')) {
-        const priority = sailingLower.includes('requires action') ? 'high' : 'medium';
-        actions.push({
-          id: String(actionId++),
-          type: 'sailing-issue',
-          severity: priority,
-          sailor: name,
-          squad: assignedSquad,
-          responsible: getResponsibleStaff('sailing-issue', assignedSquad),
-          description: 'Sailing Issue',
-          details: `${name} has a sailing/voyage issue that needs attention. Review and provide guidance.`,
-        });
-      }
-
-      if (hostingLower.includes('requires') || hostingLower.includes('attention')) {
-        const priority = hostingLower.includes('requires action') ? 'high' : 'medium';
-        actions.push({
-          id: String(actionId++),
-          type: 'hosting-issue',
-          severity: priority,
-          sailor: name,
-          squad: assignedSquad,
-          responsible: getResponsibleStaff('hosting-issue', assignedSquad),
-          description: 'Hosting Issue',
-          details: `${name} has a hosting issue that needs attention. Review and provide guidance.`,
-        });
-      }
     });
-
-  // Total actions detected: actions.length
-    
-  // ADD: Parse staff comments for additional actions
-  const crew = parseAllCrewMembers(data.gullinbursti.rows);
-  const commentActions = parseStaffComments(crew, actions.length);
-  
-  // Convert staff comment actions to ActionItem format
-  commentActions.forEach((action) => {
-    actions.push({
-      id: action.id,
-      type: action.type,
-      severity: action.severity as 'high' | 'medium' | 'low' | 'recurring',
-      sailor: action.sailor,
-      squad: action.squad,
-      responsible: action.responsible,
-      description: action.description,
-      details: action.details + (action.deadline ? `\n\nDeadline: ${action.deadline}` : ''),
-    });
-  });
 
     // Sort by priority (high > medium > low > recurring)
     actions.sort((a, b) => {
@@ -283,7 +169,7 @@ export const ActionsTab = () => {
       return severityOrder[a.severity as keyof typeof severityOrder] - severityOrder[b.severity as keyof typeof severityOrder];
     });
     return actions;
-  }, [data.gullinbursti]);
+  }, [data.gullinbursti, data.voyageAwards]);
 
   // Filter actions by responsibility
   const filteredActions = useMemo(() => {
