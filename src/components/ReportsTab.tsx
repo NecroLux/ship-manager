@@ -212,12 +212,12 @@ export const ReportsTab = () => {
         // Rank | Name | Status | Sailing | Voyages | Hosted | TZ | Activity
         const colX = {
           rank: margin,
-          name: margin + 22,
-          status: margin + 52,
-          sailing: margin + 75,
-          voyages: margin + 95,
-          hosted: margin + 115,
-          tz: margin + 133,
+          name: margin + 32,
+          status: margin + 62,
+          sailing: margin + 85,
+          voyages: margin + 105,
+          hosted: margin + 122,
+          tz: margin + 138,
           activity: margin + 155,
         };
 
@@ -244,7 +244,7 @@ export const ReportsTab = () => {
           addPageIfNeeded(6);
 
           // Rank (truncated)
-          doc.text(sailor.rank.substring(0, 12), colX.rank, yPosition);
+          doc.text(sailor.rank.substring(0, 18), colX.rank, yPosition);
 
           // Name
           doc.text(sailor.name.substring(0, 16), colX.name, yPosition);
