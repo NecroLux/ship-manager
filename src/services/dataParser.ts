@@ -187,22 +187,22 @@ export const parseAllCrewMembers = (rows: Record<string, string>[]): ParsedCrewM
 
   for (const row of rows) {
     // Get values by either numeric index or header name
-    const getRank = () => {
-      if (row[GULLINBURSTI_COLUMNS.RANK] !== undefined) {
-        return (row[GULLINBURSTI_COLUMNS.RANK] || '').trim();
+    const getRowValue = (numIndex: number, ...headerNames: string[]): string => {
+      // Try numeric index first
+      if (row[numIndex] !== undefined) {
+        return (row[numIndex] || '').trim();
       }
-      return (row['Rank'] || row['RANK'] || row['rank'] || '').trim();
-    };
-    
-    const getName = () => {
-      if (row[GULLINBURSTI_COLUMNS.NAME] !== undefined) {
-        return (row[GULLINBURSTI_COLUMNS.NAME] || '').trim();
+      // Try header names
+      for (const headerName of headerNames) {
+        if (row[headerName] !== undefined) {
+          return (row[headerName] || '').trim();
+        }
       }
-      return (row['Name'] || row['NAME'] || row['name'] || '').trim();
+      return '';
     };
 
-    const rank = getRank();
-    const name = getName();
+    const rank = getRowValue(GULLINBURSTI_COLUMNS.RANK, 'Rank', 'RANK', 'rank');
+    const name = getRowValue(GULLINBURSTI_COLUMNS.NAME, 'Name', 'NAME', 'name');
     
     // Skip completely empty rows
     if (!rank && !name) continue;

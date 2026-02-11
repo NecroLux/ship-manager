@@ -59,20 +59,12 @@ export const ReportsTab = () => {
   const getCurrentCrewAsSnapshot = (): CrewSnapshot[] => {
     const crew = parseAllCrewMembers(data.gullinbursti?.rows || []);
     return crew.map((member) => {
-      // Compliance based on voyage/host requirements met
-      // LOA overrides compliance
-      let compliance: string;
-      if (member.loaStatus && member.complianceStatus) {
-        compliance = member.complianceStatus; // Show LOA status
-      } else {
-        compliance = (member.sailingCompliant && member.hostingCompliant) ? 'Compliant' : 'Requires Attention';
-      }
-
+      // Compliance comes from complianceStatus field (LOA_STATUS column)
       return {
         rank: member.rank,
         name: member.name,
         squad: member.squad,
-        compliance,
+        compliance: member.complianceStatus || 'Unknown',
         timezone: member.timezone,
         stars: member.chatActivity.toString(),
       };

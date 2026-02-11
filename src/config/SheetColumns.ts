@@ -174,8 +174,14 @@ export const getSailorName = (row: Record<string, string>, sheetType: 'gullinbur
  * Check if a sailor is on LOA
  */
 export const isOnLOA = (row: Record<string, string>): boolean => {
-  const loaStatus = (row[GULLINBURSTI_COLUMNS.LOA_STATUS] || '').toLowerCase().trim();
-  return loaStatus.includes('yes') || loaStatus.includes('loa') || loaStatus.includes('true');
+  // Try numeric index first, then header names
+  let loaValue = '';
+  if (row[GULLINBURSTI_COLUMNS.LOA_STATUS] !== undefined) {
+    loaValue = (row[GULLINBURSTI_COLUMNS.LOA_STATUS] || '').toLowerCase().trim();
+  } else {
+    loaValue = (row['LOA Status'] || row['LOA_STATUS'] || row['loa status'] || '').toLowerCase().trim();
+  }
+  return loaValue.includes('yes') || loaValue.includes('loa') || loaValue.includes('true');
 };
 
 /**
