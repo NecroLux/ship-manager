@@ -15,6 +15,7 @@ import {
   Button,
   LinearProgress,
   useTheme,
+  Tooltip,
 } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -503,54 +504,66 @@ export const OverviewTab = () => {
                     const loa2Percent = squad.totalCount > 0 ? (squad.loa2Count / squad.totalCount) * 100 : 0;
                     
                     if (squad.name === 'Command Staff') {
-                      // Create a split bar for Command Staff: CO (Red), FO (Pink), COS (Purple)
-                      let coCount = 0;
-                      let foCount = 0;
-                      let cosCount = 0;
+                      // Find command staff members
+                      let coMember = null;
+                      let foMember = null;
+                      let cosMember = null;
                       
                       squad.members.forEach((member) => {
                         if (member.name.toLowerCase().includes('hoit') && !member.name.toLowerCase().includes('lady')) {
-                          coCount++;
+                          coMember = member.name;
                         } else if (member.name.toLowerCase().includes('ladyhoit')) {
-                          foCount++;
+                          foMember = member.name;
                         } else if (member.name.toLowerCase().includes('spice')) {
-                          cosCount++;
+                          cosMember = member.name;
                         }
                       });
 
-                      const coPercent = squad.totalCount > 0 ? (coCount / squad.totalCount) * 100 : 0;
-                      const foPercent = squad.totalCount > 0 ? (foCount / squad.totalCount) * 100 : 0;
-                      const cosPercent = squad.totalCount > 0 ? (cosCount / squad.totalCount) * 100 : 0;
-
                       return (
                         <Box key={squad.name}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
                             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                              Command Staff
+                              Command
                             </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                              {squad.totalCount}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', height: 8, borderRadius: 1, overflow: 'hidden', backgroundColor: 'action.disabledBackground' }}>
-                            {coPercent > 0 && (
-                              <Box 
-                                sx={{ width: `${coPercent}%`, backgroundColor: '#FF5555' }} 
-                                title={`CO (Hoit): ${coCount}`} 
+                            
+                            {/* CO (Red) */}
+                            <Tooltip title={coMember ? `CO: ${coMember}` : 'CO: Role available'}>
+                              <Box
+                                sx={{
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: '50%',
+                                  backgroundColor: coMember ? '#FF5555' : '#9CA3AF',
+                                  cursor: 'pointer',
+                                }}
                               />
-                            )}
-                            {foPercent > 0 && (
-                              <Box 
-                                sx={{ width: `${foPercent}%`, backgroundColor: '#FF66B2' }} 
-                                title={`FO (LadyHoit): ${foCount}`} 
+                            </Tooltip>
+
+                            {/* FO (Pink) */}
+                            <Tooltip title={foMember ? `FO: ${foMember}` : 'FO: Role available'}>
+                              <Box
+                                sx={{
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: '50%',
+                                  backgroundColor: foMember ? '#FF66B2' : '#9CA3AF',
+                                  cursor: 'pointer',
+                                }}
                               />
-                            )}
-                            {cosPercent > 0 && (
-                              <Box 
-                                sx={{ width: `${cosPercent}%`, backgroundColor: '#D946EF' }} 
-                                title={`COS (Spice): ${cosCount}`} 
+                            </Tooltip>
+
+                            {/* COS (Purple) */}
+                            <Tooltip title={cosMember ? `COS: ${cosMember}` : 'COS: Role available'}>
+                              <Box
+                                sx={{
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: '50%',
+                                  backgroundColor: cosMember ? '#D946EF' : '#9CA3AF',
+                                  cursor: 'pointer',
+                                }}
                               />
-                            )}
+                            </Tooltip>
                           </Box>
                         </Box>
                       );
