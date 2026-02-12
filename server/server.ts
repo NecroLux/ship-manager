@@ -290,4 +290,19 @@ app.listen(port, () => {
   console.log('  GET  /api/state - Read all shared state');
   console.log('  GET  /api/state/:key - Read a state bucket');
   console.log('  PUT  /api/state/:key - Write a state bucket');
+
+  // Self-ping to prevent Render free-tier from sleeping (every 14 minutes)
+  const RENDER_URL = process.env.RENDER_EXTERNAL_URL;
+  if (RENDER_URL) {
+    const INTERVAL = 14 * 60 * 1000; // 14 minutes
+    setInterval(async () => {
+      try {
+        await fetch(`${RENDER_URL}/health`);
+        console.log('🏓 Keep-alive ping sent');
+      } catch (err) {
+        console.warn('⚠️ Keep-alive ping failed:', err);
+      }
+    }, INTERVAL);
+    console.log(`🏓 Keep-alive pinger active (every 14 min → ${RENDER_URL}/health)`);
+  }
 });
