@@ -98,23 +98,23 @@ export const ROLE_COIN_COLUMNS = {
   FO_NOTES: 2,                      // First Officer notes
   
   // Voyage Summary
-  TOTAL_VOYAGES: 3,                 // Total number of voyages
-  UNACCOUNTED_SUBCLASS: 4,          // Voyages where subclass not recorded
+  TOTAL_VOYAGES: 4,                 // Total number of voyages
+  UNACCOUNTED_SUBCLASS: 5,          // Voyages where subclass not recorded
   
   // Subclass Progression (Award Tiers: 5=Adept, 15=Pro, 25=Master)
-  CARPENTER: 5,                     // Carpenter voyages (Carp/Bilge)
-  FLEX: 6,                          // Flex voyages (Flex)
-  CANNONEER: 7,                     // Cannoneer voyages (Cannons/Guns)
-  HELM: 8,                          // Helm voyages (Wheel/Helmsman)
+  CARPENTER: 6,                     // Carpenter voyages (Carp/Bilge)
+  FLEX: 7,                          // Flex voyages (Flex)
+  CANNONEER: 8,                     // Cannoneer voyages (Cannons/Guns)
+  HELM: 9,                          // Helm voyages (Wheel/Helmsman)
   
   // Special Achievement Points
-  GRENADIER_POINTS: 9,              // Grenadier points (sank ship with keg)
-  FIELD_SURGEON_POINTS: 10,         // Field Surgeon points (revived 3+ teammates in skirmish)
+  GRENADIER_POINTS: 10,              // Grenadier points (sank ship with keg)
+  FIELD_SURGEON_POINTS: 11,         // Field Surgeon points (revived 3+ teammates in skirmish)
   
   // Special Achievements
-  PIRATE_LEGEND: 11,                // Pirate Legend in-game status
-  COMMANDER_CHALLENGE_COIN: 12,     // Earned commander's challenge coin?
-  OFFICER_CHALLENGE_COIN: 13,       // Earned officer's challenge coin?
+  PIRATE_LEGEND: 12,                // Pirate Legend in-game status
+  COMMANDER_CHALLENGE_COIN: 13,     // Earned commander's challenge coin?
+  OFFICER_CHALLENGE_COIN: 14,       // Earned officer's challenge coin?
 } as const;
 
 // ==================== COMPLIANCE RULES ====================
