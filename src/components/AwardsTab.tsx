@@ -375,7 +375,7 @@ export const AwardsTab = () => {
                     <TableRow sx={{ backgroundColor: 'action.hover' }}>
                       <TableCell sx={{ fontWeight: 'bold' }}>Award</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Readiness</TableCell>
+                      // <TableCell sx={{ fontWeight: 'bold' }}>Readiness</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Squad</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Data</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Awarded By</TableCell>
