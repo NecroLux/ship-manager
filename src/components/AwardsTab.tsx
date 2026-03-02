@@ -310,15 +310,15 @@ export const AwardsTab = () => {
   }, [eligibleAwards]);
 
   // Per-sailor readiness: what % of their eligible awards have been awarded
-  const sailorReadiness = useMemo(() => {
-    const map: Record<string, { awarded: number; total: number }> = {};
-    eligibleAwards.forEach((e) => {
-      if (!map[e.sailorName]) map[e.sailorName] = { awarded: 0, total: 0 };
-      map[e.sailorName].total++;
-      if (e.awarded) map[e.sailorName].awarded++;
-    });
-    return map;
-  }, [eligibleAwards]);
+  // const sailorReadiness = useMemo(() => {
+   //  const map: Record<string, { awarded: number; total: number }> = {};
+   //  eligibleAwards.forEach((e) => {
+    //   if (!map[e.sailorName]) map[e.sailorName] = { awarded: 0, total: 0 };
+    //   map[e.sailorName].total++;
+   //    if (e.awarded) map[e.sailorName].awarded++;
+   //  });
+   //  return map;
+ //  }, [eligibleAwards]);
 
   // All awards grouped by category (for the reference section)
   const allAwardsByCategory = useMemo(() => {
