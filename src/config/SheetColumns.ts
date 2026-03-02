@@ -77,7 +77,7 @@ export const VOYAGE_AWARDS_COLUMNS = {
   LAST_HOST_DATE: 10,               // Last date they hosted (blank for Able/Seaman)
   HOST_COUNT: 11,                   // How many times they've hosted
   LAST_VOYAGE_DATE: 12,             // Last official voyage attended
-  TOTAL_VOYAGES: 15,                // Total official voyages attended
+  TOTAL_VOYAGES: 13,                // Total official voyages attended
   
   // Award Status (columns O-AG)
   // These columns track award eligibility/status for each medal type
