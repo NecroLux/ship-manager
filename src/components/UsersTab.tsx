@@ -403,15 +403,15 @@ export const UsersTab = () => {
                             }
                           }}
                         >
-                          <TableCell sx={{ width: '12%' }}>Rank</TableCell>
-                          <TableCell sx={{ width: '14%' }}>Name</TableCell>
+                          <TableCell sx={{ width: '6%' }}>Rank</TableCell>
+                          <TableCell sx={{ width: '18%' }}>Name</TableCell>
                           <TableCell sx={{ width: '8%', textAlign: 'center' }}>Status</TableCell>
                           <TableCell sx={{ width: '7%', textAlign: 'center' }}>Sailing</TableCell>
                           <TableCell sx={{ width: '7%', textAlign: 'center' }}>Hosting</TableCell>
                           <TableCell sx={{ width: '6%', textAlign: 'center' }}>Voyages</TableCell>
                           <TableCell sx={{ width: '6%', textAlign: 'center' }}>Hosted</TableCell>
-                          <TableCell sx={{ width: '12%', textAlign: 'center' }}>Last Voyaged</TableCell>
-                          <TableCell sx={{ width: '12%', textAlign: 'center' }}>Last Hosted</TableCell>
+                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Last Voyaged</TableCell>
+                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Last Hosted</TableCell>
                           <TableCell sx={{ width: '12%', textAlign: 'center' }}>Activity</TableCell>
                         </TableRow>
                       </TableHead>
@@ -608,10 +608,10 @@ export const UsersTab = () => {
                                   sx={{
                                     fontSize: '0.85rem',
                                     whiteSpace: 'nowrap',
-                                    color: sailor.lastVoyageDate ? '#FFFFFF' : '#6b7280',
+                                    color: sailor.lastVoyageDate && !isNaN(new Date(sailor.lastVoyageDate).getTime()) ? '#FFFFFF' : '#6b7280',
                                   }}
                                 >
-                                  {sailor.lastVoyageDate ? new Date(sailor.lastVoyageDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'}
+                                  {(() => { const d = sailor.lastVoyageDate ? new Date(sailor.lastVoyageDate) : null; return d && !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'; })()}
                                 </Typography>
                               </TableCell>
 
@@ -621,10 +621,10 @@ export const UsersTab = () => {
                                   sx={{
                                     fontSize: '0.85rem',
                                     whiteSpace: 'nowrap',
-                                    color: sailor.lastHostDate ? '#FFFFFF' : '#6b7280',
+                                    color: sailor.lastHostDate && !isNaN(new Date(sailor.lastHostDate).getTime()) ? '#FFFFFF' : '#6b7280',
                                   }}
                                 >
-                                  {sailor.lastHostDate ? new Date(sailor.lastHostDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'}
+                                  {(() => { const d = sailor.lastHostDate ? new Date(sailor.lastHostDate) : null; return d && !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'; })()}
                                 </Typography>
                               </TableCell>
 
