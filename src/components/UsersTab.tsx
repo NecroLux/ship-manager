@@ -13,61 +13,114 @@ import {
   Card,
   CardContent,
   Rating,
+  Tooltip,
   useTheme,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSheetData } from '../context/SheetDataContext';
 import { parseAllCrewMembers, parseAllLeaderboardEntries, enrichCrewWithLeaderboardData, type ParsedCrewMember } from '../services/dataParser';
 
-// Helper function to get compliance status
-// PRIORITY ORDER (Gullinbursti is source of truth):
-//   1. LOA → always compliant (exempt)
-//   2. Gullinbursti sailingCompliant = TRUE → compliant (FO maintains this field)
-//   3. Gullinbursti sailingCompliant = FALSE → use leaderboard thresholds for severity:
-//      - Voyage:  Action >=30d | Attention >=28d | else Attention (default)
-//      - Hosting (JPO+): Action >=14d | Attention >=12d
-const getComplianceStatus = (member: any) => {
-  // If on LOA, they are exempt from sailing/hosting requirements
+// ==================== COMPLIANCE STATUS (computed from dates) ====================
+//
+// SAILING (all ranks):
+//   LOA             → Exempt
+//   < 14 days       → Within Regulations   (green ✓)
+//   14–29 days      → Requires Attention    (yellow ~)
+//   30+ days        → Requires Action       (red !)
+//   No voyages yet  → Requires Attention    (new sailor)
+//
+// HOSTING (E-4 and above):
+//   LOA             → Exempt
+//   < 14 days       → Within Regulations   (green ✓)
+//   14–20 days      → Requires Attention    (yellow ~)
+//   21+ days        → Requires Action       (red !)
+//   N/A (E-2, E-3)  → not shown
+
+type ComplianceResult = {
+  label: string;
+  color: 'success' | 'warning' | 'error' | 'default';
+  icon: string;
+  status: 'compliant' | 'attention-required' | 'action-required' | 'exempt';
+};
+
+const getSailingStatus = (member: any): ComplianceResult => {
   if (member.loaStatus) {
-    return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
+    return { label: 'Exempt', color: 'default', icon: '—', status: 'exempt' };
   }
 
-  // Gullinbursti's sailingCompliant is the source of truth (maintained by FO)
-  // If it says compliant, they ARE compliant — regardless of leaderboard data
-  if (member.sailingCompliant) {
-    return { label: 'Compliant', color: 'success' as const, icon: '✓', status: 'compliant' };
-  }
-
-  // === Not compliant per Gullinbursti — determine Attention vs Action ===
   const now = new Date();
-  let requiresAction = false;
 
-  // Check voyage threshold
+  // If we have a lastVoyageDate, compute days since
   if (member.lastVoyageDate) {
     const lastVoyage = new Date(member.lastVoyageDate);
     if (!isNaN(lastVoyage.getTime())) {
-      const daysSinceVoyage = Math.floor((now.getTime() - lastVoyage.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSinceVoyage >= 30) requiresAction = true;
+      const daysSince = Math.floor((now.getTime() - lastVoyage.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSince < 14) {
+        return { label: 'Within Regulations', color: 'success', icon: '✓', status: 'compliant' };
+      }
+      if (daysSince < 30) {
+        return { label: 'Requires Attention', color: 'warning', icon: '~', status: 'attention-required' };
+      }
+      return { label: 'Requires Action', color: 'error', icon: '!', status: 'action-required' };
     }
-  } else if (member.daysInactive >= 30) {
-    requiresAction = true;
   }
 
-  // Check hosting threshold (only for JPO+ who are eligible to host)
-  if (member.canHostRank && member.lastHostDate) {
+  // Fallback: use daysInactive from the leaderboard sheet
+  if (member.daysInactive !== undefined && member.daysInactive > 0) {
+    if (member.daysInactive < 14) {
+      return { label: 'Within Regulations', color: 'success', icon: '✓', status: 'compliant' };
+    }
+    if (member.daysInactive < 30) {
+      return { label: 'Requires Attention', color: 'warning', icon: '~', status: 'attention-required' };
+    }
+    return { label: 'Requires Action', color: 'error', icon: '!', status: 'action-required' };
+  }
+
+  // No voyage data at all → new sailor → Requires Attention
+  return { label: 'Requires Attention', color: 'warning', icon: '~', status: 'attention-required' };
+};
+
+const getHostingStatus = (member: any): ComplianceResult | null => {
+  // Only E-4 and above are expected to host
+  if (!member.canHostRank) return null;
+
+  if (member.loaStatus) {
+    return { label: 'Exempt', color: 'default', icon: '—', status: 'exempt' };
+  }
+
+  const now = new Date();
+
+  if (member.lastHostDate) {
     const lastHost = new Date(member.lastHostDate);
     if (!isNaN(lastHost.getTime())) {
-      const daysSinceHost = Math.floor((now.getTime() - lastHost.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSinceHost >= 14) requiresAction = true;
+      const daysSince = Math.floor((now.getTime() - lastHost.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSince < 14) {
+        return { label: 'Within Regulations', color: 'success', icon: '✓', status: 'compliant' };
+      }
+      if (daysSince < 21) {
+        return { label: 'Requires Attention', color: 'warning', icon: '~', status: 'attention-required' };
+      }
+      return { label: 'Requires Action', color: 'error', icon: '!', status: 'action-required' };
     }
   }
 
-  if (requiresAction) {
-    return { label: 'Requires Action', color: 'error' as const, icon: '!', status: 'action-required' };
-  }
+  // No host data → Requires Attention
+  return { label: 'Requires Attention', color: 'warning', icon: '~', status: 'attention-required' };
+};
 
-  // Default for non-compliant: Requires Attention
-  return { label: 'Requires Attention', color: 'warning' as const, icon: '~', status: 'attention-required' };
+// Combined compliance = worst of sailing + hosting
+const getComplianceStatus = (member: any) => {
+  const sailing = getSailingStatus(member);
+  const hosting = getHostingStatus(member);
+
+  // Priority: action-required > attention-required > compliant > exempt
+  const priority = (s: ComplianceResult) =>
+    s.status === 'action-required' ? 3 :
+    s.status === 'attention-required' ? 2 :
+    s.status === 'compliant' ? 1 : 0;
+
+  if (!hosting) return sailing;
+  return priority(hosting) > priority(sailing) ? hosting : sailing;
 };
 
 // Helper function to get status label and color
@@ -350,18 +403,20 @@ export const UsersTab = () => {
                           }}
                         >
                           <TableCell sx={{ width: '15%' }}>Rank</TableCell>
-                          <TableCell sx={{ width: '17%' }}>Name</TableCell>
+                          <TableCell sx={{ width: '15%' }}>Name</TableCell>
                           <TableCell sx={{ width: '10%', textAlign: 'center' }}>Status</TableCell>
-                          <TableCell sx={{ width: '8%', textAlign: 'center' }}>Sailing</TableCell>
-                          <TableCell sx={{ width: '8%', textAlign: 'center' }}>Voyages</TableCell>
-                          <TableCell sx={{ width: '8%', textAlign: 'center' }}>Hosted</TableCell>
-                          <TableCell sx={{ width: '14%' }}>Timezone</TableCell>
+                          <TableCell sx={{ width: '7%', textAlign: 'center' }}>Sailing</TableCell>
+                          <TableCell sx={{ width: '7%', textAlign: 'center' }}>Hosting</TableCell>
+                          <TableCell sx={{ width: '6%', textAlign: 'center' }}>Voyages</TableCell>
+                          <TableCell sx={{ width: '6%', textAlign: 'center' }}>Hosted</TableCell>
+                          <TableCell sx={{ width: '12%' }}>Timezone</TableCell>
                           <TableCell sx={{ width: '12%', textAlign: 'center' }}>Activity</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {members.map((sailor, idx) => {
-                          const complianceStatus = getComplianceStatus(sailor);
+                          const sailingStatus = getSailingStatus(sailor);
+                          const hostingStatus = getHostingStatus(sailor);
                           const rankColor = getRankColor(sailor.rank);
                           
                           // Parse star count from chat activity field
@@ -431,34 +486,72 @@ export const UsersTab = () => {
                                 })()}
                               </TableCell>
 
-                              {/* Compliance */}
+                              {/* Sailing Compliance */}
                               <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      width: 28,
-                                      height: 28,
-                                      borderRadius: '50%',
-                                      backgroundColor: 
-                                        complianceStatus.status === 'compliant' ? 'rgba(34, 197, 94, 0.2)' :
-                                        complianceStatus.status === 'action-required' ? 'rgba(239, 68, 68, 0.2)' :
-                                        complianceStatus.status === 'attention-required' ? 'rgba(234, 179, 8, 0.2)' :
-                                        'rgba(107, 114, 128, 0.2)',
-                                      color:
-                                        complianceStatus.status === 'compliant' ? '#22c55e' :
-                                        complianceStatus.status === 'action-required' ? '#ef4444' :
-                                        complianceStatus.status === 'attention-required' ? '#eab308' :
-                                        '#6b7280',
-                                      fontSize: '1.1rem',
-                                      fontWeight: 'bold',
-                                    }}
-                                  >
-                                    {complianceStatus.icon}
+                                <Tooltip title={sailingStatus.label} arrow>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Box
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: '50%',
+                                        backgroundColor:
+                                          sailingStatus.status === 'compliant' ? 'rgba(34, 197, 94, 0.2)' :
+                                          sailingStatus.status === 'action-required' ? 'rgba(239, 68, 68, 0.2)' :
+                                          sailingStatus.status === 'attention-required' ? 'rgba(234, 179, 8, 0.2)' :
+                                          'rgba(107, 114, 128, 0.2)',
+                                        color:
+                                          sailingStatus.status === 'compliant' ? '#22c55e' :
+                                          sailingStatus.status === 'action-required' ? '#ef4444' :
+                                          sailingStatus.status === 'attention-required' ? '#eab308' :
+                                          '#6b7280',
+                                        fontSize: '1.1rem',
+                                        fontWeight: 'bold',
+                                      }}
+                                    >
+                                      {sailingStatus.icon}
+                                    </Box>
                                   </Box>
-                                </Box>
+                                </Tooltip>
+                              </TableCell>
+
+                              {/* Hosting Compliance */}
+                              <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
+                                {hostingStatus ? (
+                                  <Tooltip title={hostingStatus.label} arrow>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <Box
+                                        sx={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          width: 28,
+                                          height: 28,
+                                          borderRadius: '50%',
+                                          backgroundColor:
+                                            hostingStatus.status === 'compliant' ? 'rgba(34, 197, 94, 0.2)' :
+                                            hostingStatus.status === 'action-required' ? 'rgba(239, 68, 68, 0.2)' :
+                                            hostingStatus.status === 'attention-required' ? 'rgba(234, 179, 8, 0.2)' :
+                                            'rgba(107, 114, 128, 0.2)',
+                                          color:
+                                            hostingStatus.status === 'compliant' ? '#22c55e' :
+                                            hostingStatus.status === 'action-required' ? '#ef4444' :
+                                            hostingStatus.status === 'attention-required' ? '#eab308' :
+                                            '#6b7280',
+                                          fontSize: '1.1rem',
+                                          fontWeight: 'bold',
+                                        }}
+                                      >
+                                        {hostingStatus.icon}
+                                      </Box>
+                                    </Box>
+                                  </Tooltip>
+                                ) : (
+                                  <Typography variant="caption" color="textSecondary">N/A</Typography>
+                                )}
                               </TableCell>
 
                               {/* Voyages */}

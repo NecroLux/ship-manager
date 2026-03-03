@@ -122,14 +122,26 @@ export const ROLE_COIN_COLUMNS = {
 // Business logic for crew compliance based on rank and regulations
 
 export const COMPLIANCE_RULES = {
-  // Sailing Requirements (from GULLINBURSTI_COLUMNS.SAILING_COMPLIANCE)
-  SAILING_MINIMUM_VOYAGES_PER_MONTH: 1,
+  // ── Sailing Requirements ──
+  // All ranks must sail. Computed from days since last official voyage.
+  //   < 14 days  → "Within Regulations"
+  //   14-29 days → "Requires Attention"  (DM the sailor)
+  //   30+ days   → "Requires Action"     (escalate / mark in notes)
+  //   No voyages → "Requires Attention"   (new sailor)
+  SAILING_ATTENTION_DAYS: 14,
+  SAILING_ACTION_DAYS: 30,
   SAILING_APPLIES_TO: ['E-2', 'E-3', 'E-4', 'E-5', 'E-6', 'E-7', 'E-8', 'O-1', 'O-3', 'O-4', 'O-5', 'O-6', 'O-7', 'O-8', 'O-9', 'O-10'],
-  
-  // Hosting Requirements (from GULLINBURSTI_COLUMNS.HOSTING_COMPLIANCE)
-  HOSTING_MINIMUM_PER_FORTNIGHT: 1,
-  HOSTING_APPLIES_TO: ['E-6', 'E-7', 'E-8', 'O-1', 'O-3', 'O-4', 'O-5', 'O-6', 'O-7', 'O-8', 'O-9', 'O-10'], // Junior Petty Officer and above
-  HOSTING_NOT_APPLIES_TO: ['E-2', 'E-3', 'E-4', 'E-5'], // Able & Seaman cannot host
+
+  // ── Hosting Requirements (E-4 and above) ──
+  // Voyage hosts must host once every two weeks.
+  //   < 14 days  → "Within Regulations"
+  //   14-20 days → "Requires Attention"
+  //   21+ days   → "Requires Action"
+  // LOA exempts from hosting.
+  HOSTING_ATTENTION_DAYS: 14,
+  HOSTING_ACTION_DAYS: 21,
+  HOSTING_APPLIES_TO: ['E-4', 'E-5', 'E-6', 'E-7', 'E-8', 'O-1', 'O-3', 'O-4', 'O-5', 'O-6', 'O-7', 'O-8', 'O-9', 'O-10'],
+  HOSTING_NOT_APPLIES_TO: ['E-2', 'E-3'], // Seaman & Able Seaman cannot host
 } as const;
 
 // ==================== SPECIAL CASES ====================

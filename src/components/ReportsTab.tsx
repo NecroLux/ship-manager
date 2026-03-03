@@ -46,9 +46,19 @@ export const ReportsTab = () => {
       const squad2 = enrichedCrew.filter((m) => m.squad.toLowerCase().includes('shade'));
       const unassigned = enrichedCrew.filter((m) => m.squad === 'Unassigned');
 
-      // Stats matching Overview tab: compliant = sailingCompliant || loaStatus
+      // Stats — date-based sailing compliance (matching new rules)
       const totalCrew = crew.length;
-      const compliantCount = enrichedCrew.filter((c) => c.sailingCompliant || c.loaStatus).length;
+      const complianceNow = new Date();
+      const isSailingOk = (c: typeof enrichedCrew[0]) => {
+        if (c.loaStatus) return true;
+        if (c.lastVoyageDate) {
+          const lv = new Date(c.lastVoyageDate);
+          if (!isNaN(lv.getTime())) return Math.floor((complianceNow.getTime() - lv.getTime()) / (1000 * 60 * 60 * 24)) < 14;
+        }
+        if (c.daysInactive > 0) return c.daysInactive < 14;
+        return false;
+      };
+      const compliantCount = enrichedCrew.filter(isSailingOk).length;
       const attentionCount = totalCrew - compliantCount;
       const complianceRate = totalCrew > 0 ? Math.round((compliantCount / totalCrew) * 100) : 0;
 
@@ -131,7 +141,7 @@ export const ReportsTab = () => {
       }
 
       squadGroups.forEach((sg) => {
-        const sgCompliant = sg.members.filter((m) => m.sailingCompliant || m.loaStatus).length;
+        const sgCompliant = sg.members.filter(isSailingOk).length;
         const sgRate = sg.members.length > 0 ? Math.round((sgCompliant / sg.members.length) * 100) : 0;
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
@@ -256,8 +266,21 @@ export const ReportsTab = () => {
           else if (loaRaw === 'flagged' || loaRaw === 'non-compliant' || loaRaw === 'requires action') statusLabel = 'Flagged';
           doc.text(statusLabel.substring(0, 10), colX.status, yPosition);
 
-          // Sailing compliance
-          const sailingLabel = sailor.loaStatus ? 'Exempt' : (sailor.sailingCompliant ? 'Yes' : 'No');
+          // Sailing compliance (date-based)
+          let sailingLabel = 'Attention';
+          if (sailor.loaStatus) {
+            sailingLabel = 'Exempt';
+          } else {
+            let sailDays = -1;
+            if (sailor.lastVoyageDate) {
+              const lv = new Date(sailor.lastVoyageDate);
+              if (!isNaN(lv.getTime())) sailDays = Math.floor((now.getTime() - lv.getTime()) / (1000 * 60 * 60 * 24));
+            } else if (sailor.daysInactive > 0) {
+              sailDays = sailor.daysInactive;
+            }
+            if (sailDays >= 0 && sailDays < 14) sailingLabel = 'OK';
+            else if (sailDays >= 30) sailingLabel = 'Action';
+          }
           doc.text(sailingLabel, colX.sailing, yPosition);
 
           // Voyages & Hosted

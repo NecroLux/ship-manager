@@ -67,6 +67,10 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
     );
   }
 
+  const leaderboardData = data.voyageAwards?.rows ? parseAllLeaderboardEntries(data.voyageAwards.rows) : [];
+  const topHostsList = leaderboardData.length > 0 ? getTopHostsFromParser(leaderboardData, 10) : [];
+  const topVoyagersList = leaderboardData.length > 0 ? getTopVoyagersFromParser(leaderboardData, 10) : [];
+
   const analyzeCrewData = () => {
     if (!data.gullinbursti || data.gullinbursti.rows.length === 0) {
       return {
@@ -78,6 +82,22 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
     }
 
     const crew = parseAllCrewMembers(data.gullinbursti.rows);
+    const enrichedCrew = crew.map((m) => enrichCrewWithLeaderboardData(m, leaderboardData));
+    const now = new Date();
+
+    // Helper: compute sailing compliance from dates
+    const isSailingCompliant = (m: typeof enrichedCrew[0]): boolean => {
+      if (m.loaStatus) return true;
+      if (m.lastVoyageDate) {
+        const lv = new Date(m.lastVoyageDate);
+        if (!isNaN(lv.getTime())) {
+          return Math.floor((now.getTime() - lv.getTime()) / (1000 * 60 * 60 * 24)) < 14;
+        }
+      }
+      if (m.daysInactive > 0) return m.daysInactive < 14;
+      return false; // no voyage data = new sailor = not compliant
+    };
+
     let compliantCrew = 0;
     let attentionCrew = 0;
     const actionCrew = 0;
@@ -85,8 +105,8 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
     const squadMap: Record<string, SquadStats> = {};
     const commandStaffMembers: Array<{ name: string; rank: string }> = [];
 
-    crew.forEach((member) => {
-      const isCompliant = member.sailingCompliant || member.loaStatus;
+    enrichedCrew.forEach((member) => {
+      const isCompliant = isSailingCompliant(member);
       if (isCompliant) { compliantCrew++; } else { attentionCrew++; attentionNames.push(member.name); }
 
       const squad = member.squad;
@@ -94,7 +114,7 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
         squadMap[squad] = { name: squad, totalCount: 0, compliantCount: 0, attentionCount: 0, actionCount: 0, attentionNames: [], members: [] };
       }
       squadMap[squad].totalCount++;
-      squadMap[squad].members.push({ name: member.name, rank: member.rank, sailingCompliant: member.sailingCompliant, loaStatus: member.loaStatus });
+      squadMap[squad].members.push({ name: member.name, rank: member.rank, sailingCompliant: isCompliant, loaStatus: member.loaStatus });
       if (isCompliant) { squadMap[squad].compliantCount++; } else { squadMap[squad].attentionCount++; squadMap[squad].attentionNames.push(member.name); }
       if (squad === 'Command Staff') { commandStaffMembers.push({ name: member.name, rank: member.rank }); }
     });
@@ -107,10 +127,6 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
     };
   };
 
-  const leaderboardData = data.voyageAwards?.rows ? parseAllLeaderboardEntries(data.voyageAwards.rows) : [];
-  const topHostsList = leaderboardData.length > 0 ? getTopHostsFromParser(leaderboardData, 10) : [];
-  const topVoyagersList = leaderboardData.length > 0 ? getTopVoyagersFromParser(leaderboardData, 10) : [];
-
   const getActionsCounts = () => {
     let high = 0, medium = 0, low = 0;
 
@@ -121,17 +137,29 @@ export const OverviewTab = ({ onNavigateToActions }: OverviewTabProps = {}) => {
 
       enrichedCrew.forEach((member) => {
         if (member.loaStatus) return;
-        if (!member.sailingCompliant) {
-          let days = 0;
-          if (member.lastVoyageDate) { const lv = new Date(member.lastVoyageDate); if (!isNaN(lv.getTime())) days = Math.floor((now.getTime() - lv.getTime()) / (1000 * 60 * 60 * 24)); }
-          else days = member.daysInactive;
-          if (days >= 30) high++; else medium++;
+
+        // Sailing compliance: 14d attention, 30d action
+        let sailDays = -1;
+        if (member.lastVoyageDate) {
+          const lv = new Date(member.lastVoyageDate);
+          if (!isNaN(lv.getTime())) sailDays = Math.floor((now.getTime() - lv.getTime()) / (1000 * 60 * 60 * 24));
+        } else if (member.daysInactive > 0) {
+          sailDays = member.daysInactive;
         }
-        if (member.canHostRank && !member.hostingCompliant) {
-          let days = 0;
-          if (member.lastHostDate) { const lh = new Date(member.lastHostDate); if (!isNaN(lh.getTime())) days = Math.floor((now.getTime() - lh.getTime()) / (1000 * 60 * 60 * 24)); }
-          if (days >= 14) high++; else medium++;
+        if (sailDays >= 30) high++;
+        else if (sailDays >= 14 || sailDays < 0) medium++; // <0 = no data / new sailor
+
+        // Hosting compliance (E-4+): 14d attention, 21d action
+        if (member.canHostRank) {
+          let hostDays = -1;
+          if (member.lastHostDate) {
+            const lh = new Date(member.lastHostDate);
+            if (!isNaN(lh.getTime())) hostDays = Math.floor((now.getTime() - lh.getTime()) / (1000 * 60 * 60 * 24));
+          }
+          if (hostDays >= 21) high++;
+          else if (hostDays >= 14 || hostDays < 0) medium++;
         }
+
         if (member.chatActivity === 0) low++;
       });
     }
