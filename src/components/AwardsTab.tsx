@@ -18,7 +18,6 @@ import {
   Tooltip,
   IconButton,
   Collapse,
-  LinearProgress,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -409,30 +408,6 @@ export const AwardsTab = () => {
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>{e.sailorName}</Typography>
                           <Typography variant="caption" color="textSecondary">{e.sailorRank}</Typography>
-                        </TableCell>
-                        <TableCell sx={{ minWidth: 100 }}>
-                          {(() => {
-                            const sr = sailorReadiness[e.sailorName] || { awarded: 0, total: 1 };
-                            const pct = Math.round((sr.awarded / sr.total) * 100);
-                            const color = pct >= 100 ? '#22c55e' : pct >= 66 ? '#eab308' : pct >= 33 ? '#f97316' : '#ef4444';
-                            return (
-                              <Stack spacing={0.5}>
-                                <Typography variant="caption" sx={{ fontWeight: 600, color }}>
-                                  {sr.awarded}/{sr.total} ({pct}%)
-                                </Typography>
-                                <LinearProgress
-                                  variant="determinate"
-                                  value={pct}
-                                  sx={{
-                                    height: 6,
-                                    borderRadius: 1,
-                                    backgroundColor: 'action.disabledBackground',
-                                    '& .MuiLinearProgress-bar': { backgroundColor: color },
-                                  }}
-                                />
-                              </Stack>
-                            );
-                          })()}
                         </TableCell>
                         <TableCell><Typography variant="body2">{e.squad}</Typography></TableCell>
                         <TableCell><Typography variant="body2" sx={{ color: '#22c55e', fontWeight: 500 }}>{e.currentValue}</Typography></TableCell>
