@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Box,
   Paper,
@@ -15,11 +16,35 @@ import {
   Rating,
   Tooltip,
   useTheme,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  IconButton,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import NoteIcon from '@mui/icons-material/StickyNote2Outlined';
 import { useSheetData } from '../context/SheetDataContext';
 import { parseAllCrewMembers, parseAllLeaderboardEntries, enrichCrewWithLeaderboardData, type ParsedCrewMember } from '../services/dataParser';
 import { abbreviateRank } from '../config/RankCodes';
+import { writeGoogleSheet } from '../services/googleSheetsService';
+import { GULLINBURSTI_COLUMNS } from '../config/SheetColumns';
+
+// Gullinbursti spreadsheet config (must match SheetDataContext)
+const GULLINBURSTI_SPREADSHEET_ID = '1EiLym2gcxcxmwoTHkHD9m9MisRqC3lmjJbBUBzqlZI0';
+const GULLINBURSTI_DATA_START_ROW = 9; // Headers at row 8, data starts at row 9
+
+// Convert 0-based column index to sheet column letter (0→A, 1→B, ..., 25→Z)
+const colLetter = (index: number): string => String.fromCharCode(65 + index);
+
+// Build a cell reference like "Gullinbursti!I12"
+const cellRef = (colIndex: number, sourceRowIndex: number): string =>
+  `Gullinbursti!${colLetter(colIndex)}${sourceRowIndex + GULLINBURSTI_DATA_START_ROW}`;
 
 // ==================== COMPLIANCE STATUS (computed from dates) ====================
 //
@@ -186,6 +211,67 @@ export const UsersTab = () => {
   const { data, loading, refreshData, error } = useSheetData();
   const theme = useTheme();
 
+  // ===== Edit state =====
+  // LOA status menu
+  const [loaAnchorEl, setLoaAnchorEl] = useState<null | HTMLElement>(null);
+  const [loaTarget, setLoaTarget] = useState<{ name: string; sourceRowIndex: number } | null>(null);
+  // Notes dialog
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesTarget, setNotesTarget] = useState<{ name: string; sourceRowIndex: number; slComments: string; cosNotes: string } | null>(null);
+  const [notesSL, setNotesSL] = useState('');
+  const [notesCOS, setNotesCOS] = useState('');
+  // Feedback
+  const [saving, setSaving] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+
+  // ===== Write-back helpers =====
+  const handleLoaMenuOpen = (event: React.MouseEvent<HTMLElement>, sailor: { name: string; sourceRowIndex: number }) => {
+    setLoaAnchorEl(event.currentTarget);
+    setLoaTarget(sailor);
+  };
+
+  const handleLoaChange = async (newStatus: string) => {
+    if (!loaTarget) return;
+    setLoaAnchorEl(null);
+    setSaving(true);
+    try {
+      await writeGoogleSheet(GULLINBURSTI_SPREADSHEET_ID, cellRef(GULLINBURSTI_COLUMNS.LOA_STATUS, loaTarget.sourceRowIndex), [[newStatus]]);
+      setSnackbar({ open: true, message: `${loaTarget.name} → ${newStatus || 'Active Duty'}`, severity: 'success' });
+      await refreshData();
+    } catch (err) {
+      setSnackbar({ open: true, message: `Failed to update: ${err instanceof Error ? err.message : 'Unknown error'}`, severity: 'error' });
+    } finally {
+      setSaving(false);
+      setLoaTarget(null);
+    }
+  };
+
+  const handleNotesOpen = (sailor: { name: string; sourceRowIndex: number; slComments: string; cosNotes: string }) => {
+    setNotesTarget(sailor);
+    setNotesSL(sailor.slComments);
+    setNotesCOS(sailor.cosNotes);
+    setNotesOpen(true);
+  };
+
+  const handleNotesSave = async () => {
+    if (!notesTarget) return;
+    setSaving(true);
+    try {
+      // Write SL Comments (column N) and CoS Notes (column W) in parallel
+      await Promise.all([
+        writeGoogleSheet(GULLINBURSTI_SPREADSHEET_ID, cellRef(GULLINBURSTI_COLUMNS.SQUAD_LEADER_COMMENTS, notesTarget.sourceRowIndex), [[notesSL]]),
+        writeGoogleSheet(GULLINBURSTI_SPREADSHEET_ID, cellRef(GULLINBURSTI_COLUMNS.COS_NOTES, notesTarget.sourceRowIndex), [[notesCOS]]),
+      ]);
+      setSnackbar({ open: true, message: `Notes saved for ${notesTarget.name}`, severity: 'success' });
+      setNotesOpen(false);
+      await refreshData();
+    } catch (err) {
+      setSnackbar({ open: true, message: `Failed to save notes: ${err instanceof Error ? err.message : 'Unknown error'}`, severity: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
@@ -243,10 +329,11 @@ export const UsersTab = () => {
       rank: member.rank,
       name: member.name,
       squad: member.squad,
+      sourceRowIndex: member.sourceRowIndex,
       discordNickname: member.discordUsername,
-      complianceStatus: member.complianceStatus || 'Unknown', // LOA status column (Active Duty, LOA-1, etc.)
-      sailingCompliant: member.sailingCompliant, // Have they sailed this month?
-      loaStatus: member.loaStatus, // Are they on LOA?
+      complianceStatus: member.complianceStatus || 'Unknown',
+      sailingCompliant: member.sailingCompliant,
+      loaStatus: member.loaStatus,
       timezone: member.timezone,
       stars: member.chatActivity.toString(),
       chatActivity: member.chatActivity,
@@ -256,7 +343,9 @@ export const UsersTab = () => {
       daysInactive: enriched.daysInactive,
       lastVoyageDate: enriched.lastVoyageDate,
       lastHostDate: enriched.lastHostDate,
-      canHostRank: member.canHostRank, // JPO+ can host
+      canHostRank: member.canHostRank,
+      squadLeaderComments: member.squadLeaderComments || '',
+      cosNotes: member.cosNotes || '',
     };
   });
 
@@ -389,7 +478,7 @@ export const UsersTab = () => {
                             }
                           }}
                         >
-                          <TableCell colSpan={10} sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1rem', color: '#FFFFFF', backgroundColor: 'transparent' }}>
+                          <TableCell colSpan={11} sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1rem', color: '#FFFFFF', backgroundColor: 'transparent' }}>
                             {squad}
                           </TableCell>
                         </TableRow>
@@ -413,7 +502,8 @@ export const UsersTab = () => {
                           <TableCell sx={{ width: '6%', textAlign: 'center' }}>Hosted</TableCell>
                           <TableCell sx={{ width: '10%', textAlign: 'center' }}>Last Voyaged</TableCell>
                           <TableCell sx={{ width: '10%', textAlign: 'center' }}>Last Hosted</TableCell>
-                          <TableCell sx={{ width: '12%', textAlign: 'center' }}>Activity</TableCell>
+                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Activity</TableCell>
+                          <TableCell sx={{ width: '4%', textAlign: 'center' }}></TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -468,26 +558,31 @@ export const UsersTab = () => {
                                 {sailor.name}
                               </TableCell>
 
-                              {/* Status */}
+                              {/* Status (click to change LOA) */}
                               <TableCell sx={{ py: 1.5, textAlign: 'center' }}>
                                 {(() => {
                                   const statusDisplay = getStatusDisplay(sailor);
                                   return (
-                                    <Box
-                                      sx={{
-                                        display: 'inline-block',
-                                        px: 1.5,
-                                        py: 0.5,
-                                        borderRadius: 1,
-                                        backgroundColor: statusDisplay.bgColor,
-                                        color: statusDisplay.color,
-                                        fontWeight: 600,
-                                        fontSize: '0.8rem',
-                                        whiteSpace: 'nowrap',
-                                      }}
-                                    >
-                                      {statusDisplay.label}
-                                    </Box>
+                                    <Tooltip title="Click to change status" arrow>
+                                      <Box
+                                        onClick={(e) => handleLoaMenuOpen(e, { name: sailor.name, sourceRowIndex: sailor.sourceRowIndex })}
+                                        sx={{
+                                          display: 'inline-block',
+                                          px: 1.5,
+                                          py: 0.5,
+                                          borderRadius: 1,
+                                          backgroundColor: statusDisplay.bgColor,
+                                          color: statusDisplay.color,
+                                          fontWeight: 600,
+                                          fontSize: '0.8rem',
+                                          whiteSpace: 'nowrap',
+                                          cursor: 'pointer',
+                                          '&:hover': { opacity: 0.8, boxShadow: '0 0 6px rgba(255,255,255,0.15)' },
+                                        }}
+                                      >
+                                        {statusDisplay.label}
+                                      </Box>
+                                    </Tooltip>
                                   );
                                 })()}
                               </TableCell>
@@ -646,6 +741,22 @@ export const UsersTab = () => {
                                   }}
                                 />
                               </TableCell>
+
+                              {/* Notes */}
+                              <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
+                                <Tooltip title={sailor.squadLeaderComments || sailor.cosNotes ? `SL: ${sailor.squadLeaderComments || '—'}\nCoS: ${sailor.cosNotes || '—'}` : 'Add notes'} arrow>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleNotesOpen({ name: sailor.name, sourceRowIndex: sailor.sourceRowIndex, slComments: sailor.squadLeaderComments, cosNotes: sailor.cosNotes })}
+                                    sx={{ 
+                                      color: (sailor.squadLeaderComments || sailor.cosNotes) ? '#60A5FA' : '#555',
+                                      '&:hover': { color: '#93c5fd' },
+                                    }}
+                                  >
+                                    <NoteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </TableCell>
                             </TableRow>
                           );
                         })}
@@ -658,6 +769,63 @@ export const UsersTab = () => {
           })()}
         </Box>
       )}
+
+      {/* LOA Status Menu */}
+      <Menu
+        anchorEl={loaAnchorEl}
+        open={Boolean(loaAnchorEl)}
+        onClose={() => { setLoaAnchorEl(null); setLoaTarget(null); }}
+      >
+        <MenuItem onClick={() => handleLoaChange('')}>Active Duty</MenuItem>
+        <MenuItem onClick={() => handleLoaChange('LOA-1')}>LOA-1</MenuItem>
+        <MenuItem onClick={() => handleLoaChange('LOA-2')}>LOA-2</MenuItem>
+        <MenuItem onClick={() => handleLoaChange('LOA-3')}>LOA-3</MenuItem>
+      </Menu>
+
+      {/* Notes Dialog */}
+      <Dialog open={notesOpen} onClose={() => setNotesOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Notes — {notesTarget?.name}</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+          <TextField
+            label="Squad Leader Comments"
+            multiline
+            rows={3}
+            value={notesSL}
+            onChange={(e) => setNotesSL(e.target.value)}
+            fullWidth
+            variant="outlined"
+            size="small"
+          />
+          <TextField
+            label="Chief of Ship Notes"
+            multiline
+            rows={3}
+            value={notesCOS}
+            onChange={(e) => setNotesCOS(e.target.value)}
+            fullWidth
+            variant="outlined"
+            size="small"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNotesOpen(false)}>Cancel</Button>
+          <Button onClick={handleNotesSave} variant="contained" disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

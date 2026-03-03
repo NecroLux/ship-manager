@@ -111,11 +111,14 @@ const fetchSheetData = async (
     );
 
     // Convert array rows to object rows using the unique header keys
-    const rowsAsObjects: SheetRow[] = result.rows.map((row: string[]) => {
+    // Preserve `_rowIndex` (0-based index into the data rows) so we can
+    // calculate the original sheet row number for write-back operations.
+    const rowsAsObjects: SheetRow[] = result.rows.map((row: string[], dataIndex: number) => {
       const obj: SheetRow = {};
       uniqueHeaders.forEach((header: string, index: number) => {
         obj[header] = row[index] || '';
       });
+      obj['_rowIndex'] = String(dataIndex);
       return obj;
     });
 

@@ -23,6 +23,9 @@ export interface ParsedCrewMember {
   squad: string;
   timezone: string;
   
+  // Source tracking (for write-back)
+  sourceRowIndex: number; // 0-based data row index from the sheet (use to calculate sheet row for writes)
+  
   // Guild & Game
   inGuild: boolean;
   xboxGamertag?: string;
@@ -177,6 +180,7 @@ export const parseCrewMember = (row: Record<string, string>): ParsedCrewMember =
   return {
     rank,
     name,
+    sourceRowIndex: parseInt(row['_rowIndex'] || '0', 10),
     discordUsername: (getRowValue(GULLINBURSTI_COLUMNS.DISCORD_USERNAME, 'Discord Username', 'DISCORD_USERNAME', 'Discord') || getByIndex(2)).trim(),
     discordId: (getRowValue(GULLINBURSTI_COLUMNS.DISCORD_ID, 'Discord ID', 'DISCORD_ID') || getByIndex(16)).trim(),
     squad: 'Unassigned', // Will be overridden by parseAllCrewMembers
