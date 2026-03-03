@@ -108,6 +108,37 @@ export const resolveRank = (rawRank: string): RankDefinition | undefined => {
 };
 
 /**
+ * Short abbreviation for display (e.g. "SN", "AB", "JPO", "PO", "SCPO", "MIDN", "LCDR", "CDR")
+ */
+const RANK_ABBREVIATIONS: Record<string, string> = {
+  'Deckhand': 'DH',
+  'SA': 'SA',
+  'E-1': 'RCT',
+  'E-2': 'SN',
+  'E-3': 'AB',
+  'E-4': 'JPO',
+  'E-6': 'PO',
+  'E-7': 'CPO',
+  'E-8': 'SCPO',
+  'O-1': 'MIDN',
+  'O-3': 'LT',
+  'O-4': 'LCDR',
+  'O-5': 'CDR',
+  'O-6': 'CAPT',
+  'O-7': 'CDRE',
+  'O-8': 'RADM',
+  'O-9': 'VADM',
+  'O-10': 'AOTN',
+  'WO': 'WO',
+};
+
+export const abbreviateRank = (rawRank: string): string => {
+  const resolved = resolveRank(rawRank);
+  if (resolved) return RANK_ABBREVIATIONS[resolved.code] || resolved.code;
+  return rawRank;
+};
+
+/**
  * Get the numeric level of a rank (higher = more senior).
  */
 export const getRankLevel = (rawRank: string): number => {

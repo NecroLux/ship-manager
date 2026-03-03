@@ -19,6 +19,7 @@ import {
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSheetData } from '../context/SheetDataContext';
 import { parseAllCrewMembers, parseAllLeaderboardEntries, enrichCrewWithLeaderboardData, type ParsedCrewMember } from '../services/dataParser';
+import { abbreviateRank } from '../config/RankCodes';
 
 // ==================== COMPLIANCE STATUS (computed from dates) ====================
 //
@@ -445,18 +446,20 @@ export const UsersTab = () => {
                             >
                               {/* Rank */}
                               <TableCell sx={{ fontWeight: 'bold', py: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                <Typography 
-                                  sx={{ 
-                                    color: rankColor.color,
-                                    fontWeight: 'bold',
-                                    fontSize: '0.95rem',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                >
-                                  {sailor.rank}
-                                </Typography>
+                                <Tooltip title={sailor.rank} arrow>
+                                  <Typography 
+                                    sx={{ 
+                                      color: rankColor.color,
+                                      fontWeight: 'bold',
+                                      fontSize: '0.95rem',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {abbreviateRank(sailor.rank)}
+                                  </Typography>
+                                </Tooltip>
                               </TableCell>
 
                               {/* Name */}
