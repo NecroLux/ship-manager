@@ -728,10 +728,20 @@ export const UsersTab = () => {
                               <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
                                 <Rating
                                   value={starCount}
-                                  readOnly
                                   size="small"
+                                  onChange={async (_e, newValue) => {
+                                    if (newValue === null) return;
+                                    try {
+                                      await writeGoogleSheet(GULLINBURSTI_SPREADSHEET_ID, cellRef(GULLINBURSTI_COLUMNS.CHAT_ACTIVITY, sailor.sourceRowIndex), [[String(newValue)]]);
+                                      setSnackbar({ open: true, message: `${sailor.name} activity → ${newValue}★`, severity: 'success' });
+                                      await refreshData();
+                                    } catch (err) {
+                                      setSnackbar({ open: true, message: `Failed to update: ${err instanceof Error ? err.message : 'Unknown error'}`, severity: 'error' });
+                                    }
+                                  }}
                                   sx={{ 
                                     display: 'inline-flex',
+                                    cursor: 'pointer',
                                     '& .MuiRating-iconFilled': {
                                       color: '#FFD700',
                                     },
