@@ -391,8 +391,8 @@ export const PromotionsTab = () => {
               No promotion candidates detected. Connect your sheets or check that crew data is populated.
             </Typography>
           ) : (
-            <TableContainer>
-              <Table size="small">
+            <TableContainer sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <Table size="small" sx={{ minWidth: 600 }}>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: 'action.hover' }}>
                     <TableCell sx={{ fontWeight: 'bold' }}>Sailor</TableCell>

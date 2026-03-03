@@ -369,8 +369,8 @@ export const AwardsTab = () => {
                 No eligible awards detected. Connect your sheets or check that voyage/host data is populated.
               </Typography>
             ) : (
-              <TableContainer>
-                <Table size="small">
+              <TableContainer sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <Table size="small" sx={{ minWidth: 550 }}>
                   <TableHead>
                     <TableRow sx={{ backgroundColor: 'action.hover' }}>
                       <TableCell sx={{ fontWeight: 'bold' }}>Award</TableCell>

@@ -270,8 +270,8 @@ export const UsersTab = () => {
   return (
     <Box sx={{ mt: 3 }}>
       {/* Refresh Button and Stats */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
-        <Box sx={{ display: 'flex', gap: 1, flex: 1 }}>
+      <Box sx={{ mb: 3, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 1, flex: 1, flexWrap: 'wrap' }}>
           {sailors.length > 0 && (
             <>
               <Card sx={{ flex: 1, minWidth: 80 }}>
@@ -369,11 +369,12 @@ export const UsersTab = () => {
                     component={Paper}
                     sx={{ 
                       borderRadius: 0,
-                      overflow: 'hidden',
+                      overflowX: 'auto',
                       boxShadow: 'none',
+                      WebkitOverflowScrolling: 'touch',
                     }}
                   >
-                    <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
+                    <Table stickyHeader sx={{ tableLayout: 'fixed', minWidth: 800 }}>
                       <TableHead>
                         <TableRow 
                           sx={{

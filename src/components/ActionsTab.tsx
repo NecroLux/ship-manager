@@ -405,7 +405,7 @@ export const ActionsTab = () => {
   return (
     <Box sx={{ mt: 3 }}>
       {/* Header with Tabs */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 2, gap: 1 }}>
         <Tabs 
           value={activeTab} 
           onChange={(_e, newValue) => setActiveTab(newValue as any)}
@@ -449,8 +449,8 @@ export const ActionsTab = () => {
         </Paper>
       ) : (
         <Paper sx={{ overflow: 'hidden' }}>
-          <TableContainer>
-            <Table size="small">
+          <TableContainer sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <Table size="small" sx={{ minWidth: 600 }}>
               <TableHead>
                 <TableRow sx={{ backgroundColor: 'action.hover' }}>
                   <TableCell sx={{ fontWeight: 'bold', width: '5%', textAlign: 'center' }}></TableCell>

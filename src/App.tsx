@@ -38,9 +38,9 @@ function AppContent() {
   return (
     <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
       <CssBaseline />
-      <AppBar position="static" color="default" elevation={0} sx={{ py: 3 }}>
-        <Toolbar sx={{ flexDirection: 'column', alignItems: 'center', py: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between', mb: 2 }}>
+      <AppBar position="static" color="default" elevation={0} sx={{ py: { xs: 1, sm: 3 } }}>
+        <Toolbar sx={{ flexDirection: 'column', alignItems: 'center', py: { xs: 1, sm: 2 }, px: { xs: 1, sm: 2 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between', mb: { xs: 1, sm: 2 } }}>
             <Box /> {/* Spacer for layout */}
             <Typography 
               variant="h3" 
@@ -49,7 +49,7 @@ function AppContent() {
                 alignItems: 'center',
                 gap: 1,
                 fontWeight: 'bold',
-                fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem' },
+                fontSize: { xs: '1.5rem', sm: '2.5rem', md: '4rem' },
                 letterSpacing: '-0.5px',
               }}
             >
@@ -83,24 +83,32 @@ function AppContent() {
           </Box>
         </Toolbar>
       </AppBar>
-      <Container maxWidth="lg" sx={{ mt: 0 }}>
+      <Container maxWidth="lg" sx={{ mt: 0, px: { xs: 1, sm: 2, md: 3 } }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs 
             value={activeTab} 
             onChange={(_e, newValue) => setActiveTab(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             sx={{
               '& .MuiTabs-flexContainer': {
-                justifyContent: 'space-around',
-              }
+                justifyContent: { sm: 'space-around' },
+              },
+              '& .MuiTab-root': {
+                minWidth: { xs: 'auto' },
+                px: { xs: 1.5, sm: 2 },
+                fontSize: { xs: '0.8rem', sm: '0.875rem' },
+              },
             }}
           >
-            <Tab label="Overview" sx={{ flex: 1 }} />
-            <Tab label="Crew" sx={{ flex: 1 }} />
-            <Tab label="Actions" sx={{ flex: 1 }} />
-            <Tab label="Awards" sx={{ flex: 1 }} />
-            <Tab label="Promotions" sx={{ flex: 1 }} />
-            <Tab label="Reports" sx={{ flex: 1 }} />
-            <Tab label="Config" sx={{ flex: 1 }} />
+            <Tab label="Overview" />
+            <Tab label="Crew" />
+            <Tab label="Actions" />
+            <Tab label="Awards" />
+            <Tab label="Promotions" />
+            <Tab label="Reports" />
+            <Tab label="Config" />
           </Tabs>
         </Box>
 
