@@ -372,7 +372,7 @@ export const UsersTab = () => {
                       boxShadow: 'none',
                     }}
                   >
-                    <Table stickyHeader>
+                    <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
                       <TableHead>
                         <TableRow 
                           sx={{
@@ -387,7 +387,7 @@ export const UsersTab = () => {
                             }
                           }}
                         >
-                          <TableCell colSpan={8} sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1rem', color: '#FFFFFF', backgroundColor: 'transparent' }}>
+                          <TableCell colSpan={10} sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1rem', color: '#FFFFFF', backgroundColor: 'transparent' }}>
                             {squad}
                           </TableCell>
                         </TableRow>
@@ -402,14 +402,15 @@ export const UsersTab = () => {
                             }
                           }}
                         >
-                          <TableCell sx={{ width: '15%' }}>Rank</TableCell>
-                          <TableCell sx={{ width: '15%' }}>Name</TableCell>
-                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Status</TableCell>
+                          <TableCell sx={{ width: '12%' }}>Rank</TableCell>
+                          <TableCell sx={{ width: '14%' }}>Name</TableCell>
+                          <TableCell sx={{ width: '8%', textAlign: 'center' }}>Status</TableCell>
                           <TableCell sx={{ width: '7%', textAlign: 'center' }}>Sailing</TableCell>
                           <TableCell sx={{ width: '7%', textAlign: 'center' }}>Hosting</TableCell>
                           <TableCell sx={{ width: '6%', textAlign: 'center' }}>Voyages</TableCell>
                           <TableCell sx={{ width: '6%', textAlign: 'center' }}>Hosted</TableCell>
-                          <TableCell sx={{ width: '12%' }}>Timezone</TableCell>
+                          <TableCell sx={{ width: '12%', textAlign: 'center' }}>Last Voyaged</TableCell>
+                          <TableCell sx={{ width: '12%', textAlign: 'center' }}>Last Hosted</TableCell>
                           <TableCell sx={{ width: '12%', textAlign: 'center' }}>Activity</TableCell>
                         </TableRow>
                       </TableHead>
@@ -459,7 +460,7 @@ export const UsersTab = () => {
                               </TableCell>
 
                               {/* Name */}
-                              <TableCell sx={{ fontWeight: 500, py: 1.5 }}>
+                              <TableCell sx={{ fontWeight: 500, py: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {sailor.name}
                               </TableCell>
 
@@ -580,9 +581,28 @@ export const UsersTab = () => {
                                 </Typography>
                               </TableCell>
 
-                              {/* Timezone */}
-                              <TableCell sx={{ fontSize: '0.9rem', py: 1.5 }}>
-                                {sailor.timezone !== '-' ? sailor.timezone.replace(/\s*\(.*?\)/, '') : '-'}
+                              {/* Last Voyaged */}
+                              <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
+                                <Typography
+                                  sx={{
+                                    fontSize: '0.85rem',
+                                    color: sailor.lastVoyageDate ? '#FFFFFF' : '#6b7280',
+                                  }}
+                                >
+                                  {sailor.lastVoyageDate ? new Date(sailor.lastVoyageDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                </Typography>
+                              </TableCell>
+
+                              {/* Last Hosted */}
+                              <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
+                                <Typography
+                                  sx={{
+                                    fontSize: '0.85rem',
+                                    color: sailor.lastHostDate ? '#FFFFFF' : '#6b7280',
+                                  }}
+                                >
+                                  {sailor.lastHostDate ? new Date(sailor.lastHostDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                </Typography>
                               </TableCell>
 
                               {/* Activity Stars */}

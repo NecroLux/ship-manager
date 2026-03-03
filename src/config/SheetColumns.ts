@@ -4,6 +4,8 @@
  * Supplementary sources: LadyHoit's Awards Sheets (Time/Voyage Awards & Role/Coin Awards)
  */
 
+import { resolveRank } from './RankCodes';
+
 // ==================== GULLINBURSTI SHEET ====================
 // Range: Gullinbursti!A8:W49
 // Primary source for crew roster, compliance, activity, and leadership notes
@@ -199,16 +201,26 @@ export const isOnLOA = (row: Record<string, string>): boolean => {
 
 /**
  * Check if a sailor should be hosting based on rank
+ * Accepts both rank codes (e.g. 'E-4') and full rank names (e.g. 'Jr. Petty Officer')
  */
-export const canHost = (rankCode: string): boolean => {
-  return (COMPLIANCE_RULES.HOSTING_APPLIES_TO as readonly string[]).includes(rankCode);
+export const canHost = (rankInput: string): boolean => {
+  // Direct code match first
+  if ((COMPLIANCE_RULES.HOSTING_APPLIES_TO as readonly string[]).includes(rankInput)) return true;
+  // Resolve full rank name to code
+  const resolved = resolveRank(rankInput);
+  return resolved ? (COMPLIANCE_RULES.HOSTING_APPLIES_TO as readonly string[]).includes(resolved.code) : false;
 };
 
 /**
  * Check if a sailor must sail based on rank
+ * Accepts both rank codes (e.g. 'E-4') and full rank names (e.g. 'Seaman')
  */
-export const mustSail = (rankCode: string): boolean => {
-  return (COMPLIANCE_RULES.SAILING_APPLIES_TO as readonly string[]).includes(rankCode);
+export const mustSail = (rankInput: string): boolean => {
+  // Direct code match first
+  if ((COMPLIANCE_RULES.SAILING_APPLIES_TO as readonly string[]).includes(rankInput)) return true;
+  // Resolve full rank name to code
+  const resolved = resolveRank(rankInput);
+  return resolved ? (COMPLIANCE_RULES.SAILING_APPLIES_TO as readonly string[]).includes(resolved.code) : false;
 };
 
 export default {
