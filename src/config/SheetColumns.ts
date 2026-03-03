@@ -77,12 +77,13 @@ export const VOYAGE_AWARDS_COLUMNS = {
   LAST_HOST_DATE: 10,               // Last date they hosted (blank for Able/Seaman)
   HOST_COUNT: 11,                   // How many times they've hosted
   LAST_VOYAGE_DATE: 12,             // Last official voyage attended
-  TOTAL_VOYAGES: 13,                // Total official voyages attended
+  SPACER_1: 13,                     // Spacer column (previously Total Voyages)
+  TOTAL_VOYAGES: 14,                // Total official voyages attended (Column O)
   
-  // Award Status (columns O-AG)
+  // Award Status (columns P-AG)
   // These columns track award eligibility/status for each medal type
   // Header values will be medal names from NavalConfig
-  AWARDS_START: 14,                 // Awards columns begin at index 14 (O in Excel)
+  AWARDS_START: 15,                 // Awards columns begin at index 15 (P in Excel)
   BIRTHDAY: 33,                     // AH = Birthday
 } as const;
 
