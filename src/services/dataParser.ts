@@ -293,7 +293,8 @@ export const parseAllCrewMembers = (rows: Record<string, string>[]): ParsedCrewM
 
 /**
  * Parse leaderboard entry from Time/Voyage Awards sheet
- * Uses fuzzy header matching since rows are keyed by header names from Google Sheets
+ * Uses POSITIONAL-FIRST access (column indices from SheetColumns.ts are authoritative),
+ * with header-name matching as a secondary fallback only.
  */
 export const parseLeaderboardEntry = (row: Record<string, string>): ParsedLeaderboardEntry => {
   const rowKeys = Object.keys(row);
@@ -305,56 +306,38 @@ export const parseLeaderboardEntry = (row: Record<string, string>): ParsedLeader
     (parseLeaderboardEntry as any)._logged = true;
   }
 
-  // Fuzzy header matcher — same approach as parseCrewMember
-  // For count/number fields, validates the result is numeric and falls back to positional if not
-  const getVal = (numIndex: number, ...headerNames: string[]): string => {
-    // Try numeric index (for array-indexed rows)
-    if (row[numIndex] !== undefined) return (row[numIndex] || '').trim();
-    // Try exact header names (case-sensitive)
-    for (const h of headerNames) {
-      if (row[h] !== undefined) return (row[h] || '').trim();
+  // Positional-first value getter.
+  // 1) Direct positional access via Object.keys order (most reliable — mirrors sheet columns)
+  // 2) Exact header-name match (case-insensitive)
+  // 3) Returns '' if nothing found
+  const getVal = (colIndex: number, ...headerNames: string[]): string => {
+    // 1. Positional — column index into the ordered keys
+    if (colIndex >= 0 && colIndex < rowKeys.length) {
+      const positional = (row[rowKeys[colIndex]] || '').trim();
+      if (positional) return positional;
     }
-    // Try case-insensitive exact match first (before fuzzy)
+    // 2. Exact header-name match (case-insensitive)
     for (const h of headerNames) {
       const hLower = h.toLowerCase();
       for (const key of rowKeys) {
         if (key.toLowerCase() === hLower) {
-          return (row[key] || '').trim();
+          const val = (row[key] || '').trim();
+          if (val) return val;
         }
       }
     }
-    // Fuzzy match — but require minimum 4 char overlap to avoid false positives
-    for (const h of headerNames) {
-      const search = h.toLowerCase().replace(/[_\s]/g, '');
-      if (search.length < 3) continue; // skip tiny search terms
-      for (const key of rowKeys) {
-        const keyNorm = key.toLowerCase().replace(/[_\s]/g, '');
-        if (keyNorm === search) return (row[key] || '').trim();
-        // Only match if the shorter string is at least 4 chars to avoid false positives
-        if (keyNorm.length >= 4 && search.length >= 4) {
-          if (keyNorm.includes(search) || search.includes(keyNorm)) {
-            return (row[key] || '').trim();
-          }
-        }
-      }
+    // 3. Positional even if empty (so callers get '' rather than skipping to a wrong column)
+    if (colIndex >= 0 && colIndex < rowKeys.length) {
+      return (row[rowKeys[colIndex]] || '').trim();
     }
-    // Positional fallback
-    if (numIndex < rowKeys.length) return (row[rowKeys[numIndex]] || '').trim();
     return '';
   };
 
-  // For numeric fields, try header match first, but if result isn't a number, use positional fallback
-  const getNumVal = (numIndex: number, ...headerNames: string[]): number => {
-    const headerResult = getVal(numIndex, ...headerNames);
-    const parsed = parseInt(headerResult || '0', 10);
-    if (!isNaN(parsed) && parsed > 0) return parsed;
-    // If header match gave non-numeric, try positional directly
-    if (numIndex < rowKeys.length) {
-      const positional = (row[rowKeys[numIndex]] || '').trim();
-      const posParsed = parseInt(positional || '0', 10);
-      if (!isNaN(posParsed)) return posParsed;
-    }
-    return 0;
+  // Numeric helper — positional first, then header match
+  const getNumVal = (colIndex: number, ...headerNames: string[]): number => {
+    const val = getVal(colIndex, ...headerNames);
+    const parsed = parseInt(val || '0', 10);
+    return isNaN(parsed) ? 0 : parsed;
   };
 
   const voyageCount = getNumVal(VOYAGE_AWARDS_COLUMNS.TOTAL_VOYAGES, 'Total Voyages', 'TOTAL_VOYAGES', 'Voyages', 'Official Voyages', 'Voyages Attended', 'Total Official Voyages', '# Voyages');
@@ -476,7 +459,7 @@ export const enrichCrewWithLeaderboardData = (
   if (!leaderboardEntry) {
     console.warn(`[Enrichment] No match for "${crewMember.name}" (normalized: "${crewNameNorm}"). Available names:`, leaderboardData.map(l => l.name).join(', '));
   } else {
-    console.log(`[Enrichment] Matched "${crewMember.name}" → "${leaderboardEntry.name}" (voyages: ${leaderboardEntry.voyageCount}, hosts: ${leaderboardEntry.hostCount}, daysInactive: ${leaderboardEntry.daysInactive})`);
+    console.log(`[Enrichment] Matched "${crewMember.name}" → "${leaderboardEntry.name}" (voyages: ${leaderboardEntry.voyageCount}, hosts: ${leaderboardEntry.hostCount}, lastVoyage: ${leaderboardEntry.lastVoyageDate || '—'}, lastHost: ${leaderboardEntry.lastHostDate || '—'})`);
   }
 
   return {
