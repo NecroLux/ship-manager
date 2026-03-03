@@ -779,7 +779,6 @@ export const UsersTab = () => {
         <MenuItem onClick={() => handleLoaChange('')}>Active Duty</MenuItem>
         <MenuItem onClick={() => handleLoaChange('LOA-1')}>LOA-1</MenuItem>
         <MenuItem onClick={() => handleLoaChange('LOA-2')}>LOA-2</MenuItem>
-        <MenuItem onClick={() => handleLoaChange('LOA-3')}>LOA-3</MenuItem>
       </Menu>
 
       {/* Notes Dialog */}
