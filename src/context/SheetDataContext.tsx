@@ -91,10 +91,29 @@ const fetchSheetData = async (
 
   const result = await response.json();
 
-    // Convert array rows to object rows for easier access
+    // De-duplicate headers so that empty or repeated header names don't
+    // cause later columns to overwrite earlier ones when we convert rows
+    // from arrays to objects.  Empty headers get "_col{index}", duplicates
+    // get "{header}_{index}" appended.
+    const seenHeaders = new Set<string>();
+    const uniqueHeaders: string[] = (result.headers as string[]).map(
+      (h: string, idx: number) => {
+        let key = (h || '').trim();
+        if (!key) {
+          key = `_col${idx}`;
+        }
+        if (seenHeaders.has(key)) {
+          key = `${key}_${idx}`;
+        }
+        seenHeaders.add(key);
+        return key;
+      }
+    );
+
+    // Convert array rows to object rows using the unique header keys
     const rowsAsObjects: SheetRow[] = result.rows.map((row: string[]) => {
       const obj: SheetRow = {};
-      result.headers.forEach((header: string, index: number) => {
+      uniqueHeaders.forEach((header: string, index: number) => {
         obj[header] = row[index] || '';
       });
       return obj;
@@ -103,13 +122,13 @@ const fetchSheetData = async (
     // Filter out rows that have "-" in the first column (column A) if enabled
     const filteredRows = filterEmptyFirst
       ? rowsAsObjects.filter((row: SheetRow) => {
-          const firstColumnValue = row[result.headers[0]];
+          const firstColumnValue = row[uniqueHeaders[0]];
           return firstColumnValue && firstColumnValue.trim() !== '-';
         })
       : rowsAsObjects;
 
     return {
-      headers: result.headers,
+      headers: uniqueHeaders,
       rows: filteredRows,
       rowCount: filteredRows.length,
       lastUpdated: new Date(),
