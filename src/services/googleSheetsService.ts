@@ -160,3 +160,52 @@ export const checkBackendHealth = async (): Promise<boolean> => {
     return false;
   }
 };
+
+// ==================== WRITE OPERATIONS ====================
+
+interface WriteResult {
+  updatedRange: string;
+  updatedRows: number;
+  updatedColumns: number;
+  updatedCells: number;
+}
+
+/**
+ * Write/update cells in a Google Sheet via backend
+ * @param spreadsheetId The ID of the spreadsheet
+ * @param range The range to write to (e.g., "Sheet1!B5" for a single cell, or "Sheet1!B5:D5" for a row)
+ * @param values 2D array of values — [[row1col1, row1col2], [row2col1, row2col2]]
+ * @returns WriteResult with update stats
+ */
+export const writeGoogleSheet = async (
+  spreadsheetId: string,
+  range: string,
+  values: string[][]
+): Promise<WriteResult> => {
+  try {
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/sheets/write`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        spreadsheetId,
+        range,
+        values,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error writing to Google Sheet:', error);
+    throw new Error(
+      `Failed to write to Google Sheet: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+};

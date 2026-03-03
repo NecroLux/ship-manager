@@ -103,7 +103,7 @@ const getAuthClient = async () => {
       const credentials = JSON.parse(credentialsJson);
       const auth = new google.auth.GoogleAuth({
         credentials,
-        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
       });
       return auth;
     } catch (err) {
@@ -135,7 +135,7 @@ const getAuthClient = async () => {
   
   const auth = new google.auth.GoogleAuth({
     credentials,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
 
   return auth;
@@ -246,6 +246,52 @@ app.post('/api/sheets/batch-read', async (req: Request, res: Response) => {
   }
 });
 
+// Endpoint to write/update cells in a sheet
+app.post('/api/sheets/write', async (req: Request, res: Response) => {
+  try {
+    const { spreadsheetId, range, values } = req.body;
+
+    if (!spreadsheetId || !range || !values || !Array.isArray(values)) {
+      return res.status(400).json({ error: 'Missing spreadsheetId, range, or values' });
+    }
+
+    const authClient = await getAuthClient();
+    const sheets = google.sheets({ version: 'v4', auth: authClient as any });
+
+    const response = await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range,
+      valueInputOption: 'USER_ENTERED', // Allows formulas, dates, etc. to be interpreted
+      requestBody: {
+        values,
+      },
+    });
+
+    res.json({
+      updatedRange: response.data.updatedRange,
+      updatedRows: response.data.updatedRows,
+      updatedColumns: response.data.updatedColumns,
+      updatedCells: response.data.updatedCells,
+    });
+  } catch (error) {
+    console.error('Error writing to sheet:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Provide a helpful message if it's a permissions issue
+    if (errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('forbidden') || errorMessage.includes('403')) {
+      return res.status(403).json({
+        error: 'Write permission denied',
+        message: 'The service account does not have Editor access to this spreadsheet. Share the sheet with the service account email as an Editor.',
+      });
+    }
+
+    res.status(500).json({
+      error: 'Failed to write to sheet',
+      message: errorMessage,
+    });
+  }
+});
+
 // Endpoint to get spreadsheet metadata
 app.post('/api/sheets/metadata', async (req: Request, res: Response) => {
   try {
@@ -286,6 +332,7 @@ app.listen(port, () => {
   console.log('Available endpoints:');
   console.log('  POST /api/sheets/read - Read a single sheet');
   console.log('  POST /api/sheets/batch-read - Read multiple sheets');
+  console.log('  POST /api/sheets/write - Write/update cells in a sheet');
   console.log('  POST /api/sheets/metadata - Get spreadsheet metadata');
   console.log('  GET  /api/state - Read all shared state');
   console.log('  GET  /api/state/:key - Read a state bucket');

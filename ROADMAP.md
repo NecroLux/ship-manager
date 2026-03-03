@@ -8,7 +8,7 @@ _Last updated: 2026-03-03_
 - [ ] **Host Column to Crew Report** — Add host column to PDF crew report
 - [ ] **Fix Action Priority** — Fix action priority ordering/display
 - [ ] **Discord Link** — Direct link / integration with Discord server
-- [ ] **Enable Push to Sheet** — Allow editing in the website to reflect back to the Google Sheet
+- [x] **Enable Push to Sheet** — Allow editing in the website to reflect back to the Google Sheet
 
 ## Medium Priority (Features & Quality)
 
