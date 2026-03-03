@@ -482,6 +482,7 @@ export const UsersTab = () => {
                                         color: statusDisplay.color,
                                         fontWeight: 600,
                                         fontSize: '0.8rem',
+                                        whiteSpace: 'nowrap',
                                       }}
                                     >
                                       {statusDisplay.label}
@@ -606,10 +607,11 @@ export const UsersTab = () => {
                                 <Typography
                                   sx={{
                                     fontSize: '0.85rem',
+                                    whiteSpace: 'nowrap',
                                     color: sailor.lastVoyageDate ? '#FFFFFF' : '#6b7280',
                                   }}
                                 >
-                                  {sailor.lastVoyageDate ? new Date(sailor.lastVoyageDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                  {sailor.lastVoyageDate ? new Date(sailor.lastVoyageDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'}
                                 </Typography>
                               </TableCell>
 
@@ -618,10 +620,11 @@ export const UsersTab = () => {
                                 <Typography
                                   sx={{
                                     fontSize: '0.85rem',
+                                    whiteSpace: 'nowrap',
                                     color: sailor.lastHostDate ? '#FFFFFF' : '#6b7280',
                                   }}
                                 >
-                                  {sailor.lastHostDate ? new Date(sailor.lastHostDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                  {sailor.lastHostDate ? new Date(sailor.lastHostDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'}
                                 </Typography>
                               </TableCell>
 
