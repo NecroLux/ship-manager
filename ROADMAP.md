@@ -1,6 +1,6 @@
 # Ship Manager — Roadmap
 
-_Last updated: 2026-02-13_
+_Last updated: 2026-03-03_
 
 ## High Priority (Core Functionality)
 
@@ -10,11 +10,12 @@ _Last updated: 2026-02-13_
 - [ ] **Activity Check to Crew Report** — Add activity check info to PDF crew report
 - [ ] **Host Column to Crew Report** — Add host column to PDF crew report
 - [ ] **Fix Action Priority** — Fix action priority ordering/display
+- [ ] **Discord Link** — Direct link / integration with Discord server
+- [ ] **Enable Push to Sheet** — Allow editing in the website to reflect back to the Google Sheet
 
 ## Medium Priority (Features & Quality)
 
-- [x] **Ship Report sheet** — Added to config page, fetched alongside other sheets for ship drilldown & crew report data
-- [ ] **PDF/DOCX Export** — Squad-split crew roster, include Overview snapshot, use Ship Report data
+- [ ] **PDF/DOCX Export** — Squad-split crew roster, include Overview snapshot
 - [x] **Awards Tab** — Medal scrubber with eligibility + endorsement tracking (auto-detect voyage/host/conduct/service stripes). Sub-tabs by responsible person.
 - [x] **Promotions Tab** — Promotion readiness tracker with auto-detect prereqs, manual checklists, person-based sub-tabs
 - [x] **Top Hosts/Voyagers accuracy** — Fix data source on Overview

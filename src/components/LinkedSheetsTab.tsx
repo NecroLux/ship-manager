@@ -39,7 +39,6 @@ export const LinkedSheetsTab = () => {
     gullinbursti: 'Gullinbursti!A8:W49',
     'voyage-awards': 'Time/Voyage Awards!A1:AH34',
     'role-coin': 'Role/Coin Awards!A1:O34',
-    'ship-report': 'Ship Report!A1:Z50',
   });
 
   if (loading) {
@@ -72,13 +71,6 @@ export const LinkedSheetsTab = () => {
       range: 'Role/Coin Awards!A1:O34',
       recordCount: data.roleCoinAwards.rowCount,
       lastUpdated: data.roleCoinAwards.lastUpdated,
-    },
-    {
-      name: 'Ship Report',
-      spreadsheetId: '1EiLym2gcxcxmwoTHkHD9m9MisRqC3lmjJbBUBzqlZI0',
-      range: 'Ship Report!A1:Z50',
-      recordCount: data.shipReport.rowCount,
-      lastUpdated: data.shipReport.lastUpdated,
     },
   ];
 
@@ -136,7 +128,6 @@ export const LinkedSheetsTab = () => {
                 const sheetKey = 
                   sheet.name === 'Gullinbursti' ? 'gullinbursti' :
                   sheet.name === 'LH Time/Voyages' ? 'voyage-awards' :
-                  sheet.name === 'Ship Report' ? 'ship-report' :
                   'role-coin';
                 
                 return (
@@ -218,9 +209,6 @@ export const LinkedSheetsTab = () => {
                 </Typography>
                 <Typography variant="body2">
                   Time/Voyage Awards: {data.voyageAwards.lastUpdated ? data.voyageAwards.lastUpdated.toLocaleString() : 'Never'}
-                </Typography>
-                <Typography variant="body2">
-                  Ship Report: {data.shipReport.lastUpdated ? data.shipReport.lastUpdated.toLocaleString() : 'Never'}
                 </Typography>
               </Stack>
             </Box>

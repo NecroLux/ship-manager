@@ -9,7 +9,13 @@
  */
 
 const getBackendUrl = (): string => {
-  return (import.meta as any).env.VITE_BACKEND_URL || 'http://localhost:5000';
+  // Use env var if set, otherwise detect dev vs prod
+  if ((import.meta as any).env.VITE_BACKEND_URL) {
+    return (import.meta as any).env.VITE_BACKEND_URL;
+  }
+  const isDevelopment = typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  return isDevelopment ? 'http://localhost:5000' : 'https://ship-manager.onrender.com';
 };
 
 // ==================== IN-MEMORY CACHE ====================
