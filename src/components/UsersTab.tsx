@@ -551,7 +551,24 @@ export const UsersTab = () => {
                                     </Box>
                                   </Tooltip>
                                 ) : (
-                                  <Typography variant="caption" color="textSecondary">N/A</Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Box
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: '50%',
+                                        backgroundColor: 'rgba(107, 114, 128, 0.2)',
+                                        color: '#6b7280',
+                                        fontSize: '1.1rem',
+                                        fontWeight: 'bold',
+                                      }}
+                                    >
+                                      ~
+                                    </Box>
+                                  </Box>
                                 )}
                               </TableCell>
 

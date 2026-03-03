@@ -75,11 +75,11 @@ export const VOYAGE_AWARDS_COLUMNS = {
   JOIN_DATE: 8,                     // Join date (server, not necessarily ship)
   
   // Activity Metrics
-  DAYS_INACTIVE: 9,                 // Days since last voyage
-  LAST_HOST_DATE: 10,               // Last date they hosted (blank for Able/Seaman)
-  HOST_COUNT: 11,                   // How many times they've hosted
-  LAST_VOYAGE_DATE: 12,             // Last official voyage attended
-  SPACER_1: 13,                     // Spacer column (previously Total Voyages)
+  DAYS_INACTIVE: 9,                 // Days since last voyage (Column J)
+  LAST_HOST_DATE: 10,               // Last date they hosted — Column K (blank for Able/Seaman)
+  HOST_COUNT: 11,                   // How many times they've hosted (Column L)
+  SPACER_1: 12,                     // Column M — spacer / intermediate column
+  LAST_VOYAGE_DATE: 13,             // Last official voyage attended — Column N
   TOTAL_VOYAGES: 14,                // Total official voyages attended (Column O)
   
   // Award Status (columns P-AG)
