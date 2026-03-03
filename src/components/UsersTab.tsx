@@ -776,7 +776,7 @@ export const UsersTab = () => {
         open={Boolean(loaAnchorEl)}
         onClose={() => { setLoaAnchorEl(null); setLoaTarget(null); }}
       >
-        <MenuItem onClick={() => handleLoaChange('')}>Active Duty</MenuItem>
+        <MenuItem onClick={() => handleLoaChange('')}>Active</MenuItem>
         <MenuItem onClick={() => handleLoaChange('LOA-1')}>LOA-1</MenuItem>
         <MenuItem onClick={() => handleLoaChange('LOA-2')}>LOA-2</MenuItem>
       </Menu>
