@@ -179,26 +179,51 @@ export const ReportsTab = () => {
           return;
         }
 
-        // Table columns: Rank | Name | Status | Sail | Voy | Host | Notes
+        // Table columns: Rank | Name | Voy | Host | Notes (full width)
         const colX = {
           rank: margin,
-          name: margin + 22,
-          status: margin + 52,
-          sailing: margin + 66,
-          voyages: margin + 80,
-          hosted: margin + 98,
-          notes: margin + 116,
+          name: margin + 16,
+          voyages: margin + 48,
+          hosted: margin + 68,
+          notes: margin + 88,
+        };
+
+        // Helper to abbreviate rank
+        const abbreviateRank = (fullRank: string): string => {
+          const rank = fullRank.trim().toLowerCase();
+          // Map common ranks to abbreviations
+          const abbreviations: { [key: string]: string } = {
+            'petty officer': 'PO',
+            'junior petty officer': 'JPO',
+            'chief petty officer': 'CPO',
+            'senior chief petty officer': 'SCPO',
+            'midshipman': 'Mid',
+            'lieutenant': 'Lt',
+            'lieutenant commander': 'LCDR',
+            'commander': 'CDR',
+            'captain': 'Capt',
+            'rear admiral': 'RADM',
+            'deckhand': 'DH',
+            'seaman apprentice': 'SA',
+            'seaman': 'Seaman',
+            'able seaman': 'AS',
+            'recruit': 'Rec',
+          };
+          
+          for (const [full, abbr] of Object.entries(abbreviations)) {
+            if (rank.includes(full)) return abbr;
+          }
+          
+          return fullRank.substring(0, 12);
         };
 
         // Header row
-        doc.setFontSize(9);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.text('Rank', colX.rank, yPosition);
         doc.text('Name', colX.name, yPosition);
-        doc.text('Status', colX.status, yPosition);
-        doc.text('Sail', colX.sailing, yPosition);
-        doc.text('Voy', colX.voyages, yPosition);
-        doc.text('Host', colX.hosted, yPosition);
+        doc.text('Voyages', colX.voyages, yPosition);
+        doc.text('Hosted', colX.hosted, yPosition);
         doc.text('Notes', colX.notes, yPosition);
         yPosition += 2;
 
@@ -207,70 +232,51 @@ export const ReportsTab = () => {
         yPosition += 4;
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
+        doc.setFontSize(10);
 
-        members.forEach((sailor) => {
-          // Estimate notes height if present
-          let rowHeight = 4.5;
-          const notes = sailor.squadLeaderComments || sailor.cosNotes ? (sailor.squadLeaderComments || '') + ' ' + (sailor.cosNotes || '') : '';
-          if (notes.trim()) {
-            const noteLines = doc.splitTextToSize(notes, 40);
-            rowHeight += noteLines.length * 2.5;
-          }
+        members.forEach((sailor, idx) => {
+          // Combine notes
+          const slNote = sailor.squadLeaderComments ? `SL: ${sailor.squadLeaderComments}` : '';
+          const cosNote = sailor.cosNotes ? `CoS: ${sailor.cosNotes}` : '';
+          const fullNotes = [slNote, cosNote].filter(n => n).join(' | ');
 
-          addPageIfNeeded(rowHeight);
+          // Split notes to multiple lines in a narrower column (about 90mm width remaining)
+          const noteLines = fullNotes ? doc.splitTextToSize(fullNotes, 105) : [];
+          const rowHeight = Math.max(4, noteLines.length * 3.5);
 
-          // Rank
-          doc.text(sailor.rank.substring(0, 16), colX.rank, yPosition);
+          addPageIfNeeded(rowHeight + 1);
+
+          // Rank (abbreviated)
+          doc.text(abbreviateRank(sailor.rank), colX.rank, yPosition);
 
           // Name
-          doc.text(sailor.name.substring(0, 18), colX.name, yPosition);
+          doc.text(sailor.name.substring(0, 20), colX.name, yPosition);
 
-          // Status
-          const loaRaw = (sailor.complianceStatus || '').trim().toLowerCase();
-          let statusLabel = 'Act';
-          if (loaRaw.includes('loa-1')) statusLabel = 'LOA1';
-          else if (loaRaw.includes('loa-2')) statusLabel = 'LOA2';
-          else if (loaRaw.includes('loa')) statusLabel = 'LOA';
-          doc.text(statusLabel, colX.status, yPosition);
-
-          // Sailing
-          let sailingLabel = '~';
-          if (sailor.loaStatus) {
-            sailingLabel = '—';
-          } else {
-            let sailDays = -1;
-            if (sailor.lastVoyageDate) {
-              const lv = new Date(sailor.lastVoyageDate);
-              if (!isNaN(lv.getTime())) sailDays = Math.floor((now.getTime() - lv.getTime()) / (1000 * 60 * 60 * 24));
-            } else if (sailor.daysInactive > 0) {
-              sailDays = sailor.daysInactive;
-            }
-            if (sailDays >= 0 && sailDays < 14) sailingLabel = '✓';
-            else if (sailDays >= 30) sailingLabel = '!';
-          }
-          doc.text(sailingLabel, colX.sailing, yPosition);
-
-          // Voyages & Hosted
+          // Voyages
           doc.text(String(sailor.voyageCount), colX.voyages, yPosition);
+
+          // Hosted
           doc.text(String(sailor.hostCount), colX.hosted, yPosition);
 
-          // Notes in column
-          const notesText = sailor.squadLeaderComments || sailor.cosNotes 
-            ? (sailor.squadLeaderComments ? 'SL: ' + sailor.squadLeaderComments : '') +
-              (sailor.cosNotes ? (sailor.squadLeaderComments ? ' | CoS: ' : 'CoS: ') + sailor.cosNotes : '')
-            : '';
-          
-          if (notesText) {
-            const noteLines = doc.splitTextToSize(notesText, 40);
-            doc.setFontSize(7);
+          // Notes (can wrap to multiple lines)
+          if (noteLines.length > 0) {
+            doc.setFontSize(9);
             doc.text(noteLines, colX.notes, yPosition);
-            yPosition += noteLines.length * 2.5;
+            doc.setFontSize(10);
           } else {
-            yPosition += 2.5;
+            doc.setFontSize(9);
+            doc.text('—', colX.notes, yPosition);
+            doc.setFontSize(10);
           }
 
-          yPosition += 2;
+          yPosition += rowHeight + 1.5;
+
+          // Add a light line between entries for visual separation
+          if (idx < members.length - 1) {
+            doc.setDrawColor(220);
+            doc.line(margin, yPosition - 0.5, pageWidth - margin, yPosition - 0.5);
+            doc.setDrawColor(0);
+          }
         });
       };
 
