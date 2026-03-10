@@ -104,9 +104,9 @@ function AppContent() {
           >
             <Tab label="Overview" />
             <Tab label="Crew" />
-            <Tab label="Actions" />
-            <Tab label="Awards" />
-            <Tab label="Promotions" />
+            <Tab label="Actions" sx={{ display: 'none' }} />
+            <Tab label="Awards" sx={{ display: 'none' }} />
+            <Tab label="Promotions" sx={{ display: 'none' }} />
             <Tab label="Reports" />
             <Tab label="Config" />
           </Tabs>
