@@ -12,8 +12,6 @@ import {
   parseAllCrewMembers,
   parseAllLeaderboardEntries,
   enrichCrewWithLeaderboardData,
-  getTopHosts as getTopHostsFromParser,
-  getTopVoyagers as getTopVoyagersFromParser,
 } from '../services/dataParser';
 import jsPDF from 'jspdf';
 
@@ -34,8 +32,6 @@ export const ReportsTab = () => {
       const leaderboardData = data.voyageAwards?.rows
         ? parseAllLeaderboardEntries(data.voyageAwards.rows)
         : [];
-      const topHosts = leaderboardData.length > 0 ? getTopHostsFromParser(leaderboardData, 10) : [];
-      const topVoyagers = leaderboardData.length > 0 ? getTopVoyagersFromParser(leaderboardData, 10) : [];
 
       // Enrich crew with voyage/host counts (same as Crew tab)
       const enrichedCrew = crew.map((m) => enrichCrewWithLeaderboardData(m, leaderboardData));
@@ -150,41 +146,6 @@ export const ReportsTab = () => {
       });
       yPosition += 8;
 
-      // ===== TOP 10 HOSTS (matches Overview) =====
-      drawSectionTitle('TOP 10 SHIP HOSTS');
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      if (topHosts.length > 0) {
-        topHosts.forEach((s, idx) => {
-          addPageIfNeeded(5);
-          const numStr = `${idx + 1}.`.padEnd(4);
-          doc.text(`${numStr}${s.name} \u2014 ${s.hostCount} hosted`, margin + 5, yPosition);
-          yPosition += 5;
-        });
-      } else {
-        doc.text('No hosting data available', margin + 5, yPosition);
-        yPosition += 5;
-      }
-      yPosition += 8;
-
-      // ===== TOP 10 VOYAGERS (matches Overview) =====
-      drawSectionTitle('TOP 10 SHIP VOYAGERS');
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      if (topVoyagers.length > 0) {
-        topVoyagers.forEach((s, idx) => {
-          addPageIfNeeded(5);
-          const numStr = `${idx + 1}.`.padEnd(4);
-          doc.text(`${numStr}${s.name} \u2014 ${s.voyageCount} voyages`, margin + 5, yPosition);
-          yPosition += 5;
-        });
-      } else {
-        doc.text('No voyage data available', margin + 5, yPosition);
-        yPosition += 5;
-      }
-
       // ===== CREW ROSTER — SPLIT BY SQUAD =====
 
       const drawSquadRoster = (title: string, members: typeof enrichedCrew, startNewPage: boolean = false) => {
@@ -231,16 +192,12 @@ export const ReportsTab = () => {
           activity: margin + 155,
         };
 
-        doc.setFontSize(8);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.text('Rank', colX.rank, yPosition);
         doc.text('Name', colX.name, yPosition);
-        doc.text('Status', colX.status, yPosition);
-        doc.text('Sailing', colX.sailing, yPosition);
         doc.text('Voyages', colX.voyages, yPosition);
         doc.text('Hosted', colX.hosted, yPosition);
-        doc.text('TZ', colX.tz, yPosition);
-        doc.text('Discord', colX.activity, yPosition);
         yPosition += 2;
 
         doc.setDrawColor(180);
@@ -251,7 +208,7 @@ export const ReportsTab = () => {
         doc.setFontSize(8);
 
         members.forEach((sailor) => {
-          addPageIfNeeded(6);
+          addPageIfNeeded(10);
 
           // Rank (truncated)
           doc.text(sailor.rank.substring(0, 18), colX.rank, yPosition);
@@ -259,53 +216,9 @@ export const ReportsTab = () => {
           // Name
           doc.text(sailor.name.substring(0, 16), colX.name, yPosition);
 
-          // Status (Active / LOA-1 / LOA-2 / Flagged)
-          const loaRaw = (sailor.complianceStatus || '').trim().toLowerCase();
-          let statusLabel = 'Active';
-          if (loaRaw.includes('loa')) statusLabel = sailor.complianceStatus.toUpperCase().trim();
-          else if (loaRaw === 'flagged' || loaRaw === 'non-compliant' || loaRaw === 'requires action') statusLabel = 'Flagged';
-          doc.text(statusLabel.substring(0, 10), colX.status, yPosition);
-
-          // Sailing compliance (date-based)
-          let sailingLabel = 'Attention';
-          if (sailor.loaStatus) {
-            sailingLabel = 'Exempt';
-          } else {
-            let sailDays = -1;
-            if (sailor.lastVoyageDate) {
-              const lv = new Date(sailor.lastVoyageDate);
-              if (!isNaN(lv.getTime())) sailDays = Math.floor((now.getTime() - lv.getTime()) / (1000 * 60 * 60 * 24));
-            } else if (sailor.daysInactive > 0) {
-              sailDays = sailor.daysInactive;
-            }
-            if (sailDays >= 0 && sailDays < 14) sailingLabel = 'OK';
-            else if (sailDays >= 30) sailingLabel = 'Action';
-          }
-          doc.text(sailingLabel, colX.sailing, yPosition);
-
           // Voyages & Hosted
           doc.text(String(sailor.voyageCount), colX.voyages, yPosition);
           doc.text(String(sailor.hostCount), colX.hosted, yPosition);
-
-          // Timezone
-          doc.text((sailor.timezone || '-').replace(/\s*\(.*?\)/, '').substring(0, 8), colX.tz, yPosition);
-
-          // Discord activity (drawn circles — jsPDF can't render Unicode symbols)
-          const activityCount = Math.min(sailor.chatActivity || 0, 5);
-          const circleRadius = 1.2;
-          const circleSpacing = 3.2;
-          const circleY = yPosition - 1.2; // vertically center with text baseline
-          for (let i = 0; i < 5; i++) {
-            const cx = colX.activity + i * circleSpacing + circleRadius;
-            if (i < activityCount) {
-              doc.setFillColor(60, 60, 60);
-              doc.circle(cx, circleY, circleRadius, 'F');
-            } else {
-              doc.setDrawColor(160);
-              doc.circle(cx, circleY, circleRadius, 'S');
-            }
-          }
-          doc.setDrawColor(0);
 
           yPosition += 4.5;
         });
@@ -322,6 +235,71 @@ export const ReportsTab = () => {
 
       if (unassigned.length > 0) {
         drawSquadRoster('UNASSIGNED', unassigned, false);
+      }
+
+      // ===== SAILOR NOTES =====
+      doc.addPage();
+      yPosition = margin;
+
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SAILOR NOTES', margin, yPosition);
+      yPosition += 2;
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.5);
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      doc.setLineWidth(0.2);
+      yPosition += 8;
+
+      // Display notes for each sailor that has them
+      const sailorsWithNotes = enrichedCrew.filter((s) => s.squadLeaderComments || s.cosNotes);
+      
+      if (sailorsWithNotes.length > 0) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        
+        sailorsWithNotes.forEach((sailor) => {
+          addPageIfNeeded(12);
+          
+          // Sailor name and rank
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+          doc.text(`${sailor.rank} ${sailor.name}`, margin, yPosition);
+          yPosition += 4;
+          
+          // Squad Leader Comments
+          if (sailor.squadLeaderComments) {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.text('Squad Leader:', margin + 3, yPosition);
+            yPosition += 3;
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            const slNotes = doc.splitTextToSize(sailor.squadLeaderComments, contentWidth - 6);
+            doc.text(slNotes, margin + 6, yPosition);
+            yPosition += slNotes.length * 3 + 2;
+          }
+          
+          // Chief of Ship Notes
+          if (sailor.cosNotes) {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.text('Chief of Ship:', margin + 3, yPosition);
+            yPosition += 3;
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            const cosNotesText = doc.splitTextToSize(sailor.cosNotes, contentWidth - 6);
+            doc.text(cosNotesText, margin + 6, yPosition);
+            yPosition += cosNotesText.length * 3 + 4;
+          }
+        });
+      } else {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text('No sailor notes recorded.', margin, yPosition);
+        yPosition += 5;
       }
 
       // ===== CO NOTES (final page) =====

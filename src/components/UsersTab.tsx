@@ -502,8 +502,8 @@ export const UsersTab = () => {
                           <TableCell sx={{ width: '6%', textAlign: 'center' }}>Hosted</TableCell>
                           <TableCell sx={{ width: '10%', textAlign: 'center' }}>Last Voyaged</TableCell>
                           <TableCell sx={{ width: '10%', textAlign: 'center' }}>Last Hosted</TableCell>
-                          <TableCell sx={{ width: '10%', textAlign: 'center' }}>Activity</TableCell>
-                          <TableCell sx={{ width: '4%', textAlign: 'center' }}></TableCell>
+                          <TableCell sx={{ width: '12%', textAlign: 'center', minWidth: 100 }}>Activity</TableCell>
+                          <TableCell sx={{ width: '4%', textAlign: 'center', minWidth: 40 }}></TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -725,35 +725,37 @@ export const UsersTab = () => {
                               </TableCell>
 
                               {/* Activity Stars */}
-                              <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
-                                <Rating
-                                  value={starCount}
-                                  size="small"
-                                  onChange={async (_e, newValue) => {
-                                    if (newValue === null) return;
-                                    try {
-                                      await writeGoogleSheet(GULLINBURSTI_SPREADSHEET_ID, cellRef(GULLINBURSTI_COLUMNS.CHAT_ACTIVITY, sailor.sourceRowIndex), [[String(newValue)]]);
-                                      setSnackbar({ open: true, message: `${sailor.name} activity → ${newValue}★`, severity: 'success' });
-                                      await refreshData();
-                                    } catch (err) {
-                                      setSnackbar({ open: true, message: `Failed to update: ${err instanceof Error ? err.message : 'Unknown error'}`, severity: 'error' });
-                                    }
-                                  }}
-                                  sx={{ 
-                                    display: 'inline-flex',
-                                    cursor: 'pointer',
-                                    '& .MuiRating-iconFilled': {
-                                      color: '#FFD700',
-                                    },
-                                    '& .MuiRating-iconEmpty': {
-                                      color: theme.palette.mode === 'dark' ? '#444' : '#ddd',
-                                    },
-                                  }}
-                                />
+                              <TableCell sx={{ textAlign: 'center', py: 1.5, pr: { xs: 0.5, sm: 1.5 } }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                  <Rating
+                                    value={starCount}
+                                    size="small"
+                                    onChange={async (_e, newValue) => {
+                                      if (newValue === null) return;
+                                      try {
+                                        await writeGoogleSheet(GULLINBURSTI_SPREADSHEET_ID, cellRef(GULLINBURSTI_COLUMNS.CHAT_ACTIVITY, sailor.sourceRowIndex), [[String(newValue)]]);
+                                        setSnackbar({ open: true, message: `${sailor.name} activity → ${newValue}★`, severity: 'success' });
+                                        await refreshData();
+                                      } catch (err) {
+                                        setSnackbar({ open: true, message: `Failed to update: ${err instanceof Error ? err.message : 'Unknown error'}`, severity: 'error' });
+                                      }
+                                    }}
+                                    sx={{ 
+                                      display: 'inline-flex',
+                                      cursor: 'pointer',
+                                      '& .MuiRating-iconFilled': {
+                                        color: '#FFD700',
+                                      },
+                                      '& .MuiRating-iconEmpty': {
+                                        color: theme.palette.mode === 'dark' ? '#444' : '#ddd',
+                                      },
+                                    }}
+                                  />
+                                </Box>
                               </TableCell>
 
                               {/* Notes */}
-                              <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
+                              <TableCell sx={{ textAlign: 'center', py: 1.5, pl: { xs: 0.5, sm: 1.5 } }}>
                                 <Tooltip title={sailor.squadLeaderComments || sailor.cosNotes ? `SL: ${sailor.squadLeaderComments || '—'}\nCoS: ${sailor.cosNotes || '—'}` : 'Add notes'} arrow>
                                   <IconButton
                                     size="small"
@@ -761,6 +763,7 @@ export const UsersTab = () => {
                                     sx={{ 
                                       color: (sailor.squadLeaderComments || sailor.cosNotes) ? '#60A5FA' : '#555',
                                       '&:hover': { color: '#93c5fd' },
+                                      p: { xs: 0.5, sm: 1 },
                                     }}
                                   >
                                     <NoteIcon fontSize="small" />
