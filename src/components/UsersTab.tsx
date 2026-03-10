@@ -503,7 +503,7 @@ export const UsersTab = () => {
                           <TableCell sx={{ width: '10%', textAlign: 'center' }}>Last Voyaged</TableCell>
                           <TableCell sx={{ width: '10%', textAlign: 'center' }}>Last Hosted</TableCell>
                           <TableCell sx={{ width: '12%', textAlign: 'center', minWidth: 100 }}>Activity</TableCell>
-                          <TableCell sx={{ width: '4%', textAlign: 'center', minWidth: 40 }}></TableCell>
+                          <TableCell sx={{ width: '4%', textAlign: 'center', minWidth: 40 }}>Notes</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
