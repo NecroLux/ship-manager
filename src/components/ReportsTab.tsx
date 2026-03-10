@@ -153,11 +153,11 @@ export const ReportsTab = () => {
           doc.addPage();
           yPosition = margin;
         } else {
-          yPosition += 4;
-          addPageIfNeeded(25);
+          yPosition += 3;
+          addPageIfNeeded(20);
         }
 
-        doc.setFontSize(12);
+        doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.text(title, margin, yPosition);
         yPosition += 2;
@@ -166,12 +166,12 @@ export const ReportsTab = () => {
         doc.setLineWidth(0.5);
         doc.line(margin, yPosition, pageWidth - margin, yPosition);
         doc.setLineWidth(0.2);
-        yPosition += 3;
+        yPosition += 2;
 
-        doc.setFontSize(8);
+        doc.setFontSize(7.5);
         doc.setFont('helvetica', 'normal');
         doc.text(`${members.length} members`, margin, yPosition);
-        yPosition += 4;
+        yPosition += 3;
 
         if (members.length === 0) {
           doc.text('No members in this group.', margin + 5, yPosition);
@@ -179,19 +179,18 @@ export const ReportsTab = () => {
           return;
         }
 
-        // Table columns: Rank | Name | Status | Sailing | Voyages | Hosted | Notes
+        // Table columns: Rank | Name | Status | Sailing | Voyages | Hosted
         const colX = {
           rank: margin,
-          name: margin + 20,
-          status: margin + 48,
-          sailing: margin + 62,
-          voyages: margin + 75,
-          hosted: margin + 90,
-          notes: margin + 105,
+          name: margin + 18,
+          status: margin + 46,
+          sailing: margin + 59,
+          voyages: margin + 71,
+          hosted: margin + 86,
         };
 
         // Header row
-        doc.setFontSize(7);
+        doc.setFontSize(6.5);
         doc.setFont('helvetica', 'bold');
         doc.text('Rank', colX.rank, yPosition);
         doc.text('Name', colX.name, yPosition);
@@ -199,18 +198,25 @@ export const ReportsTab = () => {
         doc.text('Sail', colX.sailing, yPosition);
         doc.text('Voy', colX.voyages, yPosition);
         doc.text('Host', colX.hosted, yPosition);
-        doc.text('Notes', colX.notes, yPosition);
-        yPosition += 2;
+        yPosition += 1.5;
 
         doc.setDrawColor(180);
         doc.line(margin, yPosition, pageWidth - margin, yPosition);
-        yPosition += 2;
+        yPosition += 1.5;
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
+        doc.setFontSize(6.5);
 
         members.forEach((sailor) => {
-          addPageIfNeeded(8);
+          // Calculate row height including notes
+          let rowHeight = 2.5;
+          const hasNotes = sailor.squadLeaderComments || sailor.cosNotes;
+          if (hasNotes) {
+            const noteHeight = (sailor.squadLeaderComments ? 1.5 : 0) + (sailor.cosNotes ? 1.5 : 0);
+            rowHeight += noteHeight + 1;
+          }
+
+          addPageIfNeeded(rowHeight + 1);
 
           // Rank (truncated)
           doc.text(sailor.rank.substring(0, 12), colX.rank, yPosition);
@@ -247,11 +253,28 @@ export const ReportsTab = () => {
           doc.text(String(sailor.voyageCount), colX.voyages, yPosition);
           doc.text(String(sailor.hostCount), colX.hosted, yPosition);
 
-          // Notes indicator
-          const hasNotes = sailor.squadLeaderComments || sailor.cosNotes ? '✓' : '—';
-          doc.text(hasNotes, colX.notes, yPosition);
+          yPosition += 2.5;
 
-          yPosition += 3.5;
+          // Notes section if present
+          if (sailor.squadLeaderComments) {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6);
+            doc.text('SL:', margin + 1, yPosition);
+            doc.setFont('helvetica', 'normal');
+            const slNotes = doc.splitTextToSize(sailor.squadLeaderComments, contentWidth - 5);
+            doc.text(slNotes, margin + 5, yPosition);
+            yPosition += slNotes.length * 1.5 + 0.5;
+          }
+
+          if (sailor.cosNotes) {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6);
+            doc.text('CoS:', margin + 1, yPosition);
+            doc.setFont('helvetica', 'normal');
+            const cosNotes = doc.splitTextToSize(sailor.cosNotes, contentWidth - 5);
+            doc.text(cosNotes, margin + 5, yPosition);
+            yPosition += cosNotes.length * 1.5 + 1;
+          }
         });
       };
 
@@ -266,65 +289,6 @@ export const ReportsTab = () => {
 
       if (unassigned.length > 0) {
         drawSquadRoster('UNASSIGNED', unassigned, false);
-      }
-
-      // ===== SAILOR NOTES DETAIL SECTION =====
-      const sailorsWithNotes = enrichedCrew.filter((s) => s.squadLeaderComments || s.cosNotes);
-      
-      if (sailorsWithNotes.length > 0) {
-        doc.addPage();
-        yPosition = margin;
-
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('SAILOR NOTES', margin, yPosition);
-        yPosition += 2;
-        doc.setDrawColor(0);
-        doc.setLineWidth(0.5);
-        doc.line(margin, yPosition, pageWidth - margin, yPosition);
-        doc.setLineWidth(0.2);
-        yPosition += 6;
-
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        
-        sailorsWithNotes.forEach((sailor) => {
-          addPageIfNeeded(10);
-          
-          // Sailor name and rank
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(9);
-          doc.text(`${sailor.rank} ${sailor.name}`, margin, yPosition);
-          yPosition += 3;
-          
-          // Squad Leader Comments
-          if (sailor.squadLeaderComments) {
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(7);
-            doc.text('SL:', margin + 2, yPosition);
-            yPosition += 2;
-            
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7);
-            const slNotes = doc.splitTextToSize(sailor.squadLeaderComments, contentWidth - 4);
-            doc.text(slNotes, margin + 4, yPosition);
-            yPosition += slNotes.length * 2.5 + 1;
-          }
-          
-          // Chief of Ship Notes
-          if (sailor.cosNotes) {
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(7);
-            doc.text('CoS:', margin + 2, yPosition);
-            yPosition += 2;
-            
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7);
-            const cosNotesText = doc.splitTextToSize(sailor.cosNotes, contentWidth - 4);
-            doc.text(cosNotesText, margin + 4, yPosition);
-            yPosition += cosNotesText.length * 2.5 + 3;
-          }
-        });
       }
 
       // ===== CO NOTES (final page) =====
