@@ -214,13 +214,20 @@ export const ReportsTab = () => {
           return rank.substring(0, 10);
         };
 
-        // Column positions (tighter spacing)
+        // Helper to format notes with initials
+        const formatNotesWithInitials = (slComment: string, cosComment: string): string[] => {
+          const notes: string[] = [];
+          if (slComment) notes.push(`SL: ${slComment}`);
+          if (cosComment) notes.push(`CoS: ${cosComment}`);
+          return notes;
+        };
+
         const col = {
-          rank: margin,
-          name: margin + 18,
-          voy: margin + 52,
-          host: margin + 72,
-          notes: margin + 92,
+          rank: margin + 1,
+          name: margin + 19,
+          voy: margin + 53,
+          host: margin + 73,
+          notes: margin + 93,
         };
 
         // Header
@@ -240,33 +247,22 @@ export const ReportsTab = () => {
         doc.setLineWidth(0.2);
         yPosition += 6;
 
-        // Data rows
+        // Data rows with borders
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
 
         members.forEach((sailor) => {
           const abbr = getRankAbbr(sailor.rank);
-          const slText = sailor.squadLeaderComments || '';
-          const cosText = sailor.cosNotes || '';
-          
-          let noteText = '';
-          if (slText && cosText) {
-            noteText = `SL: ${slText} | CoS: ${cosText}`;
-          } else if (slText) {
-            noteText = `SL: ${slText}`;
-          } else if (cosText) {
-            noteText = `CoS: ${cosText}`;
-          }
-
-          // Calculate how many lines the notes will take
-          const noteLines = noteText ? doc.splitTextToSize(noteText, 100) : [];
-          const rowHeight = Math.max(5, noteLines.length * 3.5);
+          const noteLines = formatNotesWithInitials(sailor.squadLeaderComments || '', sailor.cosNotes || '');
+          const rowHeight = Math.max(5, noteLines.length * 3.5 + 2);
 
           // Check if we need a page break
-          if (yPosition + rowHeight > pageHeight - 15) {
+          if (yPosition + rowHeight + 1 > pageHeight - 15) {
             doc.addPage();
             yPosition = margin;
           }
+
+          const rowStartY = yPosition;
 
           // Row data
           doc.text(abbr, col.rank, yPosition);
@@ -274,15 +270,45 @@ export const ReportsTab = () => {
           doc.text(String(sailor.voyageCount), col.voy, yPosition);
           doc.text(String(sailor.hostCount), col.host, yPosition);
 
-          // Notes with smaller font
+          // Notes with stacked format
           if (noteLines.length > 0) {
             doc.setFontSize(8);
-            doc.text(noteLines, col.notes, yPosition);
+            let noteY = yPosition;
+            noteLines.forEach((line) => {
+              doc.text(line, col.notes, noteY);
+              noteY += 3.5;
+            });
             doc.setFontSize(10);
           }
 
-          yPosition += rowHeight + 2;
+          yPosition += rowHeight;
+
+          // Draw borders around the row
+          doc.setDrawColor(180);
+          doc.setLineWidth(0.2);
+          
+          // Left border
+          doc.line(margin, rowStartY - 1, margin, yPosition);
+          // Right border
+          doc.line(pageWidth - margin, rowStartY - 1, pageWidth - margin, yPosition);
+          // Bottom border
+          doc.line(margin, yPosition, pageWidth - margin, yPosition);
+          
+          // Column dividers
+          doc.line(col.name - 1, rowStartY - 1, col.name - 1, yPosition);
+          doc.line(col.voy - 1, rowStartY - 1, col.voy - 1, yPosition);
+          doc.line(col.host - 1, rowStartY - 1, col.host - 1, yPosition);
+          doc.line(col.notes - 1, rowStartY - 1, col.notes - 1, yPosition);
+
+          yPosition += 1;
         });
+
+        // Bottom border for entire table
+        doc.setDrawColor(100);
+        doc.setLineWidth(0.3);
+        doc.line(margin, yPosition, pageWidth - margin, yPosition);
+        doc.setLineWidth(0.2);
+        yPosition += 4;
       };
 
       // ===== PAGE 1: COMMAND STAFF ROSTER =====
@@ -292,15 +318,15 @@ export const ReportsTab = () => {
       const squad1Label = squad1.length > 0 ? squad1[0].squad.toUpperCase() : 'SQUAD 1';
       drawSquadRoster(squad1Label, squad1, false);
 
-      // ===== PAGE 2: SHADE SQUAD + CO NOTES =====
+      // ===== SHADE SQUAD (same page, directly after first squad) =====
       const squad2Label = squad2.length > 0 ? squad2[0].squad.toUpperCase() : 'SQUAD 2';
-      drawSquadRoster(squad2Label, squad2, true);
+      drawSquadRoster(squad2Label, squad2, false);
 
       if (unassigned.length > 0) {
         drawSquadRoster('UNASSIGNED', unassigned, false);
       }
 
-      // ===== CO NOTES (same page as Shade Squad) =====
+      // ===== CO NOTES =====
       yPosition += 8;
       addPageIfNeeded(40);
 
