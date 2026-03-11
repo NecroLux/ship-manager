@@ -220,6 +220,9 @@ export const UsersTab = () => {
   const [notesTarget, setNotesTarget] = useState<{ name: string; sourceRowIndex: number; slComments: string; cosNotes: string } | null>(null);
   const [notesSL, setNotesSL] = useState('');
   const [notesCOS, setNotesCOS] = useState('');
+  // Inline edit dialog for numeric fields
+  const [editField, setEditField] = useState<{ field: string; name: string; sourceRowIndex: number; value: string } | null>(null);
+  const [editValue, setEditValue] = useState('');
   // Feedback
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
@@ -267,6 +270,52 @@ export const UsersTab = () => {
       await refreshData();
     } catch (err) {
       setSnackbar({ open: true, message: `Failed to save notes: ${err instanceof Error ? err.message : 'Unknown error'}`, severity: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditFieldOpen = (field: string, name: string, sourceRowIndex: number, currentValue: string | number) => {
+    setEditField({ field, name, sourceRowIndex, value: String(currentValue) });
+    setEditValue(String(currentValue));
+  };
+
+  const handleEditFieldSave = async () => {
+    if (!editField) return;
+    setSaving(true);
+    try {
+      // Map field names to column indices
+      const columnMap: { [key: string]: number } = {
+        'sailing': GULLINBURSTI_COLUMNS.SAILING_COMPLIANCE,
+        'hosting': GULLINBURSTI_COLUMNS.HOSTING_COMPLIANCE,
+        'voyages': 14, // TOTAL_VOYAGES in VOYAGE_AWARDS_COLUMNS
+        'hosted': 11,  // HOST_COUNT in VOYAGE_AWARDS_COLUMNS
+        'lastVoyaged': 13, // LAST_VOYAGE_DATE in VOYAGE_AWARDS_COLUMNS
+        'lastHosted': 10, // LAST_HOST_DATE in VOYAGE_AWARDS_COLUMNS
+      };
+
+      const colIndex = columnMap[editField.field];
+      if (colIndex === undefined) {
+        throw new Error(`Unknown field: ${editField.field}`);
+      }
+
+      // For Gullinbursti fields, write directly
+      if (['sailing', 'hosting'].includes(editField.field)) {
+        await writeGoogleSheet(GULLINBURSTI_SPREADSHEET_ID, cellRef(colIndex, editField.sourceRowIndex), [[editValue]]);
+      } else {
+        // For Voyage Awards fields, we would need a different approach
+        // For now, show a message that these fields should be edited in the source sheet
+        setSnackbar({ open: true, message: `${editField.field} is sourced from Voyage Awards sheet. Please edit there directly.`, severity: 'error' });
+        setEditField(null);
+        setSaving(false);
+        return;
+      }
+
+      setSnackbar({ open: true, message: `${editField.name} ${editField.field} updated`, severity: 'success' });
+      setEditField(null);
+      await refreshData();
+    } catch (err) {
+      setSnackbar({ open: true, message: `Failed to update: ${err instanceof Error ? err.message : 'Unknown error'}`, severity: 'error' });
     } finally {
       setSaving(false);
     }
@@ -589,8 +638,17 @@ export const UsersTab = () => {
 
                               {/* Sailing Compliance */}
                               <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
-                                <Tooltip title={sailingStatus.label} arrow>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Tooltip title="Click to edit sailing compliance" arrow>
+                                  <Box
+                                    onClick={() => handleEditFieldOpen('sailing', sailor.name, sailor.sourceRowIndex, sailor.complianceStatus)}
+                                    sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      cursor: 'pointer',
+                                      '&:hover': { opacity: 0.8 },
+                                    }}
+                                  >
                                     <Box
                                       sx={{
                                         display: 'flex',
@@ -622,8 +680,17 @@ export const UsersTab = () => {
                               {/* Hosting Compliance */}
                               <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
                                 {hostingStatus ? (
-                                  <Tooltip title={hostingStatus.label} arrow>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Tooltip title="Click to edit hosting compliance" arrow>
+                                    <Box
+                                      onClick={() => handleEditFieldOpen('hosting', sailor.name, sailor.sourceRowIndex, sailor.complianceStatus)}
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        '&:hover': { opacity: 0.8 },
+                                      }}
+                                    >
                                       <Box
                                         sx={{
                                           display: 'flex',
@@ -674,54 +741,74 @@ export const UsersTab = () => {
 
                               {/* Voyages */}
                               <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
-                                <Typography
-                                  sx={{
-                                    fontWeight: 600,
-                                    fontSize: '0.9rem',
-                                    color: sailor.voyageCount > 0 ? '#FFFFFF' : '#6b7280',
-                                  }}
-                                >
-                                  {sailor.voyageCount}
-                                </Typography>
+                                <Tooltip title="Click to edit" arrow>
+                                  <Typography
+                                    onClick={() => handleEditFieldOpen('voyages', sailor.name, sailor.sourceRowIndex, sailor.voyageCount)}
+                                    sx={{
+                                      fontWeight: 600,
+                                      fontSize: '0.9rem',
+                                      color: sailor.voyageCount > 0 ? '#FFFFFF' : '#6b7280',
+                                      cursor: 'pointer',
+                                      '&:hover': { opacity: 0.7 },
+                                    }}
+                                  >
+                                    {sailor.voyageCount}
+                                  </Typography>
+                                </Tooltip>
                               </TableCell>
 
                               {/* Hosted */}
                               <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
-                                <Typography
-                                  sx={{
-                                    fontWeight: 600,
-                                    fontSize: '0.9rem',
-                                    color: sailor.hostCount > 0 ? '#FFFFFF' : '#6b7280',
-                                  }}
-                                >
-                                  {sailor.hostCount}
-                                </Typography>
+                                <Tooltip title="Click to edit" arrow>
+                                  <Typography
+                                    onClick={() => handleEditFieldOpen('hosted', sailor.name, sailor.sourceRowIndex, sailor.hostCount)}
+                                    sx={{
+                                      fontWeight: 600,
+                                      fontSize: '0.9rem',
+                                      color: sailor.hostCount > 0 ? '#FFFFFF' : '#6b7280',
+                                      cursor: 'pointer',
+                                      '&:hover': { opacity: 0.7 },
+                                    }}
+                                  >
+                                    {sailor.hostCount}
+                                  </Typography>
+                                </Tooltip>
                               </TableCell>
 
                               {/* Last Voyaged */}
                               <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
-                                <Typography
-                                  sx={{
-                                    fontSize: '0.85rem',
-                                    whiteSpace: 'nowrap',
-                                    color: sailor.lastVoyageDate && !isNaN(new Date(sailor.lastVoyageDate).getTime()) ? '#FFFFFF' : '#6b7280',
-                                  }}
-                                >
-                                  {(() => { const d = sailor.lastVoyageDate ? new Date(sailor.lastVoyageDate) : null; return d && !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'; })()}
-                                </Typography>
+                                <Tooltip title="Click to edit" arrow>
+                                  <Typography
+                                    onClick={() => handleEditFieldOpen('lastVoyaged', sailor.name, sailor.sourceRowIndex, sailor.lastVoyageDate || '')}
+                                    sx={{
+                                      fontSize: '0.85rem',
+                                      whiteSpace: 'nowrap',
+                                      color: sailor.lastVoyageDate && !isNaN(new Date(sailor.lastVoyageDate).getTime()) ? '#FFFFFF' : '#6b7280',
+                                      cursor: 'pointer',
+                                      '&:hover': { opacity: 0.7 },
+                                    }}
+                                  >
+                                    {(() => { const d = sailor.lastVoyageDate ? new Date(sailor.lastVoyageDate) : null; return d && !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'; })()}
+                                  </Typography>
+                                </Tooltip>
                               </TableCell>
 
                               {/* Last Hosted */}
                               <TableCell sx={{ textAlign: 'center', py: 1.5 }}>
-                                <Typography
-                                  sx={{
-                                    fontSize: '0.85rem',
-                                    whiteSpace: 'nowrap',
-                                    color: sailor.lastHostDate && !isNaN(new Date(sailor.lastHostDate).getTime()) ? '#FFFFFF' : '#6b7280',
-                                  }}
-                                >
-                                  {(() => { const d = sailor.lastHostDate ? new Date(sailor.lastHostDate) : null; return d && !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'; })()}
-                                </Typography>
+                                <Tooltip title="Click to edit" arrow>
+                                  <Typography
+                                    onClick={() => handleEditFieldOpen('lastHosted', sailor.name, sailor.sourceRowIndex, sailor.lastHostDate || '')}
+                                    sx={{
+                                      fontSize: '0.85rem',
+                                      whiteSpace: 'nowrap',
+                                      color: sailor.lastHostDate && !isNaN(new Date(sailor.lastHostDate).getTime()) ? '#FFFFFF' : '#6b7280',
+                                      cursor: 'pointer',
+                                      '&:hover': { opacity: 0.7 },
+                                    }}
+                                  >
+                                    {(() => { const d = sailor.lastHostDate ? new Date(sailor.lastHostDate) : null; return d && !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'; })()}
+                                  </Typography>
+                                </Tooltip>
                               </TableCell>
 
                               {/* Activity Stars */}
@@ -824,6 +911,29 @@ export const UsersTab = () => {
         <DialogActions>
           <Button onClick={() => setNotesOpen(false)}>Cancel</Button>
           <Button onClick={handleNotesSave} variant="contained" disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Field Edit Dialog */}
+      <Dialog open={editField !== null} onClose={() => setEditField(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit {editField?.field} — {editField?.name}</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+          <TextField
+            label={`New ${editField?.field || 'value'}`}
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            fullWidth
+            variant="outlined"
+            size="small"
+            placeholder={editField?.value || 'Enter value'}
+            helperText={['lastVoyaged', 'lastHosted'].includes(editField?.field || '') ? 'Format: YYYY-MM-DD' : ''}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditField(null)}>Cancel</Button>
+          <Button onClick={handleEditFieldSave} variant="contained" disabled={saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </DialogActions>
