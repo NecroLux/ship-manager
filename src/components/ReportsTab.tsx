@@ -153,130 +153,135 @@ export const ReportsTab = () => {
           doc.addPage();
           yPosition = margin;
         } else {
-          yPosition += 8;
-          addPageIfNeeded(30);
+          addPageIfNeeded(35);
         }
 
+        // Title
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.text(title, margin, yPosition);
-        yPosition += 2;
+        yPosition += 1;
 
         doc.setDrawColor(0);
         doc.setLineWidth(0.5);
         doc.line(margin, yPosition, pageWidth - margin, yPosition);
         doc.setLineWidth(0.2);
-        yPosition += 5;
+        yPosition += 8;
 
+        // Member count
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.text(`${members.length} members`, margin, yPosition);
-        yPosition += 6;
+        yPosition += 8;
 
         if (members.length === 0) {
           doc.text('No members in this group.', margin, yPosition);
-          yPosition += 4;
           return;
         }
 
-        // Table columns: Rank | Name | Voy | Host | Notes (full width)
-        const colX = {
-          rank: margin,
-          name: margin + 16,
-          voyages: margin + 48,
-          hosted: margin + 68,
-          notes: margin + 88,
-        };
-
-        // Helper to abbreviate rank
-        const abbreviateRank = (fullRank: string): string => {
-          const rank = fullRank.trim().toLowerCase();
-          // Map common ranks to abbreviations
-          const abbreviations: { [key: string]: string } = {
-            'petty officer': 'PO',
-            'junior petty officer': 'JPO',
-            'chief petty officer': 'CPO',
-            'senior chief petty officer': 'SCPO',
-            'midshipman': 'Mid',
-            'lieutenant': 'Lt',
-            'lieutenant commander': 'LCDR',
-            'commander': 'CDR',
-            'captain': 'Capt',
-            'rear admiral': 'RADM',
-            'deckhand': 'DH',
-            'seaman apprentice': 'SA',
-            'seaman': 'Seaman',
-            'able seaman': 'AS',
-            'recruit': 'Rec',
+        // Helper to abbreviate rank - improved
+        const getRankAbbr = (fullRank: string): string => {
+          const rank = fullRank.trim();
+          
+          // Exact phrase matches first
+          const matches: { [key: string]: string } = {
+            'Lieutenant Commander': 'LCDR',
+            'Senior Chief Petty Officer': 'SCPO',
+            'Chief Petty Officer': 'CPO',
+            'Junior Petty Officer': 'JPO',
+            'Petty Officer': 'PO',
+            'Able Seaman': 'AB',
+            'Seaman Apprentice': 'SA',
+            'Rear Admiral': 'RADM',
           };
           
-          for (const [full, abbr] of Object.entries(abbreviations)) {
-            if (rank.includes(full)) return abbr;
-          }
+          if (matches[rank]) return matches[rank];
           
-          return fullRank.substring(0, 12);
+          // Partial matches
+          if (rank.includes('Lieutenant Commander')) return 'LCDR';
+          if (rank.includes('Senior Chief')) return 'SCPO';
+          if (rank.includes('Chief Petty')) return 'CPO';
+          if (rank.includes('Junior Petty')) return 'JPO';
+          if (rank.includes('Petty Officer')) return 'PO';
+          if (rank.includes('Able Seaman')) return 'AB';
+          if (rank.includes('Seaman')) return 'Seaman';
+          if (rank.includes('Midshipman')) return 'Mid';
+          if (rank.includes('Commander')) return 'CDR';
+          if (rank.includes('Captain')) return 'Capt';
+          if (rank.includes('Deckhand')) return 'DH';
+          if (rank.includes('Recruit')) return 'Rec';
+          
+          return rank.substring(0, 10);
         };
 
-        // Header row
+        // Column positions (tighter spacing)
+        const col = {
+          rank: margin,
+          name: margin + 18,
+          voy: margin + 52,
+          host: margin + 72,
+          notes: margin + 92,
+        };
+
+        // Header
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.text('Rank', colX.rank, yPosition);
-        doc.text('Name', colX.name, yPosition);
-        doc.text('Voyages', colX.voyages, yPosition);
-        doc.text('Hosted', colX.hosted, yPosition);
-        doc.text('Notes', colX.notes, yPosition);
-        yPosition += 2;
+        doc.text('Rank', col.rank, yPosition);
+        doc.text('Name', col.name, yPosition);
+        doc.text('Voyages', col.voy, yPosition);
+        doc.text('Hosted', col.host, yPosition);
+        doc.text('Notes', col.notes, yPosition);
+        yPosition += 1;
 
-        doc.setDrawColor(180);
+        // Header underline
+        doc.setDrawColor(100);
+        doc.setLineWidth(0.3);
         doc.line(margin, yPosition, pageWidth - margin, yPosition);
-        yPosition += 4;
+        doc.setLineWidth(0.2);
+        yPosition += 6;
 
+        // Data rows
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
 
-        members.forEach((sailor, idx) => {
-          // Combine notes
-          const slNote = sailor.squadLeaderComments ? `SL: ${sailor.squadLeaderComments}` : '';
-          const cosNote = sailor.cosNotes ? `CoS: ${sailor.cosNotes}` : '';
-          const fullNotes = [slNote, cosNote].filter(n => n).join(' | ');
+        members.forEach((sailor) => {
+          const abbr = getRankAbbr(sailor.rank);
+          const slText = sailor.squadLeaderComments || '';
+          const cosText = sailor.cosNotes || '';
+          
+          let noteText = '';
+          if (slText && cosText) {
+            noteText = `SL: ${slText} | CoS: ${cosText}`;
+          } else if (slText) {
+            noteText = `SL: ${slText}`;
+          } else if (cosText) {
+            noteText = `CoS: ${cosText}`;
+          }
 
-          // Split notes to multiple lines in a narrower column (about 90mm width remaining)
-          const noteLines = fullNotes ? doc.splitTextToSize(fullNotes, 105) : [];
-          const rowHeight = Math.max(4, noteLines.length * 3.5);
+          // Calculate how many lines the notes will take
+          const noteLines = noteText ? doc.splitTextToSize(noteText, 100) : [];
+          const rowHeight = Math.max(5, noteLines.length * 3.5);
 
-          addPageIfNeeded(rowHeight + 1);
+          // Check if we need a page break
+          if (yPosition + rowHeight > pageHeight - 15) {
+            doc.addPage();
+            yPosition = margin;
+          }
 
-          // Rank (abbreviated)
-          doc.text(abbreviateRank(sailor.rank), colX.rank, yPosition);
+          // Row data
+          doc.text(abbr, col.rank, yPosition);
+          doc.text(sailor.name.substring(0, 22), col.name, yPosition);
+          doc.text(String(sailor.voyageCount), col.voy, yPosition);
+          doc.text(String(sailor.hostCount), col.host, yPosition);
 
-          // Name
-          doc.text(sailor.name.substring(0, 20), colX.name, yPosition);
-
-          // Voyages
-          doc.text(String(sailor.voyageCount), colX.voyages, yPosition);
-
-          // Hosted
-          doc.text(String(sailor.hostCount), colX.hosted, yPosition);
-
-          // Notes (can wrap to multiple lines)
+          // Notes with smaller font
           if (noteLines.length > 0) {
-            doc.setFontSize(9);
-            doc.text(noteLines, colX.notes, yPosition);
-            doc.setFontSize(10);
-          } else {
-            doc.setFontSize(9);
-            doc.text('—', colX.notes, yPosition);
+            doc.setFontSize(8);
+            doc.text(noteLines, col.notes, yPosition);
             doc.setFontSize(10);
           }
 
-          yPosition += rowHeight + 1.5;
-
-          // Add a light line between entries for visual separation
-          if (idx < members.length - 1) {
-            doc.setDrawColor(220);
-            doc.line(margin, yPosition - 0.5, pageWidth - margin, yPosition - 0.5);
-            doc.setDrawColor(0);
-          }
+          yPosition += rowHeight + 2;
         });
       };
 
