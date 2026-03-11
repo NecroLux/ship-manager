@@ -726,32 +726,34 @@ export const UsersTab = () => {
 
                               {/* Activity Stars */}
                               <TableCell sx={{ textAlign: 'center', py: 1.5, pr: { xs: 0.5, sm: 1.5 } }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                  <Rating
-                                    value={starCount}
-                                    size="small"
-                                    onChange={async (_e, newValue) => {
-                                      if (newValue === null) return;
-                                      try {
-                                        await writeGoogleSheet(GULLINBURSTI_SPREADSHEET_ID, cellRef(GULLINBURSTI_COLUMNS.CHAT_ACTIVITY, sailor.sourceRowIndex), [[String(newValue)]]);
-                                        setSnackbar({ open: true, message: `${sailor.name} activity → ${newValue}★`, severity: 'success' });
-                                        await refreshData();
-                                      } catch (err) {
-                                        setSnackbar({ open: true, message: `Failed to update: ${err instanceof Error ? err.message : 'Unknown error'}`, severity: 'error' });
-                                      }
-                                    }}
-                                    sx={{ 
-                                      display: 'inline-flex',
-                                      cursor: 'pointer',
-                                      '& .MuiRating-iconFilled': {
-                                        color: '#FFD700',
-                                      },
-                                      '& .MuiRating-iconEmpty': {
-                                        color: theme.palette.mode === 'dark' ? '#444' : '#ddd',
-                                      },
-                                    }}
-                                  />
-                                </Box>
+                                <Tooltip title="Click to rate activity" arrow>
+                                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <Rating
+                                      value={starCount}
+                                      size="small"
+                                      onChange={async (_e, newValue) => {
+                                        if (newValue === null) return;
+                                        try {
+                                          await writeGoogleSheet(GULLINBURSTI_SPREADSHEET_ID, cellRef(GULLINBURSTI_COLUMNS.CHAT_ACTIVITY, sailor.sourceRowIndex), [[String(newValue)]]);
+                                          setSnackbar({ open: true, message: `${sailor.name} activity → ${newValue}★`, severity: 'success' });
+                                          await refreshData();
+                                        } catch (err) {
+                                          setSnackbar({ open: true, message: `Failed to update: ${err instanceof Error ? err.message : 'Unknown error'}`, severity: 'error' });
+                                        }
+                                      }}
+                                      sx={{ 
+                                        display: 'inline-flex',
+                                        cursor: 'pointer',
+                                        '& .MuiRating-iconFilled': {
+                                          color: '#FFD700',
+                                        },
+                                        '& .MuiRating-iconEmpty': {
+                                          color: theme.palette.mode === 'dark' ? '#444' : '#ddd',
+                                        },
+                                      }}
+                                    />
+                                  </Box>
+                                </Tooltip>
                               </TableCell>
 
                               {/* Notes */}
